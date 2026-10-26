@@ -4,10 +4,11 @@
  *  - Pages (navigation): network first, so a new version shows up on the next visit; offline, the cached one.
  *  - Everything else (code, models, sounds, images, fonts): served from the cache at once and refreshed in
  *    the background (stale-while-revalidate). The game becomes playable offline after one full session.
- *  - Partial requests (Range) go straight to the network: the asset checker reads only the first bytes.
+ *  - Partial requests (Range) go straight to the network, and only complete answers (200) are stored: a
+ *    4-byte partial answer once got stored as a whole model and broke the game on GitHub Pages (v1).
  * Bump VERSION to drop every old cache.
  */
-const VERSION = 'shinichi-v1';
+const VERSION = 'shinichi-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './paw.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -51,7 +52,7 @@ self.addEventListener('fetch', (event) => {
       cache.match(req).then((hit) => {
         const fresh = fetch(req)
           .then((res) => {
-            if (res.ok || res.type === 'opaque') cache.put(req, res.clone());
+            if (res.status === 200 || res.type === 'opaque') cache.put(req, res.clone());
             return res;
           })
           .catch(() => hit || Response.error());

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -8,8 +8,10 @@ import { ASSETS, assetUrl, type AssetName } from './catalog';
 
 /**
  * Loads a model from the asset catalog, or draws `fallback` (the procedural version) when the
- * .glb is not there. Missing files are detected by reading the first bytes and checking the
- * glTF signature: dev servers answer unknown paths with index.html, not 404.
+ * .glb is not there. Missing files are detected with a HEAD request: a missing path answers 404, or,
+ * on dev servers, 200 with index.html, so anything served as HTML counts as missing.
+ * (It used to read the first 4 bytes with a Range request. On GitHub Pages that 4-byte answer ended up
+ * stored as the whole model, and the loader then failed with "Invalid DataView length".)
  */
 
 const probes = new Map<AssetName, Promise<boolean>>();
@@ -18,11 +20,9 @@ const known = new Map<AssetName, boolean>();
 function probe(name: AssetName): Promise<boolean> {
   let p = probes.get(name);
   if (!p) {
-    p = fetch(assetUrl(name), { headers: { Range: 'bytes=0-3' } })
-      .then((r) => (r.ok ? r.arrayBuffer() : new ArrayBuffer(0)))
-      .then((buf) => {
-        const b = new Uint8Array(buf.slice(0, 4));
-        const ok = b.length === 4 && b[0] === 0x67 && b[1] === 0x6c && b[2] === 0x54 && b[3] === 0x46; // "glTF"
+    p = fetch(assetUrl(name), { method: 'HEAD' })
+      .then((r) => {
+        const ok = r.ok && !(r.headers.get('content-type') ?? '').includes('text/html');
         known.set(name, ok);
         return ok;
       })
@@ -105,6 +105,26 @@ function LoadedModel({ name, fitWidth, yOffset = 0 }: { name: AssetName; fitWidt
   );
 }
 
+/**
+ * One model that fails to download or parse (a cut-off file, a flaky connection) shows its procedural
+ * version instead of taking the whole game down with it.
+ */
+export class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.warn('[Shinichi] modelo não carregou; usando a versão procedural:', error.message);
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
 interface AssetProps {
   name: AssetName;
   /** The procedural version, used until (or unless) the .glb exists. */
@@ -121,9 +141,11 @@ export function Asset({ name, fallback, position, rotation, fitWidth, yOffset }:
   if (!available) return <>{fallback}</>;
   return (
     <group position={position} rotation={rotation} userData={{ dynamic: true }}>
-      <Suspense fallback={null}>
-        <LoadedModel name={name} fitWidth={fitWidth} yOffset={yOffset} />
-      </Suspense>
+      <ModelBoundary fallback={fallback}>
+        <Suspense fallback={null}>
+          <LoadedModel name={name} fitWidth={fitWidth} yOffset={yOffset} />
+        </Suspense>
+      </ModelBoundary>
     </group>
   );
 }

@@ -15,7 +15,7 @@ import { emit } from '../../systems/events';
 import { Suspense } from 'react';
 import { Critter } from './Critter';
 import { VillagerModel, VILLAGER_ASSETS, type VillagerMood } from './VillagerModel';
-import { useAssetAvailable } from '../assets/AssetModel';
+import { useAssetAvailable, ModelBoundary } from '../assets/AssetModel';
 import { Toon, Ink } from '../materials';
 import { blobMaterial } from './contactBlob';
 
@@ -267,9 +267,11 @@ function NPCBody({ npc }: { npc: NPCDefinition }) {
         {/* the procedural doll lies down to sleep; the rigged Neko dozes standing up (sleepy lids and nodding) */}
         <group rotation={sleeping && !hasModel ? [0, 0, Math.PI / 2] : [0, 0, 0]} position={sleeping && !hasModel ? [0.55, 0.3, 0] : [0, 0, 0]}>
           {hasModel && castAsset ? (
-            <Suspense fallback={<Critter look={npc.look} armsRef={arms} />}>
-              <VillagerModel name={castAsset} mood={mood} scale={1.3 * scale} />
-            </Suspense>
+            <ModelBoundary fallback={<Critter look={npc.look} armsRef={arms} />}>
+              <Suspense fallback={<Critter look={npc.look} armsRef={arms} />}>
+                <VillagerModel name={castAsset} mood={mood} scale={1.3 * scale} />
+              </Suspense>
+            </ModelBoundary>
           ) : (
             <Critter look={npc.look} armsRef={arms} />
           )}
