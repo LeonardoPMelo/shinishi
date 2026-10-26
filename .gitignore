@@ -5,3 +5,6 @@ dist/
 # generated captures and Blender renders: regenerable, large, kept on disk but not versioned
 tools/art-staging/
 docs/renders/
+# personal: the birthday art shows the child's name; kept on this computer only, never published
+public/assets/ui/birthday.webp
+references/concept/06-birthday.webp

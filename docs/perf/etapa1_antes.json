@@ -1,0 +1,9 @@
+{
+  "quando": "2026-10-24, antes da Etapa 1",
+  "maquina": "AMD Radeon Vega 8 integrada, 8 núcleos, 8 GB; janela 1366x600; dev server; qualidade automática fixada no degrau 0",
+  "gpu_ms": {"praca":40.61,"mercado":67.14,"rio_ponte":42.61,"floresta":38.34,"bairro_leste":72.22,"bambuzal":51.93,"bosque":21.33,"templo":23.86},
+  "triangulos_mil": {"praca":2490,"mercado":2780,"rio_ponte":1983,"floresta":1748,"bairro_leste":2695,"bambuzal":2821,"bosque":1320,"templo":1300},
+  "draw_calls": {"praca":1424,"mercado":1269,"rio_ponte":851,"floresta":633,"bairro_leste":1615,"bambuzal":1663,"bosque":421,"templo":614},
+  "cena": {"meshes":2014,"materials":1597,"geometries":1868,"textures":242,"programs":77,"heapMB":508},
+  "fps_reais": {"dev_praca":"25 fps (p50 33 ms, p95 66 ms)","producao":"18-21 fps no degrau 6 de 7"}
+}

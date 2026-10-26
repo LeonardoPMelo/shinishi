@@ -1,0 +1,16 @@
+{
+  "data": "2026-10-24",
+  "build": "producao (vite preview :4174)",
+  "viewport": "1366x700",
+  "bench_calls_degrau0": {"praca": 614, "mercado": 464, "rio_ponte": 305, "floresta": 262, "bairro_leste": 570, "bambuzal": 540, "bosque": 211, "templo": 374},
+  "fps_auto": [
+    {"t": 19, "fps": 31, "p50": 33.3, "p95": 33.5, "lvl": 2}, {"t": 24, "fps": 34, "p50": 33.3, "p95": 50, "lvl": 2},
+    {"t": 29, "fps": 36, "p50": 33.2, "p95": 33.4, "lvl": 3}, {"t": 34, "fps": 37, "p50": 16.8, "p95": 33.4, "lvl": 4},
+    {"t": 47, "fps": 42, "p50": 16.7, "p95": 33.4, "lvl": 5}, {"t": 54, "fps": 45, "p50": 16.7, "p95": 33.4, "lvl": 5},
+    {"t": 61, "fps": 44, "p50": 16.7, "p95": 33.4, "lvl": 6}, {"t": 68, "fps": 47, "p50": 16.7, "p95": 33.4, "lvl": 6},
+    {"t": 75, "fps": 45, "p50": 16.7, "p95": 33.4, "lvl": 6}
+  ],
+  "fps_alta_fixa": [{"t": 28, "fps": 25, "p50": 33.4, "p95": 66.5}, {"t": 34, "fps": 25, "p50": 33.4, "p95": 50.2}],
+  "cpu_dev_degrau6_ms_por_quadro": {"raf": 17.8, "gl_render": 13.7, "fisica_antes": 3.5, "fisica_depois": 2.5, "updateMatrixWorld": 3.3},
+  "meta_45fps_degrau_ate_2": false
+}

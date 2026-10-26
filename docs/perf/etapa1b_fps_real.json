@@ -1,0 +1,17 @@
+{
+  "data": "2026-10-24",
+  "build": "producao (vite preview :4174)",
+  "maquina": "AMD Radeon Vega 8 integrada, ANGLE/D3D11",
+  "viewport": "1366x700",
+  "inicio": "qualidade auto, degrau 0, ponto inicial apos Comecar aventura",
+  "amostras": [
+    {"t": 19, "fps": 21, "lvl": 2}, {"t": 24, "fps": 23, "lvl": 2}, {"t": 29, "fps": 26, "lvl": 3},
+    {"t": 34, "fps": 35, "lvl": 4}, {"t": 39, "fps": 38, "lvl": 4}, {"t": 44, "fps": 30, "lvl": 5},
+    {"t": 49, "fps": 32, "lvl": 6},
+    {"t": 83, "fps": 38, "p50": 33.1, "p95": 50, "lvl": 6, "heapMB": 489},
+    {"t": 91, "fps": 40, "p50": 16.7, "p95": 49.9, "lvl": 6, "heapMB": 479},
+    {"t": 99, "fps": 39, "p50": 16.8, "p95": 50, "lvl": 6, "heapMB": 490},
+    {"t": 107, "fps": 30, "p50": 33.3, "p95": 66.6, "lvl": 6, "heapMB": 232}
+  ],
+  "meta_45fps_degrau_ate_2": false
+}

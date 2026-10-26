@@ -1,0 +1,41 @@
+{
+  "sfx": {
+    "blip": "sfx/blip.ogg",
+    "challenge_correct": "sfx/challenge_correct.ogg",
+    "challenge_wrong": "sfx/challenge_wrong.ogg",
+    "chest": "sfx/chest.ogg",
+    "chime": "sfx/chime.ogg",
+    "coin": "sfx/coin.ogg",
+    "denied": "sfx/denied.ogg",
+    "flop": "sfx/flop.ogg",
+    "gem": "sfx/gem.ogg",
+    "item": "sfx/item.ogg",
+    "jump": "sfx/jump.ogg",
+    "kick": "sfx/kick.ogg",
+    "land": "sfx/land.ogg",
+    "mechanism": "sfx/mechanism.ogg",
+    "ring": "sfx/ring.ogg",
+    "step_grass": "sfx/step_grass.ogg",
+    "step_stone": "sfx/step_stone.ogg",
+    "step_wood": "sfx/step_wood.ogg",
+    "target_hit": "sfx/target_hit.ogg",
+    "temple_bell": "sfx/temple_bell.ogg",
+    "thwack": "sfx/thwack.ogg",
+    "ui_close": "sfx/ui_close.ogg",
+    "ui_open": "sfx/ui_open.ogg",
+    "ui_select": "sfx/ui_select.ogg",
+    "wish": "sfx/wish.ogg"
+  },
+  "music": {
+    "comic": "music/comic.mp3",
+    "emotional": "music/emotional.ogg",
+    "festival": "music/festival.mp3",
+    "forest": "music/forest.ogg",
+    "investigation": "music/investigation.ogg",
+    "menu": "music/menu.ogg",
+    "puzzle": "music/puzzle.mp3",
+    "secret": "music/secret.ogg",
+    "training": "music/training.webm",
+    "village": "music/village.ogg"
+  }
+}

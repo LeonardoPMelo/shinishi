@@ -1,0 +1,10 @@
+{
+  "quando": "2026-10-24, fim da Etapa 1",
+  "maquina": "a mesma (Vega 8, 1366x600, dev server, degrau 0)",
+  "aviso": "A GPU aqueceu durante a sessão: o quadro vazio (controle) foi de 6,3-7,2 ms no início para 9,1 ms no fim. As medidas finais estão ~30% infladas em relação à base; a coluna 'melhor_medida' é a menor de várias rodadas desta etapa.",
+  "gpu_ms_melhor_medida": {"praca":38.6,"mercado":36.0,"rio_ponte":25.3,"floresta":24.2,"bairro_leste":38.0,"bambuzal":38.2,"bosque":18.4,"templo":21.0},
+  "gpu_ms_base":          {"praca":40.6,"mercado":67.1,"rio_ponte":42.6,"floresta":38.3,"bairro_leste":72.2,"bambuzal":51.9,"bosque":21.3,"templo":23.9},
+  "cena": {"materials":1456,"heapMB_base":508,"heapMB_depois":"299-326","triangulos_praca_mil":"2490 -> ~2000","draw_calls_praca":"1424 -> ~1120"},
+  "custos_isolados_praca_a_1_4_da_resolucao_sem_sombra_ms": {"pos_processamento":6.3,"cena_estatica_mesclada":1.4,"personagens":7.9,"objetos_soltos":6.7,"vegetacao_instanciada":3.5,"decoracao_animada":3.1,"sprites":1.9,"contornos_agua":1.9},
+  "outros": {"sombra_ms":6,"bloom_ms":6,"copas_ms_antes_depois":"10.6 -> ~1"}
+}
