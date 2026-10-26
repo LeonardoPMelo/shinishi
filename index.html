@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/paw.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Shinichi — O Caminho do Gato Ninja" />
+    <meta name="theme-color" content="#1A1226" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <title>Shinichi — O Caminho do Gato Ninja</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="preload" as="image" href="/assets/ui/hero-vila.webp" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #1A1226;
+        font-family: 'Nunito', 'Segoe UI', sans-serif;
+      }
+      /* shown instead of a blank page when the game cannot start (see the script below) */
+      #boot-help {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        overflow: auto;
+        padding: 32px 16px;
+        color: #FFF6E4;
+        background: #1A1226;
+        line-height: 1.5;
+      }
+      #boot-help .card { max-width: 620px; margin: 0 auto; }
+      #boot-help h1 { font-size: 1.6rem; color: #FFC93C; margin-bottom: 12px; }
+      #boot-help p, #boot-help li { margin-bottom: 10px; }
+      #boot-help ol { padding-left: 22px; }
+      #boot-help code { background: #2E2340; padding: 2px 6px; border-radius: 5px; font-family: Consolas, monospace; }
+      #boot-help small { opacity: 0.7; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="boot-help" role="alert"></div>
+    <script>
+      // The game is a Vite app: its code (TypeScript + JSX) and its 3D models need an HTTP server. Opened by
+      // double-clicking index.html (file://) the browser can run none of it and the page stayed blank.
+      (function () {
+        var box = document.getElementById('boot-help');
+        function show(html) {
+          box.innerHTML = '<div class="card">' + html + '</div>';
+          box.style.display = 'block';
+        }
+        var steps =
+          '<ol>' +
+          '<li>Na pasta <code>shinichi-game</code>, dê dois cliques em <code>Jogar.cmd</code>.</li>' +
+          '<li>Ou, num terminal aberto nessa pasta: <code>npm install</code> (só na primeira vez) e depois <code>npm run dev</code>.</li>' +
+          '<li>O navegador abre o jogo sozinho; o endereço também aparece no terminal (normalmente <code>http://localhost:5173</code>).</li>' +
+          '</ol>';
+        if (location.protocol === 'file:') {
+          show(
+            '<h1>Shinichi precisa de um servidor para rodar</h1>' +
+            '<p>Este arquivo foi aberto direto do disco (<code>file://</code>). O jogo é feito com Vite, e o navegador não consegue carregar o código e os modelos 3D assim.</p>' +
+            steps +
+            '<p><small>A versão publicada (GitHub Pages) abre direto no navegador, sem instalar nada.</small></p>'
+          );
+          return;
+        }
+        // Anything that stops the game before it draws its first screen: show it instead of a blank page.
+        var failed = false;
+        function fail(reason) {
+          if (failed || window.__shinichiBooted) return;
+          failed = true;
+          show(
+            '<h1>O jogo não conseguiu iniciar</h1>' +
+            '<p>Tente recarregar a página (F5). Se continuar, abra o console do navegador (F12) e anote a mensagem abaixo.</p>' +
+            '<p><code>' + String(reason).replace(/[<>&]/g, '') + '</code></p>' +
+            '<p><small>Para rodar no computador:</small></p>' + steps
+          );
+        }
+        window.addEventListener('error', function (e) { fail(e.message || 'erro ao carregar um arquivo'); });
+        window.addEventListener('unhandledrejection', function (e) { if (!window.__shinichiBooted) fail(e.reason && e.reason.message || e.reason); });
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (!window.__shinichiBooted && (!root || !root.children.length)) fail('o jogo não respondeu em 30 segundos');
+        }, 30000);
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

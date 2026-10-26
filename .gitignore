@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+.vite/
+# generated captures and Blender renders: regenerable, large, kept on disk but not versioned
+tools/art-staging/
+docs/renders/
