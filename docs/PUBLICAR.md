@@ -39,6 +39,18 @@ $env:BASE_PATH="/shinichi-game/"; npm run build; npx vite preview --base /shinic
 Depois abra `http://localhost:4173/shinichi-game/`. No Git Bash, use `MSYS_NO_PATHCONV=1 BASE_PATH=/shinichi-game/ npm run build`, porque o Git Bash converte caminhos que começam com `/`.
 
 ## Publicar no GitHub Pages
+**Publicado em:** https://leonardopmelo.github.io/shinishi/ (repositório `LeonardoPMelo/shinishi`).
+
+**Dia a dia:** faça o commit e rode `git push`. O fluxo testa, compila e publica em ~1 minuto. **Não use "Add files via upload" na página do GitHub:** ele não envia as pastas (`src/`, `public/`, `.github/`), e o site fica sem o jogo.
+
+**Ramos locais:**
+- `main` é exatamente o que está no GitHub.
+- `historico-local` guarda o histórico de desenvolvimento, que contém as artes de aniversário com o nome da criança. **Nunca envie esse ramo.**
+
+As artes `public/assets/ui/birthday.webp` e `references/concept/06-birthday.webp` ficam só neste computador (`.gitignore`). No site, a comemoração usa a arte normal.
+
+**Configuração recomendada:** em Settings → Pages → Source, escolha **GitHub Actions**. Hoje ainda está em "Deploy from a branch", que publica também uma cópia crua (sem compilar) a cada push. As duas publicações disputam o mesmo site, e a crua mostra a tela "O jogo não conseguiu iniciar".
+
 O fluxo já está pronto em `.github/workflows/deploy.yml`. A cada push na branch `main`, ele:
 1. instala;
 2. roda os testes;
