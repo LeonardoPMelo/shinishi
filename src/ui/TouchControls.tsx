@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { input, press } from '../game/systems/input';
 import { useUiSettings } from '../store/uiSettings';
 import { useGameStore } from '../store/gameStore';
+import { usePad } from '../game/systems/gamepad';
 
 const RADIUS = 52;
 
@@ -20,7 +21,9 @@ function useCoarsePointer() {
 export function useTouchUi() {
   const mode = useUiSettings((s) => s.touch);
   const coarse = useCoarsePointer();
-  return mode === 'on' || (mode === 'auto' && coarse);
+  // a game controller in use on a phone or tablet: the on-screen stick and buttons step aside
+  const pad = usePad((s) => s.active);
+  return mode === 'on' || (mode === 'auto' && coarse && !pad);
 }
 
 function Joystick() {

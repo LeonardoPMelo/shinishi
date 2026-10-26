@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useFamilySettings } from '../store/familySettings';
 import { Settings } from './Panels';
 import { useTour } from '../game/systems/tour';
+import { usePad, FACE_LABELS } from '../game/systems/gamepad';
 import './styles.css';
 
 export function MainMenu() {
@@ -10,6 +11,7 @@ export function MainMenu() {
   const player = useGameStore((s) => s.player);
   const childName = useFamilySettings((s) => s.childName);
   const [settings, setSettings] = useState(false);
+  const pad = usePad((s) => (s.connected ? FACE_LABELS[s.style] : null));
   const startedMissions = useGameStore((s) => Object.keys(s.progress.missions).length);
   const hasSave = player.xp > 0 || startedMissions > 0;
 
@@ -54,12 +56,25 @@ export function MainMenu() {
         </div>
 
         <div className="controls-hint">
-          <div className="hint-row">
-            <span className="key">W A S D</span><span>Mover</span>
-            <span className="key">Espaço</span><span>Pular</span>
-            <span className="key">E</span><span>Interagir</span>
-          </div>
-          <div className="hint-row hint-more">Arraste o mouse para girar a câmera · as outras teclas estão em Configurações</div>
+          {pad ? (
+            <>
+              <div className="hint-row">
+                <span className="key">🎮 Controle</span><span>conectado</span>
+                <span className="key">{pad.bottom}</span><span>Pular / confirmar</span>
+                <span className="key">{pad.left}</span><span>Interagir</span>
+              </div>
+              <div className="hint-row hint-more">Analógico esquerdo move, direito gira a câmera · todos os botões em Configurações</div>
+            </>
+          ) : (
+            <>
+              <div className="hint-row">
+                <span className="key">W A S D</span><span>Mover</span>
+                <span className="key">Espaço</span><span>Pular</span>
+                <span className="key">E</span><span>Interagir</span>
+              </div>
+              <div className="hint-row hint-more">Arraste o mouse para girar a câmera · tem controle? Conecte e aperte um botão · teclas em Configurações</div>
+            </>
+          )}
         </div>
 
         <p className="menu-footer">🔈 O som começa quando você clica ou aperta uma tecla. · Feito com ❤️{childName ? ` para ${childName}` : ''}</p>

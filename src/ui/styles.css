@@ -1656,3 +1656,27 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 .crash-card h1 { font-family: 'Bangers', 'Nunito', sans-serif; letter-spacing: 0.03em; color: var(--gold); font-size: 2rem; margin-bottom: 12px; }
 .crash-card p { margin-bottom: 12px; line-height: 1.45; }
 .crash-note { opacity: 0.75; font-size: 0.9rem; }
+
+/* Game controller (systems/gamepad.ts): the selected button is obvious from the couch */
+body.pad-active button:focus, body.pad-active select:focus, body.pad-active input:focus {
+  outline: 4px solid var(--gold);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px rgba(255, 201, 60, 0.35);
+}
+.pad-notice {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 200;
+  padding: 10px 18px; border-radius: 999px; background: rgba(20, 28, 52, 0.9); color: #FFF6E4;
+  font-weight: 800; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); animation: objectiveIn 0.4s ease-out both;
+  max-width: calc(100vw - 32px); text-align: center;
+}
+.pad-map { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 6px; }
+.pad-map td { padding: 4px 6px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); vertical-align: top; }
+.pad-map td:first-child { width: 45%; }
+.pad-map kbd { display: inline-block; padding: 1px 7px; border-radius: 6px; border: 1.5px solid currentColor; font: inherit; font-weight: 800; font-size: 0.82rem; }
+@media (max-width: 760px) {
+  /* phone or tablet with a controller: the ability bar (with the pad's button names) fits beside the minimap */
+  body.pad-active .ability-bar { display: flex; flex-direction: column; right: 8px; bottom: 12px; gap: 4px; }
+  body.pad-active .ability { width: 38px; height: 38px; border-radius: 10px; }
+  body.pad-active .ability-icon { font-size: 1rem; }
+  body.pad-active .ability-key { font-size: 0.6rem; }
+}

@@ -7,6 +7,7 @@ import { abilityState, now, FARO_COOLDOWN, MIADO_COOLDOWN, SHURIKEN_COOLDOWN, DA
 import { press } from '../game/systems/input';
 import { WorldMap } from './WorldMap';
 import { useTouchUi } from './TouchControls';
+import { usePad, FACE_LABELS } from '../game/systems/gamepad';
 import { levelProgress } from '../systems/leveling';
 import { onGameEvent } from '../systems/events';
 import { currentObjective, isFirstSteps } from '../systems/objective';
@@ -54,6 +55,7 @@ function VillageMissions() {
 function NextObjective() {
   const progress = useGameStore((s) => s.progress);
   const touch = useTouchUi();
+  const pad = usePad((s) => (s.active ? FACE_LABELS[s.style] : null));
   const tracked = progress.tracked && progress.missions[progress.tracked]?.status === 'active';
   if (tracked) return null;
   const goal = currentObjective(progress, playerPosition);
@@ -64,8 +66,8 @@ function NextObjective() {
       <div className="hud-mission-kicker">{first ? 'Seu primeiro passo' : 'Próximo passo'}</div>
       <div className="mission-title">{goal.text}</div>
       <p className="objective-how">
-        {first ? 'Siga as patinhas douradas no chão. ' : `Perdeu o rumo? ${touch ? 'Toque em 👃' : 'Aperte 4'} para farejar o caminho. `}
-        Chegando perto, {touch ? 'toque no botão de conversar' : <>aperte <kbd>E</kbd> para conversar</>}.
+        {first ? 'Siga as patinhas douradas no chão. ' : <>Perdeu o rumo? {pad ? <>Aperte <kbd>{pad.top}</kbd></> : touch ? 'Toque em 👃' : 'Aperte 4'} para farejar o caminho. </>}
+        Chegando perto, {pad ? <>aperte <kbd>{pad.left}</kbd> para conversar</> : touch ? 'toque no botão de conversar' : <>aperte <kbd>E</kbd> para conversar</>}.
       </p>
     </div>
   );
@@ -141,6 +143,19 @@ function RewardFly() {
 }
 
 function ControlsBar() {
+  const pad = usePad((s) => (s.active ? FACE_LABELS[s.style] : null));
+  if (pad) {
+    return (
+      <div className="controls-bar" aria-hidden>
+        <span><kbd>🕹️ L</kbd> Mover</span>
+        <span><kbd>🕹️ R</kbd> Câmera</span>
+        <span><kbd>{pad.bottom}</kbd> Pular</span>
+        <span><kbd>{pad.left}</kbd> Interagir</span>
+        <span><kbd>RT</kbd> Correr</span>
+        <span><kbd>LT</kbd> Agachar</span>
+      </div>
+    );
+  }
   return (
     <div className="controls-bar" aria-hidden>
       <span><kbd>WASD</kbd> Mover</span>
@@ -160,32 +175,33 @@ function AbilityBar() {
     const id = window.setInterval(() => force((n) => n + 1), 150);
     return () => window.clearInterval(id);
   }, []);
+  const pad = usePad((s) => (s.active ? FACE_LABELS[s.style] : null));
   const t = now();
   const cd = (readyAt: number, total: number) => Math.max(0, readyAt - t) / total;
 
   const slots = [
     {
-      key: '1', icon: '✴️', name: 'Shuriken de Treino', desc: 'Acerta alvos e mecanismos (passa pelos moradores sem machucar)',
+      key: pad ? 'RB' : '1', icon: '✴️', name: 'Shuriken de Treino', desc: 'Acerta alvos e mecanismos (passa pelos moradores sem machucar)',
       locked: false, cooldown: cd(abilityState.shurikenReadyAt, SHURIKEN_COOLDOWN), active: false, onClick: () => press('shuriken'),
     },
     {
-      key: '2', icon: '💨', name: 'Impulso Ninja', desc: 'Arrancada rápida; funciona uma vez no ar',
+      key: pad ? 'LB' : '2', icon: '💨', name: 'Impulso Ninja', desc: 'Arrancada rápida; funciona uma vez no ar',
       locked: false, cooldown: cd(abilityState.dashReadyAt, DASH_COOLDOWN), active: false, onClick: () => press('dash'),
     },
     {
-      key: '3', icon: '🧪', name: 'Poção de Energia', desc: potions > 0 ? `Mais rápido e pulo mais alto por 10 s (${potions} na mochila)` : 'Nenhuma poção — procure em baús e desafios',
+      key: pad ? '▲' : '3', icon: '🧪', name: 'Poção de Energia', desc: potions > 0 ? `Mais rápido e pulo mais alto por 10 s (${potions} na mochila)` : 'Nenhuma poção — procure em baús e desafios',
       locked: potions === 0, cooldown: 0, active: abilityState.boostUntil > t, count: potions, onClick: () => press('pocao'),
     },
     {
-      key: '4', icon: '👃', name: 'Faro Ninja', desc: 'Revela segredos e mostra patinhas até o objetivo',
+      key: pad ? pad.top : '4', icon: '👃', name: 'Faro Ninja', desc: 'Revela segredos e mostra patinhas até o objetivo',
       locked: !abilities.includes('faro'), cooldown: cd(abilityState.faroReadyAt, FARO_COOLDOWN), active: abilityState.faroUntil > t, onClick: () => press('faro'),
     },
     {
-      key: 'R', icon: '😺', name: 'Miado Ninja', desc: 'Os moradores reagem ao seu miado',
+      key: pad ? pad.right : 'R', icon: '😺', name: 'Miado Ninja', desc: 'Os moradores reagem ao seu miado',
       locked: !abilities.includes('miado'), cooldown: cd(abilityState.miadoReadyAt, MIADO_COOLDOWN), active: false, onClick: () => press('miado'),
     },
     {
-      key: '␣²', icon: '🌀', name: 'Salto Duplo', desc: abilities.includes('double_jump') ? 'Pule de novo no ar (Espaço)' : 'Bloqueado — treine com o Mestre Lótus',
+      key: pad ? `${pad.bottom}²` : '␣²', icon: '🌀', name: 'Salto Duplo', desc: abilities.includes('double_jump') ? 'Pule de novo no ar (Espaço)' : 'Bloqueado — treine com o Mestre Lótus',
       locked: !abilities.includes('double_jump'), cooldown: 0, active: false, passive: true,
     },
   ];

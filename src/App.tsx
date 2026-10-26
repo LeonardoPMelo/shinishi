@@ -12,6 +12,7 @@ import { TouchControls } from './ui/TouchControls';
 import { AudioBridge } from './audio/AudioBridge';
 import { TourOverlay } from './ui/TourOverlay';
 import { useTour } from './game/systems/tour';
+import { installGamepad, usePad } from './game/systems/gamepad';
 import { clearPresses } from './game/systems/input';
 import { useUiSettings, reducedMotion } from './store/uiSettings';
 import './ui/styles.css';
@@ -70,6 +71,20 @@ function GameController() {
   return null;
 }
 
+/**
+ * Game controller (systems/gamepad.ts): starts listening, marks the page while the pad is in use (a visible
+ * focus ring on the selected button) and shows a short notice when one connects or disconnects.
+ */
+function PadBridge() {
+  const active = usePad((s) => s.active);
+  const notice = usePad((s) => s.notice);
+  useEffect(() => installGamepad(), []);
+  useEffect(() => {
+    document.body.classList.toggle('pad-active', active);
+  }, [active]);
+  return notice ? <div className="pad-notice" role="status" aria-live="polite">{notice}</div> : null;
+}
+
 /** Accessibility settings that live on the page itself: text size and the reduced-motion class (Etapa 7). */
 function A11yBridge() {
   const mode = useUiSettings((s) => s.reduceMotion);
@@ -125,6 +140,7 @@ function Game() {
       <AudioBridge />
       <GameController />
       <A11yBridge />
+      <PadBridge />
 
       {phase === 'menu' && !touring && <MainMenu />}
       {touring && <TourOverlay />}

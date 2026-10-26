@@ -6,6 +6,8 @@ export const SPAWN = new THREE.Vector3(0, 1, 3.4);
 export const playerPosition = new THREE.Vector3(0, 0.7, 3.4);
 export const playerFacing = { angle: Math.PI, /** dev: forces the facing (scene captures) */ force: null as number | null };
 export const cameraAngle = { theta: 0, phi: 0.42, distance: 7 };
+/** When the player last turned the camera by something other than the mouse or touch (the gamepad's right stick), in seconds. */
+export const cameraInput = { lastManual: 0 };
 export const playerBody: { current: RapierRigidBody | null } = { current: null };
 /** True while Shinichi stands on something (written by the controller every frame). */
 export const playerGround = { grounded: true };

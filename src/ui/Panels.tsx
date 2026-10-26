@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAudioSettings, type AudioBus } from '../audio/audioSettings';
 import { useFamilySettings } from '../store/familySettings';
 import { useUiSettings, AUTO_LADDER, reducedMotion } from '../store/uiSettings';
+import { usePad, FACE_LABELS } from '../game/systems/gamepad';
 import { MISSIONS, MISSION_ORDER } from '../data/missions';
 import { ITEMS } from '../data/items';
 import { availableSteps } from '../systems/progression';
@@ -251,6 +252,44 @@ function Slider({ label, bus }: { label: string; bus: AudioBus | 'master' }) {
   );
 }
 
+/** Which button does what on the connected controller (or a generic one), plus how to connect it. */
+function PadSection() {
+  const pad = usePad();
+  const f = FACE_LABELS[pad.style];
+  const rows: [string, string][] = [
+    ['Analógico esquerdo ou direcional', 'Mover / escolher nos menus'],
+    ['Analógico direito', 'Girar a câmera'],
+    [f.bottom, 'Pular (duas vezes: salto duplo) / confirmar'],
+    [f.left, 'Interagir / conversar'],
+    [f.top, 'Faro Ninja'],
+    [f.right, 'Miado / voltar nos menus'],
+    ['RB / R1', 'Shuriken'],
+    ['LB / L1', 'Impulso'],
+    ['RT / R2 (ou apertar o analógico esquerdo)', 'Correr'],
+    ['LT / L2', 'Agachar'],
+    ['Direcional para cima', 'Poção'],
+    ['Start / Options', 'Pausa'],
+    ['Select / Share', 'Mapa'],
+  ];
+  return (
+    <section>
+      <h3>🎮 Controle</h3>
+      <p className="setting-note">
+        {pad.connected
+          ? <>Conectado: <b>{pad.name}</b>.</>
+          : 'Nenhum controle detectado. Conecte por cabo ou Bluetooth (no computador ou no celular) e aperte qualquer botão.'}
+      </p>
+      <table className="pad-map">
+        <tbody>
+          {rows.map(([b, what]) => (
+            <tr key={b}><td><kbd>{b}</kbd></td><td>{what}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 export function Settings({ inGame }: { inGame: boolean }) {
   const family = useFamilySettings();
   const ui = useUiSettings();
@@ -300,6 +339,7 @@ export function Settings({ inGame }: { inGame: boolean }) {
         </div>
         <p className="setting-note">WASD mover · Shift correr · C (ou Ctrl) agachar em silêncio · Espaço pular · E interagir · Q faro · R miado · I mochila · J missões · K jornada · M mapa · Esc pausa · roda do mouse aproxima</p>
       </section>
+      <PadSection />
       <section>
         <h3>🧩 Acessibilidade</h3>
         <div className="setting-row">

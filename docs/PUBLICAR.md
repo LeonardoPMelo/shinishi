@@ -74,6 +74,17 @@ Depois disso, cada `git push` publica uma nova versão. Para publicar sem mudar 
 - Todos os arquivos de `public/` (modelos, sons, imagens, ~32 MB) estão no git, então o site publicado tem tudo.
 - O repositório pode ser privado só em planos pagos do GitHub; no plano gratuito, o GitHub Pages exige repositório público.
 
+## Jogar com controle
+O jogo aceita controles de Xbox, PlayStation, Switch Pro e genéricos, por cabo ou Bluetooth, no computador ou no celular (Chrome, Edge, Firefox; no iPhone, Safari). O navegador só reconhece o controle depois que um botão é apertado com a página aberta.
+- O mapa de botões aparece em **Configurações → Controle**. As dicas na tela passam a mostrar os botões do controle conectado (✕ no PlayStation, A no Xbox).
+- **Nos menus, diálogos e desafios:**
+  - direcional ou analógico esquerdo escolhe;
+  - botão de baixo (A ou ✕) confirma;
+  - botão da direita (B ou ○) volta;
+  - Start pausa.
+- **No celular**, com o controle em uso, os botões de toque somem. Tocar na tela traz os botões de volta.
+- **Código:** `src/game/systems/gamepad.ts`. Testes: `tests/gamepad.test.ts`.
+
 ## Instalar como aplicativo (PWA)
 Na versão publicada (ou no `npm run preview`):
 - **Chrome ou Edge no computador:** ícone de instalar na barra de endereço, ou menu ⋮ → "Instalar Shinichi".

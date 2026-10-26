@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
-import { playerPosition, cameraAngle, playerBody, playerFacing } from './playerState';
+import { playerPosition, cameraAngle, playerBody, playerFacing, cameraInput } from './playerState';
 import { useUiSettings } from '../../store/uiSettings';
 import { foliageFade } from '../materials';
 import { PROBES, pickView, type Probe } from './cameraProbe';
@@ -132,7 +132,9 @@ export function ThirdPersonCamera({ active }: Props) {
     // Gentle recentering behind the cat while it moves, unless the player is steering the camera.
     const moved = Math.hypot(playerPosition.x - lastPos.current.x, playerPosition.z - lastPos.current.z) / Math.max(delta, 1e-3);
     lastPos.current.copy(playerPosition);
-    if (performance.now() / 1000 - lastTouched.current > RECENTER_DELAY && moved > 1) {
+    // the gamepad's right stick counts as steering too (see systems/gamepad.ts)
+    const touchedAt = Math.max(lastTouched.current, cameraInput.lastManual);
+    if (performance.now() / 1000 - touchedAt > RECENTER_DELAY && moved > 1) {
       const behind = playerFacing.angle + Math.PI;
       const diff = ((behind - cameraAngle.theta + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
       // running toward the camera: leave it alone instead of swinging around
@@ -158,7 +160,7 @@ export function ThirdPersonCamera({ active }: Props) {
     // once the chosen view is clear again; it never overrides the player while they drag the camera.
     const a = assist.current;
     const baseFree = freeAlong(viewDir(cameraAngle.theta, cameraAngle.phi, probeDir.current));
-    const dragging = isDragging.current || performance.now() / 1000 - lastTouched.current < 0.3;
+    const dragging = isDragging.current || performance.now() / 1000 - touchedAt < 0.3;
     if (!dragging && baseFree < wanted * 0.72) {
       const probes: Probe[] = [{ dTheta: 0, dPhi: 0, free: baseFree }];
       for (const [dT, dP] of PROBES) {

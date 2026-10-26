@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { getInteractable } from './interaction';
 import { press } from './input';
+import { usePad, FACE_LABELS } from './gamepad';
 
 /**
  * Floating "[E] Falar com ..." tag above whatever Shinichi can use right now.
@@ -15,6 +16,7 @@ export function InteractTag() {
   const label = useGameStore((s) => s.nearbyInteractableLabel);
   const phase = useGameStore((s) => s.phase);
   const group = useRef<THREE.Group>(null);
+  const padKey = usePad((s) => (s.active ? FACE_LABELS[s.style].left : null));
 
   useFrame(() => {
     const item = getInteractable(id);
@@ -29,7 +31,7 @@ export function InteractTag() {
     <group ref={group} position={[item.position.x, item.position.y + (item.tagHeight ?? 1.5), item.position.z]}>
       <Html center zIndexRange={[30, 0]} style={{ pointerEvents: 'auto' }}>
         <button className="world-tag" onClick={() => press('interact')} key={id}>
-          <span className="world-tag-key">E</span>
+          <span className="world-tag-key">{padKey ?? 'E'}</span>
           <span>{label}</span>
         </button>
       </Html>
