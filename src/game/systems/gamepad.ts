@@ -135,7 +135,14 @@ function box(el: Element): Box {
   return { x: r.left, y: r.top, w: r.width, h: r.height };
 }
 
+/** The button the pad has selected. Marked with a class too: `:focus` alone does not show while the window
+ *  is not the focused one (a second screen, or the browser's own UI), and the player must always see it. */
+let marked: HTMLElement | null = null;
+
 function focusEl(el: HTMLElement) {
+  if (marked && marked !== el) marked.classList.remove('pad-focus');
+  marked = el;
+  el.classList.add('pad-focus');
   el.focus({ preventScroll: false });
   el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
 }
@@ -261,7 +268,9 @@ function step(t: number) {
   // options after the typing): select its main button, so the first press of the pad acts
   if (layer && usePad.getState().active) {
     const items = focusables(layer);
-    if (items.length && !items.includes(document.activeElement as HTMLElement)) focusEl(firstChoice(items));
+    const current = items.includes(document.activeElement as HTMLElement) ? (document.activeElement as HTMLElement) : null;
+    if (items.length && !current) focusEl(firstChoice(items));
+    else if (current && current !== marked) focusEl(current);
   }
 
   if (playing) {

@@ -1658,10 +1658,11 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 .crash-note { opacity: 0.75; font-size: 0.9rem; }
 
 /* Game controller (systems/gamepad.ts): the selected button is obvious from the couch */
-body.pad-active button:focus, body.pad-active select:focus, body.pad-active input:focus {
-  outline: 4px solid var(--gold);
-  outline-offset: 3px;
-  box-shadow: 0 0 0 7px rgba(255, 201, 60, 0.35);
+body.pad-active button:focus, body.pad-active select:focus, body.pad-active input:focus, body.pad-active .pad-focus {
+  /* navy ring with a gold halo: reads on the cream panels, the orange buttons and the dark HUD alike */
+  outline: 4px solid #1E2A4A;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 9px var(--gold);
 }
 .pad-notice {
   position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 200;
