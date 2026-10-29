@@ -254,7 +254,9 @@ const pipo: NPCDefinition = {
   name: 'Pipo',
   role: 'Filhote brincalhão',
   position: [4.8, 0, 0],
-  speed: 3.4,
+  // 2.4 m/s: the fastest the villagers' walk clip covers at Pipo's size with no foot slide (measured with
+  // gaitFor: 3.4 m/s slid 28%, 2.4 m/s 0%; Etapa 3 da expansão). Still a running kid next to the adults' 1.3.
+  speed: 2.4,
   patrol: [[4.8, 0, 0], [3.4, 0, 3.4], [0, 0, 4.8], [-3.4, 0, 3.4], [-4.8, 0, 0], [-3.4, 0, -3.4], [0, 0, -4.8], [3.4, 0, -3.4]],
   look: { species: 'cat', fur: '#FFFFFF', belly: '#FFFFFF', scale: 0.72, mask: '#E39B4A', stripes: '#2E2A30', accessory: 'kid' },
   voice: 'meow_high',

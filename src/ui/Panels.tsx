@@ -296,6 +296,7 @@ function PadSection() {
     ['RT / R2 (ou apertar o analógico esquerdo)', 'Correr'],
     ['LT / L2', 'Agachar'],
     ['Direcional para cima', 'Poção'],
+    ['Apertar o analógico direito', 'Comemorar (os moradores reagem)'],
     ['Start / Options', 'Pausa'],
     ['Select / Share', 'Mapa'],
   ];
@@ -365,7 +366,7 @@ export function Settings({ inGame }: { inGame: boolean }) {
           <label>Sensibilidade da câmera</label>
           <input type="range" min={30} max={200} value={Math.round(ui.cameraSensitivity * 100)} onChange={(e) => ui.setCameraSensitivity(Number(e.target.value) / 100)} aria-label="Sensibilidade da câmera" />
         </div>
-        <p className="setting-note">WASD mover · Shift correr · C (ou Ctrl) agachar em silêncio · Espaço pular · E interagir · Q faro · R miado · I mochila · J missões · K jornada · M mapa · Esc pausa · roda do mouse aproxima</p>
+        <p className="setting-note">WASD mover · Shift correr · C (ou Ctrl) agachar em silêncio · Espaço pular · E interagir · Q faro · R miado · G comemorar · I mochila · J missões · K jornada · M mapa · Esc pausa · roda do mouse aproxima</p>
       </section>
       <PadSection />
       <section>

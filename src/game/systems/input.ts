@@ -19,7 +19,7 @@ export const input = {
 /** One-shot presses, consumed by whoever handles them. */
 const pressed = new Set<string>();
 
-export type PressKey = 'jump' | 'interact' | 'faro' | 'miado' | 'shuriken' | 'dash' | 'pocao';
+export type PressKey = 'jump' | 'interact' | 'faro' | 'miado' | 'shuriken' | 'dash' | 'pocao' | 'emote';
 
 export function press(key: PressKey) {
   pressed.add(key);
@@ -65,6 +65,8 @@ export function installKeyboard() {
     if (e.code === 'Digit3' || e.code === 'Numpad3') press('pocao');
     if (e.code === 'Digit4' || e.code === 'Numpad4' || e.code === 'KeyQ') press('faro');
     if (e.code === 'KeyR') press('miado');
+    // G: celebrate (an emote the villagers react to, Etapa 3)
+    if (e.code === 'KeyG') press('emote');
   });
   window.addEventListener('keyup', (e) => setKey(e.code, false));
   window.addEventListener('blur', () => {

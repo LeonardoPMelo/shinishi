@@ -100,6 +100,7 @@ export function TouchControls() {
         <button className="touch-btn act" onPointerDown={tap(() => press('interact'))} aria-label="Interagir">E</button>
         <button className="touch-btn small faro" onPointerDown={tap(() => press('faro'))} aria-label="Faro Ninja">👃</button>
         <button className="touch-btn small miado" onPointerDown={tap(() => press('miado'))} aria-label="Miado Ninja">😺</button>
+        <button className="touch-btn small emote" onPointerDown={tap(() => press('emote'))} aria-label="Comemorar">🎉</button>
         <button className="touch-btn small shuriken" onPointerDown={tap(() => press('shuriken'))} aria-label="Shuriken de treino">✴️</button>
         <button className="touch-btn small dash" onPointerDown={tap(() => press('dash'))} aria-label="Impulso Ninja">💨</button>
  <button className={`touch-btn small crouch ${crouch ? 'on' : ''}`} onPointerDown={tap(() => setCrouch((c) => !c))} aria-label="Agachar" aria-pressed={crouch}>🐾</button>

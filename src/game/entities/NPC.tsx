@@ -25,6 +25,12 @@ const npcBlob = blobMaterial(0.42);
 const TALK_RADIUS = 2.6;
 const WALK_SPEED = 1.3;
 
+/** Replies when Shinichi celebrates nearby (emote, key G). */
+const CHEER_REPLIES = [
+  'Isso aí! Que dancinha!', 'Hahaha, comemorando o quê?', 'Também quero! *(dá um pulinho)*',
+  'Que energia!', 'Viva! ...Viva o quê mesmo?', 'Bravo, bravo!',
+];
+
 const MEOW_REPLIES: Record<NPCDefinition['voice'], string[]> = {
   meow: ['Miau pra você também!', 'Isso foi um miado ninja?', 'Hm? Chamou?'],
   meow_low: ['MRRRAU. (Isso foi um olá.)', 'Hmpf. Miado aceito.'],
@@ -114,6 +120,7 @@ function NPCBody({ npc }: { npc: NPCDefinition }) {
   const pace = useRef(0);
   const hop = useRef(0);
   const seenMeow = useRef(-1);
+  const seenEmote = useRef(-1);
   const nextBark = useRef(4 + Math.random() * 8);
   const [bubble, setBubble] = useState<string | null>(null);
   const bubbleUntil = useRef(0);
@@ -216,6 +223,15 @@ function NPCBody({ npc }: { npc: NPCDefinition }) {
       setBubble(lines[Math.floor(Math.random() * lines.length)]);
       bubbleUntil.current = t + 2.6;
       setTimeout(() => emit({ type: 'sfx', name: `voice_${npc.voice}`, position: [worldPos.x, 1, worldPos.z] }), 350 + Math.random() * 250);
+    }
+
+    // React to Shinichi's celebration (emote).
+    const cheer = abilityState.lastEmote;
+    if (cheer.time > seenEmote.current && cheer.position.distanceTo(worldPos) < 8) {
+      seenEmote.current = cheer.time;
+      hop.current = 1;
+      setBubble(CHEER_REPLIES[Math.floor(Math.random() * CHEER_REPLIES.length)]);
+      bubbleUntil.current = t + 2.6;
     }
 
     // Occasional barks when the player walks by.

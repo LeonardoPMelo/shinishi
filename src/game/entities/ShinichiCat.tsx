@@ -337,6 +337,11 @@ export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
           return;
         }
         if (e.type === 'sfx' && e.name === 'shuriken') playOnce('attack', 0.55, 0.06);
+        // the celebration emote (key G): stands up and cheers
+        if (e.type === 'sfx' && e.name === 'giggle') {
+          playOnce('victory', 1.8, 0.15);
+          feel('joy', 1.8);
+        }
         if (e.type === 'sfx' && e.name === 'dash') feel('focus', 0.6);
         if (e.type === 'ability') feel('excited', 2);
         if (e.type === 'missionComplete' || e.type === 'levelUp') playOnce('victory', 2.2, 0.2);

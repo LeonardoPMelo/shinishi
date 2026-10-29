@@ -10,11 +10,15 @@ import { clampToRegions } from '../../data/regions';
 import { playerPosition, playerMotion } from '../systems/playerState';
 import { fenceLayout, FENCE_POST_TOP } from './Ground';
 import {
-  makeRabbit, rabbitStep, makeBird, birdStep, makeButterfly, butterflyStep,
+  makeRabbit, rabbitStep, makeBird, birdStep, makeButterfly, butterflyStep, canPet, petRabbit,
   type Env, type Cat, type Rabbit, type Bird, type Butterfly, type Spot, type Flower,
 } from '../fauna/brains';
 import { rabbitGeometry, birdGeometry, butterflyGeometry, faunaMaterial } from '../fauna/models';
 import { habitat } from '../fauna/habitat';
+import { useInteractable, type Interactable } from '../systems/interaction';
+import { spawnParticles } from '../systems/particles';
+import { emit } from '../../systems/events';
+import { useGameStore } from '../../store/gameStore';
 
 /**
  * The village's small animals (Etapa 4): rabbits, songbirds and butterflies. Behaviour lives in
@@ -168,6 +172,31 @@ export function Fauna() {
     }
   }, [meshes]);
 
+  // Petting (Etapa 3): sneak up to a calm rabbit and press E. One interaction target follows the nearest
+  // rabbit that can be petted; it has no label (no tag, no action) while there is none.
+  const petTarget = useRef<Rabbit | null>(null);
+  const petItem = useMemo<Interactable>(() => ({
+    id: 'fauna-pet-rabbit',
+    position: new THREE.Vector3(0, -50, 0),
+    radius: 1.7,
+    tagHeight: 0.9,
+    label: () => (petTarget.current ? 'Fazer carinho no coelho' : null),
+    onInteract: () => {
+      const r = petTarget.current;
+      if (!r) return;
+      petRabbit(r);
+      petTarget.current = null;
+      spawnParticles('sparkle', [r.x, 0.45, r.z], 10, '#FF8FB1');
+      emit({ type: 'sfx', name: 'purr', position: [r.x, 0.3, r.z] });
+      const store = useGameStore.getState();
+      if (!store.progress.counters.carinhos_coelho) {
+        emit({ type: 'toast', icon: '🐰', text: 'O coelho ficou calminho e confia em você por um tempo. Agachado e devagar, os bichos deixam chegar perto!' });
+      }
+      store.bumpCounter('carinhos_coelho');
+    },
+  }), []);
+  useInteractable(petItem);
+
   const tmp = useMemo(() => ({ m: new THREE.Matrix4(), q: new THREE.Quaternion(), p: new THREE.Vector3(), s: new THREE.Vector3(), e: new THREE.Euler(), cat: { x: 0, z: 0, crouch: false, speed: 0 } as Cat }), []);
   const clock = useRef(0);
 
@@ -197,6 +226,18 @@ export function Fauna() {
       meshes.rabbits.mesh.setMatrixAt(i, m.compose(p, q, s));
       ra.set([r.ears, r.sit, r.sniff, r.groom], i * 4);
     });
+    let pet: Rabbit | null = null;
+    let petDist = Infinity;
+    for (const r of herd.rabbits) {
+      const d = Math.hypot(r.x - cat.x, r.z - cat.z);
+      if (d < petDist && canPet(r, cat)) {
+        pet = r;
+        petDist = d;
+      }
+    }
+    petTarget.current = pet;
+    if (pet) petItem.position.set(pet.x, 0, pet.z);
+    else petItem.position.set(0, -50, 0);
 
     // birds on the ground and perches, then the flock wheeling high over the village
     const ba = meshes.birds.anim.array as Float32Array;

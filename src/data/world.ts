@@ -68,7 +68,13 @@ export const PILLARS: { pos: Vec3; h: number }[] = [
   { pos: [-13.8, 0, 35.4], h: 2.4 },
 ];
 // 1.8 m: out of reach of a single jump (1.5 m), comfortable with the double jump (up to 2.8 m)
-export const TALL_ROCK = { pos: [10, 0, 35] as Vec3, h: 1.8, r: 1.15 };
+/**
+ * The rock the double jump is for (Pata Dourada on top). Was 1.8 m, but a single jump climbed it: its apex
+ * is ~1.52 m and the cat's round capsule rides up an edge ~0.38 m higher (measured, Etapa 3 da expansão).
+ * 2.4 m: out of reach for a single jump (~1.9) and for one with the energy potion (~2.3); a double jump,
+ * with the timing Master Lótus teaches, clears it.
+ */
+export const TALL_ROCK = { pos: [10, 0, 35] as Vec3, h: 2.4, r: 1.15 };
 export const STEPPING_STONES: Vec3[] = [[-12, 0, 21.4], [-12.4, 0, 23], [-12, 0, 24.6]];
 export const FOOTPRINT_PATH: Vec3[] = [
   [-3, 0, 8.6], [-4.6, 0, 9.3], [-6.2, 0, 10.2], [-7.8, 0, 11.2], [-9.2, 0, 12.4],

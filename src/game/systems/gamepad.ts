@@ -14,7 +14,7 @@ import { useUiSettings } from '../../store/uiSettings';
  *
  * Buttons use the "standard" layout, named by position (bottom = A on Xbox, ✕ on PlayStation):
  *   left stick / D-pad move · right stick camera · bottom jump · left interact · top faro · right miado
- *   LB dash · RB shuriken · LT crouch · RT (or L3) run · D-pad up potion · Start pause · Select map
+ *   LB dash · RB shuriken · LT crouch · RT (or L3) run · D-pad up potion · R3 celebrate · Start pause · Select map
  */
 
 /** Button indices of the standard mapping. */
@@ -296,7 +296,7 @@ function step(t: number) {
 
     const actions: [number, PressKey][] = [
       [BTN.BOTTOM, 'jump'], [BTN.LEFT, 'interact'], [BTN.TOP, 'faro'], [BTN.RIGHT, 'miado'],
-      [BTN.LB, 'dash'], [BTN.RB, 'shuriken'], [BTN.UP, 'pocao'],
+      [BTN.LB, 'dash'], [BTN.RB, 'shuriken'], [BTN.UP, 'pocao'], [BTN.R3, 'emote'],
     ];
     for (const [b, k] of actions) if (down(b)) press(k);
 

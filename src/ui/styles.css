@@ -1238,6 +1238,7 @@ kbd {
 .touch-btn.shuriken { right: 10px; bottom: 158px; }
 .touch-btn.dash { right: 72px; bottom: 166px; }
 .touch-btn.pocao { right: 134px; bottom: 120px; }
+.touch-btn.emote { right: 10px; bottom: 220px; }
 body.touch-ui .minimap { display: none; }
 body.touch-ui .ability-bar { display: none; }
 body.touch-ui .interact-prompt { bottom: 190px; }

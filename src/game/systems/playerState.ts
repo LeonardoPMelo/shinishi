@@ -26,11 +26,15 @@ export const abilityState = {
   trail: null as null | { from: THREE.Vector3; to: THREE.Vector3; until: number },
   /** Last time and place Shinichi meowed; NPCs nearby react once per meow. */
   lastMeow: { time: -1, position: new THREE.Vector3() },
+  /** The last celebration (emote, key G): villagers nearby react (NPC.tsx). */
+  lastEmote: { time: -1, position: new THREE.Vector3() },
+  emoteReadyAt: 0,
 };
 
 export const FARO_DURATION = 6;
 export const FARO_COOLDOWN = 12;
 export const MIADO_COOLDOWN = 2.5;
+export const EMOTE_COOLDOWN = 2.2;
 export const SHURIKEN_COOLDOWN = 0.55;
 export const DASH_COOLDOWN = 1.1;
 export const BOOST_DURATION = 10;

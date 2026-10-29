@@ -270,7 +270,7 @@ export function VillagerModel({ name, mood, scale = 1.3 }: { name: AssetName; mo
     // scale). The cast's clips are short-legged (~0.55 m/s); past 1.9× the steps would turn into a
     // shuffle, so the stride lengthens instead (up to 35%). Was a clamp around pace / 1.3, which had
     // the body moving at more than twice the speed of the feet.
-    // villagers who hurry (Pipo runs at 3.4 m/s on the walk clip) get a quicker cadence and a longer reach
+    // villagers who hurry (Pipo runs at 2.4 m/s on the walk clip) get a quicker cadence and a longer reach
     const hurry = m.walkSpeed > 2;
     const gait = gaitFor(m.walkSpeed, { natural: rig.walkGait.natural * scale, gain: rig.walkGait.gain }, hurry ? 3 : 1.9, hurry ? 1.5 : 1.35);
     if (rig.actions.walk && m.walkSpeed > 0.01) rig.actions.walk.timeScale = gait.timeScale;

@@ -39,7 +39,7 @@ export function threatRadius(base: number, cat: Cat) {
 
 // ── Rabbit ──────────────────────────────────────────────────────────────────
 
-export type RabbitMode = 'sniff' | 'hop' | 'rest' | 'groom' | 'alert' | 'flee';
+export type RabbitMode = 'sniff' | 'hop' | 'rest' | 'groom' | 'alert' | 'flee' | 'petted';
 
 export interface Rabbit {
   x: number;
@@ -61,12 +61,31 @@ export interface Rabbit {
   y: number;
   /** Nose twitch phase. */
   sniff: number;
+  /** Seconds left trusting the cat after being petted: it does not flee from it, even standing (Etapa 3). */
+  trust: number;
 }
 
 export const RABBIT = { threat: 3.2, hop: 0.48, fleeHop: 0.95, hopTime: 0.34, fleeHopTime: 0.24 };
 
 export function makeRabbit(x: number, z: number, home: Rabbit['home'], rng: Rng): Rabbit {
-  return { x, z, heading: rng() * TAU, mode: 'sniff', timer: 0.5 + rng() * 2, hopsLeft: 0, fleeing: false, hop: null, home, ears: 0, sit: 0, groom: 0, y: 0, sniff: rng() * 10 };
+  return { x, z, heading: rng() * TAU, mode: 'sniff', timer: 0.5 + rng() * 2, hopsLeft: 0, fleeing: false, hop: null, home, ears: 0, sit: 0, groom: 0, y: 0, sniff: rng() * 10, trust: 0 };
+}
+
+/** reach 1.6: a sneaking cat startles a rabbit inside ~1.22 m (threat 3.2 × 0.38), so the tag shows a step earlier. */
+export const PET = { reach: 1.6, seconds: 2.4, trust: 14 };
+
+/** A calm rabbit (not fleeing, not mid-hop) the cat can reach while sneaking. */
+export function canPet(r: Rabbit, cat: Cat) {
+  return cat.crouch && !r.fleeing && r.mode !== 'hop' && r.mode !== 'petted' && dist(r.x, r.z, cat.x, cat.z) <= PET.reach;
+}
+
+/** Petting: the rabbit sits, ears relaxed, and trusts the cat for a while. */
+export function petRabbit(r: Rabbit) {
+  r.mode = 'petted';
+  r.timer = PET.seconds;
+  r.trust = PET.trust;
+  r.hop = null;
+  r.hopsLeft = 0;
 }
 
 /** Tries a few headings around `angle` (widening) for a hop of `len` the world allows. */
@@ -102,7 +121,10 @@ function startHop(r: Rabbit, cat: Cat, env: Env, rng: Rng) {
 
 export function rabbitStep(r: Rabbit, dt: number, cat: Cat, env: Env, rng: Rng) {
   const d = dist(r.x, r.z, cat.x, cat.z);
-  if (!r.fleeing && d < threatRadius(RABBIT.threat, cat)) {
+  r.trust = Math.max(0, r.trust - dt);
+  // a rabbit that trusts the cat only startles if it comes running
+  const threat = r.trust > 0 ? (cat.speed > 4 ? RABBIT.threat * 0.5 : 0) : threatRadius(RABBIT.threat, cat);
+  if (!r.fleeing && d < threat) {
     // startled: ears up and a run of long hops away from the cat
     r.fleeing = true;
     r.hopsLeft = 4 + Math.floor(rng() * 3);
@@ -151,8 +173,8 @@ export function rabbitStep(r: Rabbit, dt: number, cat: Cat, env: Env, rng: Rng) 
     }
   }
   // pose targets
-  const ears = r.mode === 'rest' ? 0.75 : r.mode === 'groom' ? 0.4 : r.mode === 'hop' && !r.fleeing ? 0.3 : 0;
-  const sit = r.mode === 'alert' ? 1 : r.mode === 'groom' ? 0.7 : 0;
+  const ears = r.mode === 'rest' || r.mode === 'petted' ? 0.75 : r.mode === 'groom' ? 0.4 : r.mode === 'hop' && !r.fleeing ? 0.3 : 0;
+  const sit = r.mode === 'alert' ? 1 : r.mode === 'groom' ? 0.7 : r.mode === 'petted' ? 0.45 : 0;
   r.ears = approach(r.ears, ears, 6, dt);
   r.sit = approach(r.sit, sit, 7, dt);
   r.groom = approach(r.groom, r.mode === 'groom' ? 1 : 0, 6, dt);

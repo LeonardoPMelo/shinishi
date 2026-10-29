@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { input, consume } from '../systems/input';
 import {
   playerPosition, playerFacing, cameraAngle, playerBody, playerGround, playerMotion, abilityState, SPAWN, now,
-  MIADO_COOLDOWN, FARO_COOLDOWN, FARO_DURATION, SHURIKEN_COOLDOWN, DASH_COOLDOWN,
+  MIADO_COOLDOWN, FARO_COOLDOWN, FARO_DURATION, SHURIKEN_COOLDOWN, DASH_COOLDOWN, EMOTE_COOLDOWN,
 } from '../systems/playerState';
 import { throwShuriken } from '../systems/shuriken';
 import { currentObjective } from '../../systems/objective';
@@ -390,6 +390,13 @@ export function Shinichi() {
         const goal = target ? new THREE.Vector3(target[0], 0, target[2]) : null;
         abilityState.trail = goal ? { from: new THREE.Vector3(pos.x, 0, pos.z), to: goal, until: t + FARO_DURATION } : null;
       } else emit({ type: 'sfx', name: 'denied' });
+    }
+    // G / R3 / 🎉: celebrate. Standing on the ground only; the villagers around react (NPC.tsx).
+    if (consume('emote') && s.grounded && t >= abilityState.emoteReadyAt) {
+      abilityState.emoteReadyAt = t + EMOTE_COOLDOWN;
+      abilityState.lastEmote = { time: t, position: playerPosition.clone() };
+      emit({ type: 'sfx', name: 'giggle' });
+      spawnParticles('sparkle', [pos.x, pos.y + 0.6, pos.z], 10, '#FFD54A');
     }
     if (consume('miado') && t >= abilityState.miadoReadyAt) {
       abilityState.miadoReadyAt = t + MIADO_COOLDOWN;
