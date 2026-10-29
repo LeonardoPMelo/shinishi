@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ABILITY_INFO } from '../data/abilities';
 import { onGameEvent, type GameEvent } from '../systems/events';
 import { MISSIONS } from '../data/missions';
 import { ITEMS } from '../data/items';
@@ -27,7 +28,10 @@ function toToast(e: GameEvent): Omit<Toast, 'id'> | null {
       const item = ITEMS[e.itemId];
       return item ? { icon: item.icon, text: `${item.name}${e.amount > 1 ? ` ×${e.amount}` : ''}`, tone: 'plain' } : null;
     }
-    case 'ability': return { icon: '🌀', text: 'Nova técnica: Salto Duplo! Pule de novo no ar.', tone: 'blue' };
+    case 'ability': {
+      const a = ABILITY_INFO[e.abilityId];
+      return a ? { icon: a.icon, text: `Nova técnica: ${a.name}! ${a.does[0].toUpperCase()}${a.does.slice(1)}`, tone: 'blue' } : null;
+    }
     case 'secret': return { icon: '✨', text: 'Segredo descoberto!', tone: 'blue' };
     case 'toast': return { icon: e.icon ?? '💬', text: e.text, tone: 'plain' };
     default: return null;

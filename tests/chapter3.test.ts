@@ -55,8 +55,9 @@ describe('capítulo 3: respostas', () => {
 });
 
 describe('capítulo 3: missões', () => {
-  it('a campanha tem 33 missões (31 + 2 dos interiores), 7 delas no capítulo 3 (e 1 no 4); as dos bairros novos ficam no cap. 2', () => {
-    expect(MISSION_ORDER).toHaveLength(33);
+  it('a campanha tem 38 missões (31 + 2 dos interiores + 5 da Academia e da Sede), 7 delas no capítulo 3 (e 1 no 4); as dos bairros novos ficam no cap. 2', () => {
+    expect(MISSION_ORDER).toHaveLength(38);
+    expect(MISSION_ORDER.filter((id) => MISSIONS[id].chapter === 5)).toEqual(['academia', 'audiencia', 'documentos', 'expedicao', 'pergaminho']);
     for (const id of ['glicinias', 'aguas', 'arvore']) expect(MISSIONS[id].chapter).toBe(2);
     expect(MISSION_ORDER.filter((id) => MISSIONS[id].chapter === 4)).toEqual(['templo']);
     expect(MISSION_ORDER.filter((id) => MISSIONS[id].chapter === 3)).toHaveLength(7);

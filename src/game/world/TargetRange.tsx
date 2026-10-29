@@ -46,7 +46,7 @@ export const RANGE = {
   sign: new THREE.Vector3(3.6, 0, -13.1),
 };
 
-function numberTexture(n: number | null) {
+export function numberTexture(n: number | null) {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const ctx = c.getContext('2d')!;

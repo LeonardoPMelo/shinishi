@@ -29,6 +29,8 @@ const WALK_SPEED = 4.2;
 const RUN_SPEED = 7.2;
 /** Sneaking: slow, low and silent (no footsteps). */
 const CROUCH_SPEED = 1.9;
+/** Crouching with the Passo Leve technique (academy graduation): nearly a walk, still silent. */
+const LIGHT_STEP_SPEED = 3.3;
 const DASH_SPEED = 13;
 const DASH_TIME = 0.2;
 const BOOST_SPEED = 1.3;
@@ -217,7 +219,8 @@ export function Shinichi() {
     const running = !crouching && (input.run || stick > 0.92);
     const t = now();
     const boosted = abilityState.boostUntil > t;
-    const target = m.multiplyScalar((crouching ? CROUCH_SPEED : running ? RUN_SPEED : WALK_SPEED) * intent * (boosted ? BOOST_SPEED : 1));
+    const crouchSpeed = crouching && useGameStore.getState().progress.abilities.includes('passo_leve') ? LIGHT_STEP_SPEED : CROUCH_SPEED;
+    const target = m.multiplyScalar((crouching ? crouchSpeed : running ? RUN_SPEED : WALK_SPEED) * intent * (boosted ? BOOST_SPEED : 1));
     anim.current.crouch = crouching;
     // for the animals: a sneaking cat may come close, a running one scares them from farther (Etapa 4)
     playerMotion.crouch = crouching;

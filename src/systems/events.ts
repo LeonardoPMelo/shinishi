@@ -19,8 +19,19 @@ export type GameEvent =
 type Listener = (e: GameEvent) => void;
 const listeners = new Set<Listener>();
 
+/**
+ * Listeners are sound, notices and effects: one of them failing must never cut the game logic that emitted the
+ * event in half (seen in Etapa 5: a broken notice stopped a mission's completion between paying the rewards
+ * and starting the next mission). The error is still reported.
+ */
 export function emit(e: GameEvent) {
-  listeners.forEach((l) => l(e));
+  listeners.forEach((l) => {
+    try {
+      l(e);
+    } catch (err) {
+      console.error('[eventos] um ouvinte falhou em', e.type, err);
+    }
+  });
 }
 
 export function onGameEvent(l: Listener) {

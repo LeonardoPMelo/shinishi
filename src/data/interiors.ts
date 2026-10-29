@@ -1,4 +1,4 @@
-import type { Challenge, Item, Mission, NPCDefinition, Vec3 } from '../types';
+import type { Challenge, Condition, Item, Mission, NPCDefinition, Vec3 } from '../types';
 import type { WorldObject } from './world';
 import type { Rect } from './regions';
 
@@ -15,7 +15,11 @@ import type { Rect } from './regions';
 
 export type PropKind =
   | 'balcao' | 'fogao' | 'mesa_baixa' | 'almofada' | 'prateleira' | 'barril' | 'aquario' | 'lanterna'
-  | 'relogio' | 'bancada' | 'estante' | 'movel_coberto' | 'tapete' | 'teia' | 'janela' | 'quadro_receitas';
+  | 'relogio' | 'bancada' | 'estante' | 'movel_coberto' | 'tapete' | 'teia' | 'janela' | 'quadro_receitas'
+  // Etapa 5: the academy and Mikage's residence (game/world/interiorProps.tsx)
+  | 'plataforma' | 'viga' | 'quadro_negro' | 'estandarte' | 'boneco' | 'suporte_bastoes' | 'vaso_bambu'
+  | 'pedestal' | 'quadro_pistas' | 'dais' | 'pilar' | 'emblema' | 'biombo' | 'mesa_mapa' | 'mesa_escritorio'
+  | 'lagoa' | 'lanterna_pedra' | 'bonsai' | 'rocha' | 'mesa_conselho' | 'estatua_guardia';
 
 export interface Prop {
   kind: PropKind;
@@ -26,6 +30,30 @@ export interface Prop {
   /** Wall props: which wall they hang on. */
   wall?: 'n' | 's' | 'e' | 'w';
   color?: string;
+  /** Footprint (x, z) in metres, for props that come in sizes (platforms, beams, rugs, ponds). */
+  size?: [number, number];
+  /** Height of the top (platforms, beams, the dais). */
+  h?: number;
+}
+
+/**
+ * An inner wall, straight along x or z, from one point to another (room coordinates), with doorways cut in it.
+ * Drawn lower than the room (the camera looks over it) but solid all the way up.
+ */
+export interface Partition {
+  from: [number, number];
+  to: [number, number];
+  /** Doorways: centre along the wall (the x or z that varies) and width. */
+  gaps?: { at: number; w: number }[];
+}
+
+/** A rectangle in room coordinates: [minX, minZ, maxX, maxZ]. */
+export type RoomRect = [number, number, number, number];
+
+/** A part of the floor with its own ground: a garden lawn, gravel, tatami, nightingale boards. */
+export interface FloorPatch {
+  rect: RoomRect;
+  kind: 'grama' | 'cascalho' | 'tatami' | 'pedra' | 'rouxinol';
 }
 
 export interface InteriorDef {
@@ -43,6 +71,15 @@ export interface InteriorDef {
   /** The house outside: centre, turn, width and depth, as built in world/Buildings.tsx (the door is on its +z side). */
   house: { c: [number, number]; rot: number; w: number; d: number };
   props: Prop[];
+  /** Inner walls (big buildings with several rooms). */
+  partitions?: Partition[];
+  floors?: FloorPatch[];
+  /** Named parts of the building, shown in the HUD while the cat is in them. */
+  areas?: { name: string; rect: RoomRect }[];
+  /** Camera inside (bigger buildings need it higher and farther). */
+  view?: { phi: number; distance: number };
+  /** The door outside only opens while this holds; otherwise it says why. */
+  lock?: { unless: Condition; label: string; text: string };
 }
 
 export const INTERIORS: InteriorDef[] = [
@@ -101,6 +138,160 @@ export const INTERIORS: InteriorDef[] = [
       { kind: 'janela', at: [-3.5, 0.2], wall: 'w' },
     ],
   },
+  // ── Etapa 5: the Ninja Academy, inside the dojo on the plaza's north-east ──
+  {
+    id: 'academia',
+    name: 'Academia Ninja',
+    origin: [260, 0],
+    size: { w: 17, d: 13, h: 3.0 },
+    floor: '#A8794E',
+    wall: '#F4EBDD',
+    wainscot: '#6E4A33',
+    light: '#FFE2B0',
+    house: { c: [9.5, -10], rot: -0.35, w: 4.8, d: 4 },
+    view: { phi: 0.86, distance: 7.4 },
+    partitions: [
+      // hall | numbers room
+      { from: [-3, 0], to: [-3, 6.5], gaps: [{ at: 4.0, w: 1.6 }] },
+      // numbers room | logic room
+      { from: [-8.5, 0], to: [-1.2, 0], gaps: [{ at: -5.75, w: 1.4 }] },
+      // the nightingale corridor, between the logic room and the yard
+      { from: [-1.2, -6.5], to: [-1.2, 0] },
+      { from: [1.2, -6.5], to: [1.2, 0] },
+    ],
+    floors: [
+      { rect: [-8.5, 0, -3, 6.5], kind: 'tatami' },
+      { rect: [-1.2, -5.4, 1.2, -0.4], kind: 'rouxinol' },
+      { rect: [1.2, -6.5, 8.5, 6.5], kind: 'cascalho' },
+    ],
+    areas: [
+      { name: 'Sala dos Números', rect: [-8.5, 0, -3, 6.5] },
+      { name: 'Sala da Lógica', rect: [-8.5, -6.5, -1.2, 0] },
+      { name: 'Corredor do Rouxinol', rect: [-1.2, -6.5, 1.2, 0] },
+      { name: 'Circuito das Patas', rect: [1.2, -6.5, 8.5, 6.5] },
+      { name: 'Entrada da Academia', rect: [-3, 0, 1.2, 6.5] },
+    ],
+    props: [
+      // circuit (rules and checkpoints in data/academy.ts)
+      { kind: 'plataforma', at: [7.0, 3.0], size: [1.6, 1.6], h: 0.6, color: '#C98A4B' },
+      { kind: 'plataforma', at: [7.0, 0.0], size: [1.6, 1.6], h: 1.2, color: '#B5763E' },
+      { kind: 'viga', at: [7.0, -2.5], size: [0.4, 3.4], h: 1.2 },
+      { kind: 'plataforma', at: [7.0, -5.1], size: [1.4, 1.4], h: 1.2, color: '#B5763E' },
+      // steps sized for a walking jump (~2 m of flight): narrow gaps, wide landings (a 0.8 m step was overshot in play)
+      { kind: 'plataforma', at: [5.2, -5.2], size: [1.4, 1.2], h: 1.5, color: '#9E6534' },
+      { kind: 'plataforma', at: [2.9, -5.2], size: [1.8, 1.6], h: 1.8, color: '#8A5530' },
+      { kind: 'plataforma', at: [4.6, -2.0], size: [1.2, 1.2], h: 2.9, color: '#6E4A33' },
+      { kind: 'boneco', at: [8.0, -6.0] },
+      { kind: 'suporte_bastoes', at: [8.1, 5.6], rot: -Math.PI / 2 },
+      // numbers room
+      { kind: 'quadro_negro', at: [-8.5, 3.2], wall: 'w' },
+      { kind: 'mesa_baixa', at: [-5.2, 2.6] },
+      { kind: 'mesa_baixa', at: [-5.2, 4.9] },
+      { kind: 'almofada', at: [-5.2, 3.3] }, { kind: 'almofada', at: [-5.2, 5.6] },
+      { kind: 'vaso_bambu', at: [-3.6, 6.0] },
+      // logic room
+      { kind: 'quadro_pistas', at: [-8.5, -3.2], wall: 'w' },
+      { kind: 'vaso_bambu', at: [-8.0, -0.6] },
+      // corridor: the scroll at its end
+      { kind: 'pedestal', at: [0, -5.95] },
+      // hall
+      { kind: 'vaso_bambu', at: [-2.5, 0.6] },
+      { kind: 'lanterna', at: [-1, 3.5] },
+      { kind: 'lanterna', at: [-6, 3] },
+      { kind: 'lanterna', at: [-5, -3] },
+      { kind: 'lanterna', at: [5, 1] },
+      { kind: 'janela', at: [-8.5, 5.2], wall: 'w' },
+      { kind: 'janela', at: [8.5, -1.5], wall: 'e' },
+    ],
+  },
+  // ── Etapa 5: the residence and seat of Mikage, behind the great gate at the far (south) end of the Training Forest ──
+  {
+    id: 'sede',
+    name: 'Sede de Mikage',
+    origin: [300, 0],
+    size: { w: 22, d: 20, h: 3.2 },
+    floor: '#8E6542',
+    wall: '#F1E6D2',
+    wainscot: '#3D3552',
+    light: '#FFE6B8',
+    house: { c: [-9, 62.6], rot: Math.PI, w: 3, d: 1.6 },
+    view: { phi: 0.9, distance: 8.2 },
+    lock: {
+      unless: { flag: 'acesso_sede' },
+      label: 'Portão da Sede (fechado)',
+      text: 'O portão está fechado. O Guarda Toshi deixa entrar quem se formou na Academia Ninja (no dojô, perto da praça).',
+    },
+    partitions: [
+      // front of the main building: the hall in the middle, a door to each wing
+      { from: [-11, 0], to: [11, 0], gaps: [{ at: 0, w: 2.2 }, { at: -7.5, w: 1.4 }, { at: 7.5, w: 1.4 }] },
+      { from: [-4, -10], to: [-4, 0], gaps: [{ at: -2.5, w: 1.4 }, { at: -7.5, w: 1.4 }] },
+      { from: [4, -10], to: [4, 0], gaps: [{ at: -2.5, w: 1.4 }, { at: -7.5, w: 1.4 }] },
+      { from: [-11, -5], to: [-4, -5] },
+      // library | map room and the reserved room: the secret doorway hides behind a bookcase
+      { from: [4, -5], to: [11, -5], gaps: [{ at: 9.5, w: 1.4 }] },
+      { from: [8, -10], to: [8, -5] },
+    ],
+    floors: [
+      { rect: [-11, 0, -3, 10], kind: 'grama' },
+      { rect: [3, 0, 11, 10], kind: 'cascalho' },
+      { rect: [-3, 0, 3, 10], kind: 'pedra' },
+      { rect: [-4, -10, 4, 0], kind: 'tatami' },
+      { rect: [8, -8.8, 11, -5.6], kind: 'rouxinol' },
+    ],
+    areas: [
+      { name: 'Jardim Ornamental', rect: [-11, 0, -3, 10] },
+      { name: 'Pátio de Treinamento', rect: [3, 0, 11, 10] },
+      { name: 'Portão de Entrada', rect: [-3, 0, 3, 10] },
+      { name: 'Salão de Audiências', rect: [-4, -10, 4, 0] },
+      { name: 'Sala de Reuniões', rect: [-11, -5, -4, 0] },
+      { name: 'Escritório de Mikage', rect: [-11, -10, -4, -5] },
+      { name: 'Biblioteca', rect: [4, -5, 11, 0] },
+      { name: 'Sala de Mapas', rect: [4, -10, 8, -5] },
+      { name: 'Área Reservada', rect: [8, -10, 11, -5] },
+    ],
+    props: [
+      // garden
+      { kind: 'lagoa', at: [-7.5, 5.6], size: [3.2, 2.2] },
+      { kind: 'lanterna_pedra', at: [-4.2, 8.4] },
+      { kind: 'lanterna_pedra', at: [-10.2, 1.6] },
+      { kind: 'bonsai', at: [-10.0, 8.8] },
+      { kind: 'bonsai', at: [-4.8, 1.4] },
+      { kind: 'rocha', at: [-4.6, 3.8] },
+      { kind: 'vaso_bambu', at: [-10.4, 4.6] },
+      // training yard
+      { kind: 'boneco', at: [9.6, 8.6] },
+      { kind: 'boneco', at: [9.6, 6.4] },
+      { kind: 'suporte_bastoes', at: [10.6, 3.0], rot: -Math.PI / 2 },
+      // audience hall
+      { kind: 'dais', at: [0, -8.6], size: [3.4, 1.8], h: 0.35 },
+      { kind: 'emblema', at: [0, -10], wall: 'n' },
+      { kind: 'tapete', at: [0, -4.4], size: [2.0, 6.0], color: '#3D3552' },
+      { kind: 'pilar', at: [-2.8, -2.0] }, { kind: 'pilar', at: [2.8, -2.0] },
+      { kind: 'pilar', at: [-2.8, -6.6] }, { kind: 'pilar', at: [2.8, -6.6] },
+      { kind: 'estandarte', at: [-2.4, -10], wall: 'n' },
+      { kind: 'estandarte', at: [2.4, -10], wall: 'n' },
+      // meeting room
+      { kind: 'mesa_conselho', at: [-7.5, -2.6] },
+      { kind: 'biombo', at: [-10.3, -1.0], rot: Math.PI / 2 },
+      // office
+      { kind: 'mesa_escritorio', at: [-7.5, -8.6] },
+      { kind: 'estante', at: [-10.6, -7.4], rot: Math.PI / 2 },
+      // library: low bookcases against the inner wall (tall ones hid the cat in the map room behind it)
+      { kind: 'estante', at: [5.2, -4.55], h: 1.2 },
+      { kind: 'estante', at: [7.0, -4.55], h: 1.2 },
+      { kind: 'estante', at: [10.55, -2.4], rot: -Math.PI / 2 },
+      // map room
+      { kind: 'mesa_mapa', at: [6.0, -7.6] },
+      // reserved room
+      { kind: 'pedestal', at: [9.5, -9.35] },
+      { kind: 'estatua_guardia', at: [10.4, -6.0] },
+      // light
+      { kind: 'lanterna', at: [0, -4] },
+      { kind: 'lanterna', at: [-7.5, -7.5] },
+      { kind: 'lanterna', at: [7.5, -2.5] },
+      { kind: 'lanterna', at: [6, -7.5] },
+    ],
+  },
 ];
 
 export const INTERIORS_BY_ID: Record<string, InteriorDef> = Object.fromEntries(INTERIORS.map((i) => [i.id, i]));
@@ -142,6 +333,34 @@ export function interiorRect(def: InteriorDef): Rect {
     minZ: def.origin[1] - def.size.d / 2,
     maxZ: def.origin[1] + def.size.d / 2,
   };
+}
+
+/** The wall pieces of a partition once its doorways are cut out: [x0, z0, x1, z1] each (room coordinates). */
+export function partitionSegments(p: Partition): [number, number, number, number][] {
+  const alongX = p.from[1] === p.to[1];
+  const a0 = alongX ? Math.min(p.from[0], p.to[0]) : Math.min(p.from[1], p.to[1]);
+  const a1 = alongX ? Math.max(p.from[0], p.to[0]) : Math.max(p.from[1], p.to[1]);
+  const fixed = alongX ? p.from[1] : p.from[0];
+  const cuts = [...(p.gaps ?? [])].sort((u, v) => u.at - v.at);
+  const out: [number, number, number, number][] = [];
+  let start = a0;
+  for (const g of cuts) {
+    const g0 = g.at - g.w / 2;
+    if (g0 > start) out.push(alongX ? [start, fixed, g0, fixed] : [fixed, start, fixed, g0]);
+    start = g.at + g.w / 2;
+  }
+  if (a1 > start) out.push(alongX ? [start, fixed, a1, fixed] : [fixed, start, fixed, a1]);
+  return out;
+}
+
+/** The named part of a building at a world point (HUD label), or null. */
+export function areaAt(def: InteriorDef, x: number, z: number): string | null {
+  const lx = x - def.origin[0];
+  const lz = z - def.origin[1];
+  for (const a of def.areas ?? []) {
+    if (lx >= a.rect[0] && lx <= a.rect[2] && lz >= a.rect[1] && lz <= a.rect[3]) return a.name;
+  }
+  return null;
 }
 
 export function interiorAt(x: number, z: number): InteriorDef | null {
@@ -299,7 +518,8 @@ export const MIMI: NPCDefinition = {
   id: 'mimi',
   name: 'Mimi',
   role: 'Ajudante da cantina',
-  position: toWorld(C, -1.2, -1.7),
+  // clear of the chest behind the counter (at 1.3 m, E talked to her instead of opening it)
+  position: toWorld(C, -2.0, -1.2),
   faceRotation: 0,
   look: { species: 'cat', fur: '#F2C38B', belly: '#FFF3E0', scale: 0.85, mask: '#C97C3D', eyes: 'round' },
   voice: 'meow_high',

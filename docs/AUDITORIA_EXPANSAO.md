@@ -96,8 +96,10 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 5 | 13 efeitos sonoros sintetizados; música de combate | 9 |
 | 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido | 9 |
 | 7 | Teste com controle físico e celular real | manual |
-| 8 | ~~Interiores~~ (Etapa 4); Mikage, academia, lojas, região selvagem, combate, narrativa | 5–8 |
-| 9 | Mais casas com interior (só a cantina e a casa do relojoeiro têm) | 5–6, conforme as missões pedirem |
+| 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); lojas, região selvagem, combate, narrativa | 6–8 |
+| 9 | Mais casas com interior (cantina, relojoeiro, Academia e Sede têm) | 6–8, conforme as missões pedirem |
+| 10 | A rota escolhida na Expedição (`rota_rio` / `rota_montanha`) precisa mudar o caminho nas terras selvagens | 7 |
+| 11 | Som ambiente próprio da Sede (hoje só a música muda dentro dela) | 9 |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -227,3 +229,80 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 ### Pendências
 - Só duas casas têm interior; as outras continuam fechadas (pendência 9).
 - O "cair do mapa" (y < −5) devolve o gato ao ponto inicial da vila mesmo dentro de uma sala. Nunca aconteceu nos testes (chão e paredes sólidos), mas fica registrado.
+## 8. Registro da Etapa 5 — Mikage e Academia Ninja (2026-10-29)
+
+### Implementado
+| Parte | O que tem e o que dá para fazer |
+|---|---|
+| **Academia Ninja** (no dojô da praça; `data/academy.ts`) | Sala dos Números, Sala da Lógica, Corredor do Rouxinol, pátio do Circuito das Patas e a entrada. Professores novos: **Sumi** (diretora, números e lógica) e **Haru** (movimento e furtividade). Missão **A Academia Ninja**: matrícula → quatro selos, em qualquer ordem → formatura |
+| Selo dos Números | Quadro com 3 problemas, um de cada vez, de dificuldade crescente: sequência (2, 5, 11, 23 → 47), frações dividindo suprimentos (36 − 1/3 − 1/4 = 15) e medidas (3 m 20 cm ÷ 40 cm = 8). Depois, um desafio extra opcional de álgebra (×3 + 4 = 31 → 9) |
+| Selo da Lógica | Alavancas com símbolos (🐟 🌙 🍃 🔔), puxadas na ordem que as pistas permitem, em duas rodadas (3 e 4 peças). Errou: as alavancas voltam e o jogo diz **qual pista** não bateu. Depois, treino livre |
+| Selo do Silêncio | **Chão-rouxinol** (inspirado no Castelo Nijō, em Kyoto): em pé, as tábuas "piam"; no segundo pio, o Haru ouve e o gato volta ao começo. Agachado, passa em silêncio |
+| Selo do Movimento | **Circuito das Patas** com cronômetro na tela: plataformas, viga de equilíbrio, degraus, plataforma alta e volta ao tapete. Rota alternativa pela torre alta, só com o salto duplo. Medalha por tempo (ouro ≤ 13 s, prata ≤ 22 s) e recorde salvo. Cair não zera nada |
+| Formatura | Faixa Índigo da Academia (cosmética, vestível), técnica nova **Passo Leve** (agachado anda a 3,3 m/s em vez de 1,9, ainda em silêncio), medalha "Graduado da Academia" e a **chave da Sede** |
+| **Sede de Mikage** (`data/mikage.ts`) | Portão imponente no fim da Floresta do Treinamento (telhado duplo, postes vermelhos, portas com a pata dourada, que se abrem quando o Guarda Toshi libera). Dentro: Portão de Entrada, Jardim Ornamental (lago de carpas, lanternas de pedra, bonsais, a Pedra do Pacto), Pátio de Treinamento, Salão de Audiências (Mikage sobre o estrado), Sala de Reuniões, Biblioteca, Escritório de Mikage, Sala de Mapas e **Área Reservada** atrás de uma estante secreta. O HUD mostra o nome de cada área |
+| **Mikage** | Personagem original: gato prateado e alto, juba e sobrancelhas brancas, barba, manto índigo com faixa dourada, cajado com sino. Sábio, caloroso e péssimo com papelada. Conta a história da vila: a Grande Cheia e o **Pacto das Patas** ("Ninguém fica para trás. Quem sabe, ensina. Quem erra, tenta de novo"), que liga a Academia à fundação |
+| Moradores novos | Sumi, Haru, Mikage, Toshi (guarda), Yuki (estrategista), Fumi (bibliotecário, tanuki). **Seis modelos Blender novos**, comprimidos como os outros (360–398 KB + LOD) |
+| Missões da Sede | **A Audiência** (Toshi → Mikage). **Os Registros Sumidos**: 3 páginas em 3 salas, cada uma com uma pista, e a dedução final (o culpado é o próprio Mikage, que usava os registros como porta-copos). **A Expedição**: ler coordenadas no mapa (C4 → E1), **decidir a rota no conselho** (rio ou montanha: muda a conta de suprimentos, 9 ou 15 peixes, e o prêmio, Corda Ninja ou Capa Corta-Vento; a escolha fica salva para a região selvagem) e calcular os suprimentos. **O Segredo da Biblioteca**: o poema do catálogo → 5 livros puxados em ordem → a estante desliza → chão-rouxinol da sala reservada → o **Pergaminho da Fundação** → a história contada pelo Mikage |
+| Pátio da Sede | Desafio de precisão opcional: acertar 3 alvos com o shuriken, do menor número para o maior (2, 4, 6) |
+| Coerência | A Academia abre depois do Templo dos Enigmas (vira o **Capítulo 5**, "A Academia e a Sede"). O General Hissui, prometido no aviso do próximo capítulo, aparece como rumor na fala da Yuki |
+
+### Sistemas novos (reutilizáveis)
+- `systems/orderPuzzle.ts`: quebra-cabeça "na ordem certa", com regras em dados (primeiro, último, antes de, logo depois de...). Os testes provam por força bruta que **cada quebra-cabeça tem exatamente uma resposta**, e o jogo confere as regras, não uma resposta guardada.
+- `systems/academy.ts`: circuito com pontos de controle (com rotas alternativas) e o chão-rouxinol.
+- Interiores maiores: paredes internas com portas, áreas nomeadas, pisos (tatame em módulos de 1,8 × 0,9 m, areia rastelada, pedra, grama, tábuas de rouxinol), portas trancadas por condição e câmera própria por construção.
+- `world/cutaway.ts`: **paredes que abaixam** quando ficam entre a câmera e o gato, nas 4 construções. Os colisores continuam inteiros.
+- `data/abilities.ts`: nome, ícone e descrição de cada técnica num lugar só (o aviso de "nova técnica" dizia "Salto Duplo" para qualquer técnica).
+
+### Problemas encontrados no jogo e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| Portão da Sede em cima da escada do Mirante | A primeira posição (norte da praça) passava na checagem física porque a escada ainda está quebrada; ela é consertada na missão da escada | Busca sistemática de espaço livre em todas as bordas, com os colisores; só 3 lugares cabiam. Portão no fim da floresta, ao sul. Teste novo impede voltar |
+| Degraus do circuito impossíveis | Pulando de verdade, o gato passava por cima do degrau de 0,8 m e caía no vão (o pulo andando voa ~2 m) | Degrau de 1,4 m e plataforma alta de 1,8 m, vãos de 0,4–0,7 m. Teste: vão + pouso ≥ 1,8 m |
+| Medalha de ouro fácil demais | Volta limpa medida: 8,4 s, com o ouro em 22 s | Ouro ≤ 13 s, prata ≤ 22 s. O texto do Haru vem das mesmas constantes |
+| Objeto "roubava" a conversa | Perto da Yuki, o E abria o mapa (1,2 m dela); o Fumi com o catálogo; a Mimi (Etapa 4) com o baú da cantina | Moradores afastados. Teste: nenhum objeto a menos de 1,8 m de um morador |
+| Estante secreta abria, mas a passagem continuava fechada | O corpo físico fixo não acompanha a mudança de posição do grupo | O corpo é refeito ao abrir (`key`). Medido: a passagem abre |
+| O gato sumia atrás das paredes internas | Captura da Sala de Mapas | Paredes que abaixam (`cutaway`) e estantes baixas encostadas nas paredes internas |
+| Uma falha num aviso cortava a formatura ao meio | Com um módulo desatualizado no servidor de desenvolvimento, o aviso de técnica nova lançou erro, e a missão seguinte nunca começou | `emit` isola cada ouvinte (o erro é registrado e a lógica do jogo continua). Teste com um ouvinte que lança erro |
+| Areia do pátio parecia manchas | Capturas | Areia rastelada: uma cor e linhas finas |
+
+### Testes
+- `vitest`: **374 passando** (eram 316). São 26 testes novos em `tests/academy.test.ts`; os testes que percorrem todas as missões, moradores e modelos passaram a cobrir também os novos. Os novos cobrem:
+  - cada quebra-cabeça com uma única resposta, e as pistas na tela iguais às regras conferidas;
+  - pontos de controle em cima das plataformas, alcance dos pulos, pouso largo;
+  - largada → chegada, medalhas, sair da área zera;
+  - chão-rouxinol: agachado silencioso, em pé pego, pular não engana;
+  - corredor e sala reservada só acessíveis pelas tábuas e pela porta secreta;
+  - portas internas largas o bastante, entradas e moradores fora das paredes;
+  - áreas nomeadas certas; portão longe do Mirante;
+  - respostas dos desafios conferidas pela conta;
+  - as cinco missões jogadas do começo ao fim com as ações do próprio jogo, as duas rotas da expedição, e a Sumi sem matricular antes do templo;
+  - paredes que abaixam só quando escondem o gato.
+- `tsc` e build ok. O pacote principal cresceu de 682 para 760 KB (gzip 217 → 240 KB).
+- **No jogo (navegador, física real):**
+  - **Academia:**
+    - matrícula e formatura pela interface;
+    - os 3 problemas do quadro digitados;
+    - alavancas: ordem errada (aviso com a pista) e as duas rodadas certas;
+    - corredor: em pé, pego após ~1,5 m e devolvido; agachado, atravessa e pega o pergaminho;
+    - circuito completo com pulos de verdade (cada pouso conferido pela altura dos pés), 8,4 s, selo e recorde.
+  - **Sede:**
+    - portão fechado antes do Toshi, aberto depois;
+    - caminho da entrada até o salão pelas portas internas;
+    - as 4 missões completas: páginas, dedução errada e depois certa, mapa, rota do rio, caixas, livros errados e depois certos, estante bloqueando e depois liberando, chão-rouxinol nos dois jeitos, pergaminho e a história do Mikage;
+    - alvos fora de ordem e depois na ordem (15 moedas uma vez só);
+    - ao sair, o gato aparece no ponto em frente ao portão.
+- Capturas: `docs/expansao/etapa5_*.jpg` (portão fechado e aberto, salão, biblioteca, jardim, sala de mapas, academia, circuito, sala da lógica, elenco).
+
+### Critérios de aceitação
+- **Atendido:** as duas áreas têm interações e atividades jogáveis, não só decoração.
+  - Na Academia: 4 provas (corpo, silêncio, lógica, números), progressão e recompensas (faixa, técnica, medalha, acesso a uma área nova, reconhecimento dos moradores).
+  - Na Sede: 9 ambientes que se percorrem, 4 missões, uma decisão com consequência, uma passagem secreta, um artefato histórico e um desafio opcional.
+- **Verificação manual pedida:**
+  - circuito e chão-rouxinol com teclado, controle e toque, por uma criança (os tempos das medalhas podem precisar de ajuste);
+  - Passo Leve no celular (agachar é o botão 🐾).
+
+### Pendências
+- Som ambiente próprio da Sede e da Academia: hoje só a música muda (treino na Academia, mistério na Sede). Pendência 11.
+- A escolha de rota ainda não altera um caminho físico: isso só existe quando a região selvagem existir (Etapa 7). Pendência 10.
+- Ferramenta de teste: depois de várias edições seguidas, o servidor de desenvolvimento pode servir um módulo desatualizado. Reinicie o servidor antes de testar no navegador.

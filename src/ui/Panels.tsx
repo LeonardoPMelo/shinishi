@@ -9,6 +9,7 @@ import { ITEMS } from '../data/items';
 import { availableSteps } from '../systems/progression';
 import { WorldMap } from './WorldMap';
 import { CHAPTERS, NEXT_CHAPTER_TEASER } from '../data/campaign';
+import { ABILITY_INFO } from '../data/abilities';
 import { SKILLS, SKILL_ORDER, skillStars, nextStarAt } from '../data/skills';
 import { SHOP_OFFERS, OFFERS_BY_ID, unitPrice } from '../data/shop';
 import { useFromBag } from '../game/systems/itemEffects';
@@ -169,7 +170,9 @@ function Inventory() {
         <ul className="tech-list">
           <li>👃 <b>Faro Ninja</b> (Q) — revela itens e segredos por alguns segundos.</li>
           <li>😺 <b>Miado Ninja</b> (R) — os moradores reagem.</li>
-          <li className={progress.abilities.includes('double_jump') ? '' : 'locked'}>🌀 <b>Salto Duplo</b> — {progress.abilities.includes('double_jump') ? 'pule de novo no ar.' : 'aprenda com o Mestre Lótus.'}</li>
+          {Object.entries(ABILITY_INFO).map(([id, a]) => (
+            <li key={id} className={progress.abilities.includes(id) ? '' : 'locked'}>{a.icon} <b>{a.name}</b> — {progress.abilities.includes(id) ? a.does : a.learn}</li>
+          ))}
         </ul>
       </div>
     </div>

@@ -62,7 +62,7 @@ export function enterInterior(id: string) {
   const def = INTERIORS_BY_ID[id];
   if (!def) return;
   // inside, the cat comes in through the south wall and faces north (-z)
-  travel(id, insideDoor(def).spot, Math.PI, INDOOR_VIEW);
+  travel(id, insideDoor(def).spot, Math.PI, def.view ?? INDOOR_VIEW);
 }
 
 /** Back out to the spot in front of the house, facing away from it. */

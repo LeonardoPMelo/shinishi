@@ -13,7 +13,8 @@ import { onGameEvent } from '../systems/events';
 import { currentObjective, isFirstSteps } from '../systems/objective';
 import { playerPosition } from '../game/systems/playerState';
 import { useZone } from '../game/systems/zone';
-import { INTERIORS_BY_ID } from '../data/interiors';
+import { INTERIORS_BY_ID, areaAt } from '../data/interiors';
+import { useTraining } from '../game/systems/training';
 
 /** "Missões da Vila": the followed mission as a checklist (done steps ticked, current ones open). */
 function VillageMissions() {
@@ -229,9 +230,46 @@ function AbilityBar() {
   );
 }
 
+/** Inside: the building's name, or the part of it the cat is in (big buildings have several rooms). */
+function useRoomLabel() {
+  const zone = useZone((s) => s.zone);
+  const [label, setLabel] = useState<string | null>(null);
+  useEffect(() => {
+    const def = zone === 'outdoor' ? null : INTERIORS_BY_ID[zone];
+    if (!def) {
+      setLabel(null);
+      return;
+    }
+    const read = () => setLabel(areaAt(def, playerPosition.x, playerPosition.z) ?? def.name);
+    read();
+    const id = window.setInterval(read, 300);
+    return () => window.clearInterval(id);
+  }, [zone]);
+  return label;
+}
+
+/** The clock of a timed test (the academy circuit). */
+function TrainingTimer() {
+  const startedAt = useTraining((s) => s.startedAt);
+  const label = useTraining((s) => s.label);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (startedAt === null) return;
+    const id = window.setInterval(() => tick((n) => n + 1), 100);
+    return () => window.clearInterval(id);
+  }, [startedAt]);
+  if (startedAt === null) return null;
+  return (
+    <div className="training-timer hud-glass" role="timer" aria-live="off">
+      <b>⏱ {(performance.now() / 1000 - startedAt).toFixed(1)} s</b>
+      <span>{label}</span>
+    </div>
+  );
+}
+
 export function HUD() {
   const player = useGameStore((s) => s.player);
-  const room = useZone((s) => (s.zone === 'outdoor' ? null : INTERIORS_BY_ID[s.zone]?.name ?? null));
+  const room = useRoomLabel();
   const phase = useGameStore((s) => s.phase);
   const openPanel = useGameStore((s) => s.openPanel);
   const muted = useAudioSettings((s) => s.muted);
@@ -273,6 +311,7 @@ export function HUD() {
 
       {/* inside a house: its name where the minimap was (the minimap shows the outdoors) */}
       {phase === 'playing' && room && <div className="room-label hud-glass">📍 {room}</div>}
+      {phase === 'playing' && <TrainingTimer />}
       {phase === 'playing' && !room && (
         <div className="minimap hud-glass" onClick={() => openPanel('map')} title="Abrir mapa (M)">
           <WorldMap size={150} window={34} />

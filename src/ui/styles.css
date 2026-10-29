@@ -1695,3 +1695,7 @@ body.pad-active button:focus, body.pad-active select:focus, body.pad-active inpu
 .door-fade.on { opacity: 1; pointer-events: auto; }
 .room-label { position: fixed; left: 14px; bottom: 14px; z-index: 50; padding: 8px 14px; border-radius: 999px; color: #FFF6E4; font-weight: 800; font-size: 0.95rem; }
 body.touch-ui .room-label { display: none; }
+/* Etapa 5: the clock of the academy circuit (top centre, clear of the minimap and the touch buttons) */
+.training-timer { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 55; padding: 8px 16px; border-radius: 14px; color: #FFF6E4; display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
+.training-timer b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.training-timer span { font-size: 0.82rem; font-weight: 700; opacity: 0.92; }

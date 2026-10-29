@@ -49,6 +49,13 @@ export const VILLAGER_ASSETS: Record<string, AssetName> = {
   hinoki: 'hinoki',
   // Cantina por dentro (Etapa 4 da expansão)
   mimi: 'mimi',
+  // Academia e Sede de Mikage (Etapa 5 da expansão)
+  mikage: 'mikage',
+  sumi: 'sumi',
+  haru: 'haru',
+  toshi: 'toshi',
+  yuki: 'yuki',
+  fumi: 'fumi',
 };
 
 /**

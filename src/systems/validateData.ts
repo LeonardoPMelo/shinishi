@@ -7,6 +7,8 @@ import { WORLD_OBJECTS, OBJECTS_BY_ID } from '../data/world';
 import { CHAPTERS } from '../data/campaign';
 import { SKILLS } from '../data/skills';
 import { TEMPLE_SOLVE_ACTIONS } from '../data/temple';
+import { ACADEMY_CODE_ACTIONS } from '../data/academy';
+import { SEDE_CODE_ACTIONS } from '../data/mikage';
 import { parseActions } from './progression';
 
 /**
@@ -16,7 +18,7 @@ import { parseActions } from './progression';
  */
 
 const KNOWN_CMDS = new Set(['START', 'STEP', 'FLAG', 'UNFLAG', 'GIVE', 'TAKE', 'COINS', 'XP', 'GEMS', 'COUNT', 'ABILITY', 'TRACK', 'SFX', 'SECRET', 'CHALLENGE', 'CLOSE', 'SKILL', 'SHOP']);
-const ABILITIES = new Set(['faro', 'miado', 'double_jump']);
+const ABILITIES = new Set(['faro', 'miado', 'double_jump', 'passo_leve']);
 /** Flags the game code sets directly (not through data actions). */
 const CODE_FLAGS = new Set(['alvo_numeros']);
 /** Steps completed by world components rather than by data actions. */
@@ -131,6 +133,8 @@ export function validateData(): DataReport {
 
   // actions run by world components (temple puzzles)
   for (const [k, a] of Object.entries(TEMPLE_SOLVE_ACTIONS)) act(a, `templo ${k}`);
+  for (const [k, a] of Object.entries(ACADEMY_CODE_ACTIONS)) act(a, `academia ${k}`);
+  for (const [k, a] of Object.entries(SEDE_CODE_ACTIONS)) act(a, `sede ${k}`);
 
   // NPCs
   const npcIds = new Set<string>();

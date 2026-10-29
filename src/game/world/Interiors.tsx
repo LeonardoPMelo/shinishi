@@ -1,12 +1,21 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { Toon, Ink } from '../materials';
 import { PaperLantern } from './Buildings';
-import { INTERIORS, insideDoor, outsideDoor, type InteriorDef, type Prop } from '../../data/interiors';
+import { INTERIORS, insideDoor, outsideDoor, partitionSegments, type InteriorDef, type Prop } from '../../data/interiors';
 import { useInteractable, type Interactable } from '../systems/interaction';
 import { useZone, enterInterior, exitInterior } from '../systems/zone';
 import { useGameStore } from '../../store/gameStore';
+import { checkCondition } from '../../systems/progression';
+import { emit } from '../../systems/events';
+import { Box, Solid, ROOM_BODY, WOOD, DARK, PAPER } from './interiorParts';
+import { MorePropView, FloorPatchView } from './interiorProps';
+import { AcademyActivities } from './AcademyActivities';
+import { wallHides, type WallLine } from './cutaway';
+import { playerPosition } from '../systems/playerState';
+import { SedeActivities } from './SedeActivities';
 
 /**
  * The rooms of the houses you can walk into (Etapa 4 da expansão), built from data/interiors.ts: floor,
@@ -15,29 +24,6 @@ import { useGameStore } from '../../store/gameStore';
  * stay, far east of the map, where nothing else goes.
  */
 
-const WOOD = '#6A4630';
-const DARK = '#3B2A20';
-const PAPER = '#FFF3D9';
-
-function Box({ size, at, color, tex, ink = 0 }: { size: [number, number, number]; at: [number, number, number]; color: string; tex?: 'wood' | 'planks' | 'plaster' | 'stone' | 'tiles'; ink?: number }) {
-  return (
-    <mesh position={at} castShadow receiveShadow>
-      <boxGeometry args={size} />
-      <Toon color={color} tex={tex} />
-      {ink > 0 && <Ink thickness={ink} />}
-    </mesh>
-  );
-}
-
-/** A solid piece of furniture: collider and box on the floor. */
-function Solid({ size, color, tex, ink = 0.02 }: { size: [number, number, number]; color: string; tex?: 'wood' | 'planks' | 'plaster' | 'stone' | 'tiles'; ink?: number }) {
-  return (
-    <RigidBody type="fixed" colliders={false}>
-      <CuboidCollider args={[size[0] / 2, size[1] / 2, size[2] / 2]} position={[0, size[1] / 2, 0]} />
-      <Box size={size} at={[0, size[1] / 2, 0]} color={color} tex={tex} ink={ink} />
-    </RigidBody>
-  );
-}
 
 const CUSHIONS = ['#C0573E', '#3F5277', '#E8A33D', '#4F6B52'];
 
@@ -167,7 +153,7 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
     case 'mesa_baixa':
       return (
         <group position={pos} rotation={[0, rot, 0]}>
-          <RigidBody type="fixed" colliders={false}>
+          <RigidBody type="fixed" colliders={false} userData={ROOM_BODY}>
             <CuboidCollider args={[0.6, 0.2, 0.42]} position={[0, 0.2, 0]} />
           </RigidBody>
           <Box size={[1.2, 0.07, 0.84]} at={[0, 0.36, 0]} color="#8A5A36" tex="wood" ink={0.015} />
@@ -188,7 +174,7 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
     case 'barril':
       return (
         <group position={pos}>
-          <RigidBody type="fixed" colliders={false}>
+          <RigidBody type="fixed" colliders={false} userData={ROOM_BODY}>
             <CuboidCollider args={[0.34, 0.42, 0.34]} position={[0, 0.42, 0]} />
           </RigidBody>
           <mesh position={[0, 0.42, 0]} castShadow>
@@ -226,11 +212,12 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
           ))}
         </group>
       );
-    case 'estante':
+    case 'estante': {
+      const eh = p.h ?? 2.0;
       return (
         <group position={pos} rotation={[0, rot, 0]}>
-          <Solid size={[1.6, 2.0, 0.42]} color={WOOD} tex="wood" />
-          {[0.45, 1.0, 1.55].map((y, row) =>
+          <Solid size={[1.6, eh, 0.42]} color={WOOD} tex="wood" />
+          {[0.45, 1.0, 1.55].filter((y) => y + 0.4 < eh).map((y, row) =>
             [-0.55, -0.35, -0.15, 0.05, 0.25, 0.45].map((x, i) => (
               <mesh key={`${y}${x}`} position={[x, y + 0.15, 0.22]} castShadow>
                 <boxGeometry args={[0.15, 0.32 - ((i + row) % 3) * 0.04, 0.05]} />
@@ -240,6 +227,7 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
           )}
         </group>
       );
+    }
     case 'movel_coberto':
       return (
         <group position={pos} rotation={[0, rot, 0]}>
@@ -252,8 +240,8 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
       );
     case 'tapete':
       return (
-        <mesh position={[p.at[0], 0.012, p.at[1]]} receiveShadow>
-          <boxGeometry args={[2.6, 0.02, 1.8]} />
+        <mesh position={[p.at[0], 0.014, p.at[1]]} receiveShadow>
+          <boxGeometry args={[p.size?.[0] ?? 2.6, 0.02, p.size?.[1] ?? 1.8]} />
           <Toon color={p.color ?? '#7E3B32'} />
         </mesh>
       );
@@ -296,11 +284,70 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
       );
     }
   }
-  return null;
+  return <MorePropView p={p} def={def} />;
 }
 
 /** Height of the south wall as drawn (its collider is full height). */
 const CUTAWAY = 0.5;
+/** Inner walls are drawn this high (the camera looks over them); their colliders go all the way up. */
+const PARTITION_H = 2.1;
+const PARTITION_T = 0.2;
+
+/**
+ * Walls between the camera and the cat drop low (cutaway.ts); everything else stands at full height. Each
+ * wall is a group drawn from the floor up, so squashing it in y keeps it on the floor.
+ */
+function useCutaway(def: InteriorDef, lines: (WallLine & { low: number })[], active: boolean) {
+  const groups = useRef<(THREE.Group | null)[]>([]);
+  useFrame(({ camera }, dt) => {
+    const k = Math.min(1, dt * 10);
+    const c = { x: camera.position.x - def.origin[0], y: camera.position.y, z: camera.position.z - def.origin[1] };
+    const cat = { x: playerPosition.x - def.origin[0], y: playerPosition.y + 0.35, z: playerPosition.z - def.origin[1] };
+    lines.forEach((line, i) => {
+      const g = groups.current[i];
+      if (!g) return;
+      const want = active && wallHides(c, cat, line) ? line.low : 1;
+      g.scale.y += (want - g.scale.y) * k;
+    });
+  });
+  return groups;
+}
+
+/** The inner walls of a big building, with their doorways. */
+function Partitions({ def, active }: { def: InteriorDef; active: boolean }) {
+  const { h } = def.size;
+  const wains = 0.9;
+  const pieces = useMemo(
+    () => (def.partitions ?? []).flatMap(partitionSegments).map(([x0, z0, x1, z1]) => {
+      const alongX = z0 === z1;
+      const len = alongX ? x1 - x0 : z1 - z0;
+      return {
+        at: [(x0 + x1) / 2, (z0 + z1) / 2] as [number, number],
+        size: (alongX ? [len, PARTITION_T] : [PARTITION_T, len]) as [number, number],
+        line: { x0, z0, x1, z1, top: PARTITION_H, low: CUTAWAY / PARTITION_H },
+      };
+    }),
+    [def],
+  );
+  const lines = useMemo(() => pieces.map((p) => p.line), [pieces]);
+  const groups = useCutaway(def, lines, active);
+  return (
+    <>
+      <RigidBody type="fixed" colliders={false} userData={ROOM_BODY}>
+        {pieces.map((p, i) => (
+          <CuboidCollider key={i} args={[p.size[0] / 2, h / 2, p.size[1] / 2]} position={[p.at[0], h / 2, p.at[1]]} />
+        ))}
+      </RigidBody>
+      {pieces.map((p, i) => (
+        <group key={i} ref={(g) => (groups.current[i] = g)} position={[p.at[0], 0, p.at[1]]}>
+          <Box size={[p.size[0], wains, p.size[1]]} at={[0, wains / 2, 0]} color={def.wainscot} tex="planks" />
+          <Box size={[p.size[0] - 0.01, PARTITION_H - wains, p.size[1] - 0.01]} at={[0, wains + (PARTITION_H - wains) / 2, 0]} color={def.wall} tex="plaster" ink={0.015} />
+          <Box size={[p.size[0] + 0.05, 0.08, p.size[1] + 0.05]} at={[0, PARTITION_H + 0.04, 0]} color={DARK} tex="wood" />
+        </group>
+      ))}
+    </>
+  );
+}
 
 function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
   const { w, d, h } = def.size;
@@ -313,9 +360,16 @@ function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
     { at: [-w / 2 - t / 2, h / 2, 0], size: [t, h, d] },
     { at: [w / 2 + t / 2, h / 2, 0], size: [t, h, d] },
   ];
+  const lines = useMemo<(WallLine & { low: number })[]>(() => [
+    { x0: -w / 2, z0: -d / 2 - t / 2, x1: w / 2, z1: -d / 2 - t / 2, top: h, low: CUTAWAY / h },
+    { x0: 0, z0: 0, x1: 0, z1: 0, top: 0, low: 1 },
+    { x0: -w / 2 - t / 2, z0: -d / 2, x1: -w / 2 - t / 2, z1: d / 2, top: h, low: CUTAWAY / h },
+    { x0: w / 2 + t / 2, z0: -d / 2, x1: w / 2 + t / 2, z1: d / 2, top: h, low: CUTAWAY / h },
+  ], [w, d, h]);
+  const groups = useCutaway(def, lines, visible);
   return (
     <group position={[def.origin[0], 0, def.origin[1]]} visible={visible} userData={{ dynamic: true }}>
-      <RigidBody type="fixed" colliders={false}>
+      <RigidBody type="fixed" colliders={false} userData={ROOM_BODY}>
         <CuboidCollider args={[w / 2 + t, 0.1, d / 2 + t]} position={[0, -0.1, 0]} />
         {walls.map((wl, i) => (
           <CuboidCollider key={i} args={[wl.size[0] / 2, wl.size[1] / 2, wl.size[2] / 2]} position={wl.at} />
@@ -335,7 +389,7 @@ function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
             <Box size={[wl.size[0] + 0.04, 0.08, wl.size[2] + 0.04]} at={[wl.at[0], CUTAWAY + 0.04, wl.at[2]]} color={DARK} tex="wood" />
           </group>
         ) : (
-          <group key={i}>
+          <group key={i} ref={(g) => (groups.current[i] = g)}>
             <Box size={[wl.size[0], wains, wl.size[2]]} at={[wl.at[0], wains / 2, wl.at[2]]} color={def.wainscot} tex="planks" />
             <Box size={[wl.size[0] - 0.01, h - wains, wl.size[2] - 0.01]} at={[wl.at[0], wains + (h - wains) / 2, wl.at[2]]} color={def.wall} tex="plaster" ink={0.02} />
             <Box size={[wl.size[0] + 0.04, 0.1, wl.size[2] + 0.04]} at={[wl.at[0], h - 0.05, wl.at[2]]} color={DARK} tex="wood" />
@@ -351,6 +405,8 @@ function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
         <Box size={[0.12, CUTAWAY + 0.3, 0.3]} at={[-0.71, (CUTAWAY + 0.3) / 2, 0.1]} color={DARK} tex="wood" />
         <Box size={[0.12, CUTAWAY + 0.3, 0.3]} at={[0.71, (CUTAWAY + 0.3) / 2, 0.1]} color={DARK} tex="wood" />
       </group>
+      {(def.floors ?? []).map((f, i) => <FloorPatchView key={i} rect={f.rect} kind={f.kind} />)}
+      <Partitions def={def} active={visible} />
       {def.props.map((p, i) => <PropView key={i} p={p} def={def} />)}
     </group>
   );
@@ -364,8 +420,19 @@ function Doors({ def }: { def: InteriorDef }) {
       position: new THREE.Vector3(o.door[0], 0, o.door[2]),
       radius: 1.9,
       tagHeight: 2.0,
-      label: () => (useZone.getState().fading ? null : `Entrar: ${def.name}`),
-      onInteract: () => enterInterior(def.id),
+      label: () => {
+        if (useZone.getState().fading) return null;
+        if (def.lock && !checkCondition(def.lock.unless, useGameStore.getState().progress)) return def.lock.label;
+        return `Entrar: ${def.name}`;
+      },
+      onInteract: () => {
+        if (def.lock && !checkCondition(def.lock.unless, useGameStore.getState().progress)) {
+          emit({ type: 'sfx', name: 'denied' });
+          emit({ type: 'toast', icon: '🔒', text: def.lock.text });
+          return;
+        }
+        enterInterior(def.id);
+      },
     };
   }, [def]);
   const inside = useMemo<Interactable>(() => {
@@ -394,6 +461,8 @@ export function Interiors() {
           <Doors def={def} />
         </group>
       ))}
+      <AcademyActivities active={zone === 'academia'} />
+      <SedeActivities active={zone === 'sede'} />
     </>
   );
 }

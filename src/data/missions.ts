@@ -5,6 +5,8 @@ import { EAST_MISSIONS } from './east';
 import { WEST_MISSIONS } from './west';
 import { SOUTH_MISSIONS } from './south';
 import { INTERIOR_MISSIONS } from './interiors';
+import { ACADEMY_MISSIONS } from './academy';
+import { SEDE_MISSIONS } from './mikage';
 
 /**
  * Campaign — Capítulo 1: "O Faro do Gato Ninja".
@@ -325,7 +327,7 @@ const list: Mission[] = [
   },
 ];
 
-list.push(...CHAPTER3_MISSIONS, ...TEMPLE_MISSIONS, ...EAST_MISSIONS, ...WEST_MISSIONS, ...SOUTH_MISSIONS, ...INTERIOR_MISSIONS);
+list.push(...CHAPTER3_MISSIONS, ...TEMPLE_MISSIONS, ...EAST_MISSIONS, ...WEST_MISSIONS, ...SOUTH_MISSIONS, ...INTERIOR_MISSIONS, ...ACADEMY_MISSIONS, ...SEDE_MISSIONS);
 
 export const MISSIONS: Record<string, Mission> = Object.fromEntries(list.map((m) => [m.id, m]));
 export const MISSION_ORDER = list.map((m) => m.id);

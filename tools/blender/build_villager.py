@@ -165,6 +165,38 @@ CAST = {
         outfit='robe', robe='#5E7A3E', trim='#C9B48C', obi='#7A5236', hem=0.03, flare=0.06,
         stripes='#4A3A2C', kesa='#C9B48C', extras=['staff', 'brows', 'leaf', 'satchel'],
     ),
+    # ── Etapa 5 da expansão: the Ninja Academy and Mikage's residence ─────────────────────
+    'mikage': dict(  # the village leader: tall silver-grey elder, white mane, bushy brows and beard, indigo robe with gold, staff with a bell
+        fur='#A9A9B4', light='#F4F2EE', ear='#7C7C88', iris='#D9A520', width=1.3,
+        outfit='robe', robe='#3D3552', trim='#D9A520', obi='#7A4FB0', hem=0.03, flare=0.06,
+        kesa='#D9A520', extras=['mane', 'brows', 'beard', 'staff', 'bell'],
+    ),
+    'sumi': dict(  # academy head, numbers and logic: tuxedo cat, deep green robe, round glasses, clipboard, a flower
+        fur='#2E2A2E', light='#F4F2EE', ear='#1E1B20', iris='#7FC8A0', width=1.0,
+        outfit='robe', robe='#2F4A3A', trim='#F2E6D8', obi='#C9A04A', hem=0.05, flare=0.05,
+        extras=['glasses', 'clipboard', 'hair_flower'], style='clipboard',
+    ),
+    'haru': dict(  # movement teacher: sandy athletic cat, blue training gi and black belt, headband and arm wraps
+        fur='#D9A15B', light='#FFF1DC', ear='#B87A3A', iris='#4FA3E0', width=0.95,
+        outfit='gi', robe='#2F6E9E', trim='#F4F2EE', obi='#2E2A2E', pants='#2A4F6E',
+        extras=['hachimaki', 'wraps'], style='ready',
+    ),
+    'toshi': dict(  # gate guard of the residence: dark brown tabby, red-brown gi with gold trim, headband, wooden naginata
+        fur='#6B5A4A', light='#D9CBB8', ear='#4A3D32', iris='#E0B13A', width=1.15,
+        outfit='gi', robe='#7E3B32', trim='#D9A520', obi='#2E2A2E', pants='#2E2A2E',
+        stripes='#4A3D32', extras=['hachimaki', 'naginata'], style='guard',
+    ),
+    'yuki': dict(  # strategist: white cat, steel-blue robe, long scarf, clipboard of plans
+        fur='#F2F0EC', light='#FFFFFF', ear='#E8B4B4', iris='#4FA3E0', width=0.95,
+        outfit='robe', robe='#5A7FB8', trim='#F2E6D8', obi='#2E3A78', hem=0.05, flare=0.06,
+        extras=['long_scarf', 'clipboard'], style='clipboard',
+    ),
+    'fumi': dict(  # librarian: small tanuki, plum robe, round glasses, satchel of books
+        species='tanuki', fur='#8C7A62', light='#E9DCC6', ear='#3B2C24', iris='#5A3E2A', width=1.05,
+        outfit='robe', robe='#6A4C7A', trim='#E9D9AE', obi='#3B2C24', hem=0.04, flare=0.05,
+        mask='#3B2C24', belly=True, tail='bushy', tail_rings='#3B2C24', ears='round', whiskers=False,
+        extras=['glasses', 'satchel'], style='hands_belly',
+    ),
 }
 
 # ── Anatomy (biped chibi, ~1.1 m to the ear tips) ───────────────────────────────
@@ -503,6 +535,22 @@ def build_extras(body, cfg):
             base.apply_modifiers(beard_obj)
             beard = colored(beard_obj, C('#F2F0F5'), 'fur')
             out['head'].append(beard)
+        if ex == 'mane':  # Mikage: a shaggy mane of light fur, drooping tufts at the front and sides, cheek tufts
+            for k in range(13):
+                a = -2.25 + k / 12 * 4.5  # 0 = front
+                jitter = ((k * 7) % 3 - 1) * 0.018
+                p = Vector((math.sin(a) * 0.16, -math.cos(a) * 0.135 + 0.01, 0.485 - 0.035 * math.cos(a) + jitter))
+                semi = (0.055 + 0.018 * (k % 2), 0.055, 0.085 + 0.025 * (k % 3 == 1))
+                tuft = base.ellipsoid(f'mane.{k}', p, semi, forward=(math.sin(a), -math.cos(a), -0.7))
+                out['neck'].append(colored(tuft, C(cfg['light']), 'fur'))
+            for s in (1, -1):
+                cheek = base.ellipsoid(f'cheek.{s}', HEAD + Vector((s * 0.2, -0.07, -0.07)), (0.07, 0.05, 0.06), forward=(s * 1, -0.5, -0.5))
+                out['head'].append(colored(cheek, C(cfg['light']), 'fur'))
+        if ex == 'bell':  # a small golden bell at the top of the staff
+            wr = side(A['wrist'], -1)
+            bell = base.add_uv_sphere('bell', 0.034, 12, 10)
+            bell.location = wr + Vector((0, -0.04, 0.47))
+            out['hand.R'].append(colored(bell, C('#E2B84E'), 'metal'))
         if ex == 'brows':
             for s in (1, -1):
                 b = base.ellipsoid(f'brow.{s}', HEAD + Vector((s * 0.09, -0.2, 0.09)), (0.045, 0.02, 0.016), forward=(s * 0.3, -1, 0.2))

@@ -1,3 +1,4 @@
+import { useZone } from '../game/systems/zone';
 import { useEffect } from 'react';
 import { audio } from './engine';
 import { music, stinger, type TrackId } from './music';
@@ -37,6 +38,13 @@ function desiredTrack(previous: TrackId | null): { id: TrackId; immediate: boole
     if (previous === 'emotional' || previous === 'secret') return { id: previous, immediate: true };
   }
   if (inGarden()) return { id: 'secret', immediate: false };
+  // Etapa 5: the academy trains to the training theme; Mikage's residence is calm and a little mysterious
+  const zone = useZone.getState().zone;
+  if (zone === 'academia') return { id: 'training', immediate: false };
+  if (zone === 'sede') {
+    const t = s.progress.tracked ? MISSIONS[s.progress.tracked] : null;
+    return { id: t?.category === 'investigação' && s.progress.missions[t.id]?.status === 'active' ? 'investigation' : 'secret', immediate: false };
+  }
   const flags = s.progress.flags;
   const nearPlaza = Math.hypot(playerPosition.x, playerPosition.z) < 13;
   if (nearPlaza && flags.lanternas_escuras && !flags.lanternas_reacesas) return { id: 'investigation', immediate: false };
