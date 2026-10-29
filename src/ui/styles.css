@@ -1681,3 +1681,6 @@ body.pad-active button:focus, body.pad-active select:focus, body.pad-active inpu
   body.pad-active .ability-icon { font-size: 1rem; }
   body.pad-active .ability-key { font-size: 0.6rem; }
 }
+
+.crash-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.crash-actions .btn-ghost { color: #FFF6E4; opacity: 0.8; }

@@ -8,6 +8,7 @@ import { MISSIONS } from '../data/missions';
 import { CHALLENGES } from '../data/challenges';
 import { CHALLENGE_REWARD, emptySkill } from '../data/skills';
 import { OFFERS_BY_ID } from '../data/shop';
+import { sanitizeSave } from './saveSanitize';
 
 interface ActiveDialogue {
   npcId: string;
@@ -460,6 +461,12 @@ export const useGameStore = create<GameStore>()(
         }
         return { player, progress };
       },
+      // every load goes through the repair (store/saveSanitize.ts): a save with missing or broken fields used to
+      // crash the game on start, menu included, with no way back to "Novo jogo"
+      merge: (persisted, current) => ({
+        ...current,
+        ...sanitizeSave(persisted, { player: initialPlayer, baseAbilities: BASE_ABILITIES, rankFor: calcRank }),
+      }),
     }
   )
 );

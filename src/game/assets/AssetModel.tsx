@@ -4,7 +4,7 @@ import { RigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { enhanceToon, getGradient } from '../materials';
-import { ASSETS, assetUrl, type AssetName } from './catalog';
+import { ASSETS, assetUrl, assetFileExists, type AssetName } from './catalog';
 
 /**
  * Loads a model from the asset catalog, or draws `fallback` (the procedural version) when the
@@ -19,6 +19,12 @@ const known = new Map<AssetName, boolean>();
 
 function probe(name: AssetName): Promise<boolean> {
   let p = probes.get(name);
+  if (!p && !assetFileExists(name)) {
+    // not shipped with this build: the procedural version, without asking the server
+    known.set(name, false);
+    p = Promise.resolve(false);
+    probes.set(name, p);
+  }
   if (!p) {
     p = fetch(assetUrl(name), { method: 'HEAD' })
       .then((r) => {

@@ -5,14 +5,34 @@ import { Component, type ReactNode } from 'react';
  * used to leave a blank dark page. This shows what happened and how to recover instead. The save lives in
  * the browser (localStorage) and is untouched.
  */
-function Screen({ title, detail }: { title: string; detail: string }) {
+function Screen({ title, detail, offerReset }: { title: string; detail: string; offerReset?: boolean }) {
   return (
     <div className="crash-screen" role="alert">
       <div className="crash-card">
         <h1>{title}</h1>
         <p>{detail}</p>
         <p className="crash-note">O progresso salvo continua guardado neste navegador.</p>
-        <button className="btn btn-primary" onClick={() => window.location.reload()}>Tentar de novo</button>
+        <div className="crash-actions">
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>Tentar de novo</button>
+          {offerReset && (
+            // last resort, so a player is never stuck on this screen: only the game progress is erased
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                if (window.confirm('Começar um jogo novo? O progresso salvo neste navegador será apagado.')) {
+                  try {
+                    localStorage.removeItem('shinichi-save');
+                  } catch {
+                    /* storage unavailable: the reload still retries */
+                  }
+                  window.location.reload();
+                }
+              }}
+            >
+              Se continuar dando erro: começar do zero
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -53,10 +73,11 @@ export class CrashBoundary extends Component<{ children: ReactNode }, { error: E
     const offline = typeof navigator !== 'undefined' && !navigator.onLine;
     return (
       <Screen
-        title="Algo atrapalhou o carregamento do jogo"
+        title="Algo atrapalhou o jogo"
         detail={offline
           ? 'Parece que a internet caiu antes de todos os arquivos chegarem. Conecte-se e tente de novo.'
-          : `Um arquivo do jogo não carregou (${error.message}). Recarregar costuma resolver.`}
+          : `Detalhe técnico: ${error.message}`}
+        offerReset
       />
     );
   }

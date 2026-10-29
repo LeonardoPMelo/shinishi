@@ -1,4 +1,5 @@
 import { asset } from '../../assetPath';
+import MODEL_FILES from 'virtual:model-files';
 /**
  * Every 3D asset the game knows by name. Files live in public/assets/models/<folder>/<name>.glb.
  * When a file is missing (or is not a valid GLB), the game draws its procedural version instead,
@@ -80,4 +81,11 @@ export type AssetName = keyof typeof ASSETS;
 
 export function assetUrl(name: AssetName) {
   return asset(`assets/models/${ASSETS[name].folder}/${name}.glb`);
+}
+
+const PRESENT = new Set(MODEL_FILES);
+
+/** Whether the model's file ships with the game (known when it was built: no request needed). */
+export function assetFileExists(name: AssetName) {
+  return PRESENT.has(`${ASSETS[name].folder}/${name}.glb`);
 }

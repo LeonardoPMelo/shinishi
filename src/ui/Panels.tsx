@@ -305,7 +305,7 @@ export function Settings({ inGame }: { inGame: boolean }) {
         <Slider label="Música" bus="music" />
         <Slider label="Efeitos" bus="sfx" />
         <Slider label="Ambiente" bus="ambient" />
-        <p className="setting-note">As músicas e sons atuais são <b>provisórios</b>, gerados por código. O jogo já aceita arquivos de áudio licenciados no lugar deles.</p>
+        <p className="setting-note">Músicas e a maioria dos efeitos são gravações de domínio público (CC0, créditos em <code>assets/audio/CREDITOS.md</code>). Alguns efeitos, como os das habilidades ninja, do miado e dos fogos, ainda são sintetizados pelo próprio jogo.</p>
       </section>
       <section>
         <h3>🎮 Controles</h3>
