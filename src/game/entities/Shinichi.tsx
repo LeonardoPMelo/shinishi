@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { input, consume } from '../systems/input';
 import {
   playerPosition, playerFacing, cameraAngle, playerBody, playerGround, playerMotion, abilityState, SPAWN, now,
-  MIADO_COOLDOWN, FARO_COOLDOWN, FARO_DURATION, SHURIKEN_COOLDOWN, DASH_COOLDOWN, BOOST_DURATION,
+  MIADO_COOLDOWN, FARO_COOLDOWN, FARO_DURATION, SHURIKEN_COOLDOWN, DASH_COOLDOWN,
 } from '../systems/playerState';
 import { throwShuriken } from '../systems/shuriken';
 import { currentObjective } from '../../systems/objective';
@@ -22,6 +22,7 @@ import { inStream } from '../../data/south';
 import { clampToRegions } from '../../data/regions';
 import { useGameStore } from '../../store/gameStore';
 import { ShinichiCat, type AnimState } from './ShinichiCat';
+import { useFromBag } from '../systems/itemEffects';
 
 // Speeds fit a quadruped kitten ~1.3 m tall: the trot/gallop clips keep pace without sliding.
 const WALK_SPEED = 4.2;
@@ -366,20 +367,9 @@ export function Shinichi() {
         emit({ type: 'sfx', name: 'shuriken' });
       } else emit({ type: 'sfx', name: 'denied' });
     }
-    // 3: energy potion from the bag.
-    if (consume('pocao')) {
-      const store = useGameStore.getState();
-      const have = store.progress.inventory.pocao_energia ?? 0;
-      if (have > 0) {
-        store.addItem('pocao_energia', -1);
-        abilityState.boostUntil = t + BOOST_DURATION;
-        emit({ type: 'sfx', name: 'potion' });
-        emit({ type: 'toast', icon: '🧪', text: 'Energia ninja! Mais rápido e pulando mais alto por alguns segundos.' });
-        spawnParticles('sparkle', [pos.x, pos.y + 0.3, pos.z], 16);
-      } else {
-        emit({ type: 'sfx', name: 'denied' });
-        emit({ type: 'toast', icon: '🧪', text: 'Sem Poção de Energia na mochila. Baús e desafios às vezes têm uma!' });
-      }
+    // 3: energy potion from the bag (spending and effect: systems/inventory.ts + itemEffects.ts)
+    if (consume('pocao') && !useFromBag('pocao_energia')) {
+      emit({ type: 'toast', icon: '🧪', text: 'Sem Poção de Energia na mochila. Baús e desafios às vezes têm uma!' });
     }
     if (boosted) {
       s.auraTimer -= delta;

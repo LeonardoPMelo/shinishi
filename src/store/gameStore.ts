@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { GamePhase, PlayerStats, DialogueTree, Challenge, Progress, Mission, Skill } from '../types';
+import type { GamePhase, PlayerStats, DialogueTree, Challenge, Progress, Mission, Skill, ItemEffect, EquipSlot } from '../types';
 import { emptyProgress, availableSteps, parseActions } from '../systems/progression';
 import { emit } from '../systems/events';
 import { levelForXp } from '../systems/leveling';
@@ -9,6 +9,7 @@ import { CHALLENGES } from '../data/challenges';
 import { CHALLENGE_REWARD, emptySkill } from '../data/skills';
 import { OFFERS_BY_ID } from '../data/shop';
 import { sanitizeSave } from './saveSanitize';
+import { buy, sell, useItem as useItemRule, equip, unequip, withItem, type BuyResult, type SellResult, type UseResult, type EquipResult } from '../systems/inventory';
 
 interface ActiveDialogue {
   npcId: string;
@@ -71,7 +72,14 @@ interface GameStore {
   addCoins: (amount: number) => void;
   addGems: (amount: number) => void;
   /** Sora's shop: spends gems on an offer. Bands can only be bought once. */
-  buyOffer: (offerId: string) => 'ok' | 'poor' | 'owned' | 'unknown';
+  buyOffer: (offerId: string) => BuyResult;
+  /** Sells items for coins (rules in systems/inventory.ts). */
+  sellItem: (itemId: string, qty?: number) => SellResult;
+  /** Spends one usable item; returns its effect for the game to apply. */
+  useItem: (itemId: string) => { result: UseResult; effect?: ItemEffect };
+  /** Wears an item in its slot. */
+  equipItem: (itemId: string) => EquipResult;
+  unequipSlot: (slot: EquipSlot) => void;
   /** Learning record for any practice (challenges, the Alvo dos Números). */
   recordPractice: (skill: Skill, correct: boolean, firstTry?: boolean) => void;
   addBadge: (badge: string) => void;
@@ -293,25 +301,44 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({ progress: { ...s.progress, flags: { ...s.progress.flags, [flag]: value } } })),
 
       buyOffer: (offerId) => {
-        const o = OFFERS_BY_ID[offerId];
-        if (!o) return 'unknown';
         const s = get();
-        if (o.once && (s.progress.inventory[o.item] ?? 0) > 0) return 'owned';
-        if ((s.player.gems ?? 0) < o.price) return 'poor';
-        s.addGems(-o.price);
-        s.addItem(o.item, o.qty);
-        s.bumpCounter('compras_sora');
+        const { result, bag } = buy({ player: s.player, progress: s.progress }, OFFERS_BY_ID[offerId]);
+        if (result !== 'ok') return result;
+        const o = OFFERS_BY_ID[offerId];
+        set({ player: bag.player, progress: bag.progress });
+        emit({ type: 'item', itemId: o.item, amount: o.qty });
+        get().bumpCounter('compras_sora');
         emit({ type: 'sfx', name: 'coin' });
         return 'ok';
       },
 
+      sellItem: (itemId, qty = 1) => {
+        const s = get();
+        const r = sell({ player: s.player, progress: s.progress }, itemId, qty);
+        if (r.result !== 'ok') return r.result;
+        set({ player: r.bag.player, progress: r.bag.progress });
+        emit({ type: 'coins', amount: r.coins });
+        emit({ type: 'sfx', name: 'coin' });
+        return 'ok';
+      },
+
+      useItem: (itemId) => {
+        const s = get();
+        const r = useItemRule({ player: s.player, progress: s.progress }, itemId);
+        if (r.result === 'ok') set({ progress: r.bag.progress });
+        return { result: r.result, effect: r.effect };
+      },
+
+      equipItem: (itemId) => {
+        const r = equip(get().progress, itemId);
+        if (r.result === 'ok') set({ progress: r.progress });
+        return r.result;
+      },
+
+      unequipSlot: (slot) => set((s) => ({ progress: unequip(s.progress, slot) })),
+
       addItem: (itemId, amount = 1) => {
-        set((s) => {
-          const count = Math.max(0, (s.progress.inventory[itemId] ?? 0) + amount);
-          const inventory = { ...s.progress.inventory, [itemId]: count };
-          if (count === 0) delete inventory[itemId];
-          return { progress: { ...s.progress, inventory } };
-        });
+        set((s) => ({ progress: withItem(s.progress, itemId, amount) }));
         if (amount > 0) emit({ type: 'item', itemId, amount });
       },
 

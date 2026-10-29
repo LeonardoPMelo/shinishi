@@ -1,4 +1,5 @@
-import type { PlayerStats, Progress, MissionProgress, SkillRecord } from '../types';
+import type { PlayerStats, Progress, MissionProgress, SkillRecord, EquipSlot } from '../types';
+import { ITEMS } from '../data/items';
 import { MISSIONS } from '../data/missions';
 import { emptyProgress } from '../systems/progression';
 import { levelForXp } from '../systems/leveling';
@@ -73,12 +74,29 @@ export function sanitizeProgress(raw: unknown, d: SanitizeDefaults): Progress {
   const abilities = strings(p.abilities);
   for (const a of d.baseAbilities) if (!abilities.includes(a)) abilities.push(a);
   const tracked = typeof p.tracked === 'string' && missions[p.tracked]?.status === 'active' ? p.tracked : null;
+  const flags = record(p.flags, (x) => (typeof x === 'boolean' ? x : undefined));
+  const inventory = record(p.inventory, (x) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? Math.floor(x) : undefined));
+  // worn items: each must exist, fit its slot and be in the bag. Saves before v5 marked the worn band with a
+  // `veste_<item>` flag; it becomes the 'faixa' slot and the flag goes away.
+  const equipped: Partial<Record<EquipSlot, string>> = {};
+  if (isObj(p.equipped)) {
+    for (const [slot, id] of Object.entries(p.equipped)) {
+      if (typeof id === 'string' && ITEMS[id]?.slot === slot && inventory[id]) equipped[slot as EquipSlot] = id;
+    }
+  }
+  for (const f of Object.keys(flags)) {
+    if (!f.startsWith('veste_')) continue;
+    const id = f.slice('veste_'.length);
+    if (flags[f] && !equipped.faixa && ITEMS[id]?.slot === 'faixa' && inventory[id]) equipped.faixa = id;
+    delete flags[f];
+  }
   return {
     ...base,
     missions,
-    flags: record(p.flags, (x) => (typeof x === 'boolean' ? x : undefined)),
+    flags,
+    equipped,
     counters: record(p.counters, (x) => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? x : undefined)),
-    inventory: record(p.inventory, (x) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? Math.floor(x) : undefined)),
+    inventory,
     abilities,
     tracked,
     learning: record<SkillRecord>(p.learning, (x) =>

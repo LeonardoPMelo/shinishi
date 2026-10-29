@@ -61,6 +61,11 @@ export function DistrictGate({ x, z, halfWidth, roof, lantern, alongX = false }:
           </mesh>
         </RigidBody>
       ))}
+      {/* beam and roof are solid too: without a collider the camera's ray went through the roof, and from
+          above it the cat under the gate was hidden (seen at the bamboo grove entrance, Etapa 6) */}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[0.75, 0.22, halfWidth + 0.5]} position={[0, 2.6, 0]} />
+      </RigidBody>
       <mesh position={[0, 2.45, 0]} castShadow>
         <boxGeometry args={[0.36, 0.16, halfWidth * 2 + 0.7]} />
         <Toon color={WOOD} tex="wood" />

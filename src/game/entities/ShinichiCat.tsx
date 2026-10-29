@@ -151,8 +151,9 @@ type Morphs = { mesh: THREE.Mesh; index: Record<string, number> };
 export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
   const gltf = useGLTF(URL);
   const quality = useEffectiveQuality();
-  const worn = useGameStore((s) => Object.keys(s.progress.flags).find((f) => f.startsWith('veste_') && s.progress.flags[f]));
-  const bandColor = (worn && ITEMS[worn.replace('veste_', '')]?.band) || null;
+  // the band worn in the 'faixa' slot (systems/inventory.ts)
+  const worn = useGameStore((s) => s.progress.equipped.faixa);
+  const bandColor = (worn && ITEMS[worn]?.band) || null;
 
   const rig = useMemo(() => {
     const root = gltf.scene;

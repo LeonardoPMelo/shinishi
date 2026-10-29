@@ -11,6 +11,8 @@ import { WorldMap } from './WorldMap';
 import { CHAPTERS, NEXT_CHAPTER_TEASER } from '../data/campaign';
 import { SKILLS, SKILL_ORDER, skillStars, nextStarAt } from '../data/skills';
 import { SHOP_OFFERS, OFFERS_BY_ID, unitPrice } from '../data/shop';
+import { useFromBag } from '../game/systems/itemEffects';
+import { offeredMissions } from '../systems/missionState';
 
 function PanelFrame({ title, icon, children, onClose, wide }: { title: string; icon: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
   return (
@@ -41,8 +43,26 @@ function MissionLog() {
   const active = ids.filter((id) => progress.missions[id].status === 'active');
   const done = ids.filter((id) => progress.missions[id].status === 'done');
 
+  // who has a mission to offer right now (systems/missionState.ts): the log shows where to go next
+  const offers = offeredMissions(progress);
+  const offerList = offers.length > 0 && (
+    <>
+      <h3>Disponíveis</h3>
+      {offers.map((o) => (
+        <div key={o.missionId} className="log-item offer">
+          <span>❗</span> {MISSIONS[o.missionId].title} <em>com {o.npcName}</em>
+        </div>
+      ))}
+    </>
+  );
+
   if (ids.length === 0) {
-    return <p className="empty-note">Nenhuma missão ainda. Procure moradores com um <b>!</b> dourado sobre a cabeça — a Chef Hana está precisando de ajuda!</p>;
+    return (
+      <div>
+        <p className="empty-note">Nenhuma missão ainda. Procure moradores com um <b>!</b> dourado sobre a cabeça — a Chef Hana está precisando de ajuda!</p>
+        <div className="log-list">{offerList}</div>
+      </div>
+    );
   }
 
   return (
@@ -55,6 +75,7 @@ function MissionLog() {
             {progress.tracked === id && <em>seguindo</em>}
           </button>
         ))}
+        {offerList}
         {done.length > 0 && <h3>Concluídas</h3>}
         {done.map((id) => (
           <button key={id} className={`log-item done ${selected === id ? 'sel' : ''}`} onClick={() => setSelected(id)}>
@@ -118,14 +139,21 @@ function Inventory() {
           <div className="inv-detail">
             <strong>{item.icon} {item.name}</strong>
             <p>{item.description}</p>
-            {item.band && (
+            {item.slot && (
               <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={() => {
                 const st = useGameStore.getState();
-                const wearing = !!st.progress.flags[`veste_${item.id}`];
-                Object.keys(st.progress.flags).filter((f) => f.startsWith('veste_')).forEach((f) => st.setFlag(f, false));
-                if (!wearing) st.setFlag(`veste_${item.id}`, true);
+                if (st.progress.equipped[item.slot!] === item.id) st.unequipSlot(item.slot!);
+                else st.equipItem(item.id);
               }}>
-                {progress.flags[`veste_${item.id}`] ? 'Tirar a faixa' : '🥷 Usar esta faixa'}
+                {progress.equipped[item.slot] === item.id ? 'Tirar' : '🥷 Vestir'}
+              </button>
+            )}
+            {item.use && (
+              <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={() => {
+                // the effect runs on the clock: back to the game to enjoy it
+                if (useFromBag(item.id)) useGameStore.getState().openPanel(null);
+              }}>
+                ✨ Usar agora
               </button>
             )}
           </div>

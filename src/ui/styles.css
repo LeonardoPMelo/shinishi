@@ -1684,3 +1684,7 @@ body.pad-active button:focus, body.pad-active select:focus, body.pad-active inpu
 
 .crash-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .crash-actions .btn-ghost { color: #FFF6E4; opacity: 0.8; }
+
+/* missions someone offers now (Missões > Disponíveis): information, not a button */
+.log-item.offer { cursor: default; opacity: 0.9; }
+.log-item.offer em { font-style: normal; opacity: 0.7; margin-left: 4px; }

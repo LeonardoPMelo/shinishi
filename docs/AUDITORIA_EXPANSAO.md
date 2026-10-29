@@ -92,8 +92,51 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 1 | `@types/node` para checar o `vite.config.ts` (precisa instalar pacote) | quando aprovado |
 | 2 | Referências com símbolo de folha no repositório público | decisão do usuário |
 | 3 | Botão "Instalar" da PWA + instruções manuais | 10 (ou antes, se pedido) |
-| 4 | Pipo desliza 27%; telhado do bambuzal esconde o gato | 3 / 9 |
+| 4 | Pipo desliza 27% | 3 / 9 |
 | 5 | 13 efeitos sonoros sintetizados; música de combate | 9 |
 | 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido | 9 |
 | 7 | Teste com controle físico e celular real | manual |
 | 8 | Interiores, Mikage, academia, lojas, região selvagem, combate, narrativa | 4–8 |
+
+## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
+
+### Implementado
+| Sistema | Antes | Agora |
+|---|---|---|
+| **Itens** | Nome, ícone e descrição | Categoria (missão, consumível, equipamento, ferramenta, colecionável, cosmético), raridade, preço de venda, efeito de uso e slot de equipamento (`types/index.ts`). As 6 faixas vão no slot "faixa"; poção e onigiri são consumíveis com efeito; a Pata Dourada é colecionável |
+| **Inventário** | Lógica espalhada: store, loja, mochila, controle do gato | Um serviço puro (`systems/inventory.ts`): adicionar/tirar, comprar (moedas ou gemas, item único, saldo validado antes de mudar), vender (itens de missão não se vendem; item vestido não se vende), usar (gasta um, devolve o efeito), vestir/tirar. A store só grava o resultado |
+| **Efeitos de itens** | A poção era aplicada dentro do controle do gato | `game/systems/itemEffects.ts`: um único caminho para a tecla 3, o controle e o botão "Usar agora" da mochila |
+| **Equipamento** | Flags soltas `veste_<item>`, varridas a cada quadro | `progress.equipped` por slot. Saves antigos são convertidos no carregamento |
+| **Estados de missão** | Só "ativa" e "concluída" | `systems/missionState.ts`: bloqueada / disponível / ativa / concluída, derivados do save (não podem ficar desatualizados). O registro de missões mostra as **disponíveis** e quem oferece |
+| **Interação** | Escolha do alvo dentro do laço do quadro | `pickInteractable` pura e testada; também bloqueia interação com painel aberto |
+| **Colisão** | Portões dos bairros: só os postes eram sólidos | Viga e telhado sólidos (a câmera não atravessa mais o telhado) |
+
+**Decisão registrada:** abandonar missão **não** foi implementado. As etapas entregam itens e flags pelos diálogos, então refazer uma missão pagaria tudo de novo. Volta por missão quando as etapas forem escritas para serem repetíveis.
+
+**Correção de diagnóstico:** a pendência "o telhado do portal do bambuzal esconde o gato" era de enquadramento, não de oclusão. Nas capturas, o gato fica 2,8 m depois do portão, pequeno, acima da borda do telhado.
+
+### Testes executados
+- `vitest`: **288 passando** (21 novos em `tests/systems.test.ts`). Cobrem:
+  - compra sem saldo, clique duplo em item único, moeda/gema, oferta inválida;
+  - venda permitida e proibida;
+  - uso com e sem item;
+  - vestir, trocar, tirar e perder o item vestido;
+  - conversão de save antigo;
+  - estados de missão;
+  - recompensa paga uma vez (concluir de novo, recomeçar, etapa depois de concluída);
+  - etapa fora de ordem;
+  - interação fora de alcance, em outro andar, sem rótulo e durante diálogo, desafio, pausa ou painel.
+- `tsc` e build de produção: ok.
+- No jogo (dev):
+  - save antigo com `veste_faixa_rosa` → `equipped.faixa`;
+  - mochila: Vestir trocou a faixa, e a captura mostra a faixa azul no gato;
+  - "Usar agora" gastou o onigiri, aplicou o impulso e fechou o painel;
+  - tecla 3 gastou a poção.
+- **Regressão de câmera:** espremida 1,4%, bloqueada 0% (faixa anterior: 1,2–6,2%).
+- **Regressão de colisões** (`__qa.walls`, `__qa.bridge`):
+  - 8 casas × 4 faces: o gato nunca entra (para a 0,45 m da parede) e nunca trava;
+  - ponte atravessada andando, correndo e junto às duas grades.
+
+### Critérios de aceitação
+- **Atendido:** os sistemas centrais (itens, inventário, loja, uso, equipamento, missões, interação, save) funcionam juntos, cada regra num lugar só e testada. As lojas, ferramentas e equipamentos das etapas seguintes acrescentam dados, sem duplicar lógica.
+- **Pendente:** movimentação sem mudanças nesta etapa. Já havia sido corrigida e medida antes (passada, câmera, colisões) e foi revalidada aqui por regressão.

@@ -34,6 +34,8 @@ export interface Progress {
   learning: Record<string, SkillRecord>;
   /** Challenges already solved (rewards are paid once). */
   solved: string[];
+  /** Worn items by slot (replaces the old `veste_<item>` flags, converted on load by store/saveSanitize.ts). */
+  equipped: Partial<Record<EquipSlot, string>>;
 }
 
 export interface SkillRecord {
@@ -160,13 +162,33 @@ export interface Mission {
   onComplete?: ActionString;
 }
 
+/** What an item is for (Etapa 2 da expansão): decides where it shows, whether it can be sold, used or worn. */
+export type ItemCategory = 'missao' | 'consumivel' | 'equipamento' | 'ferramenta' | 'colecionavel' | 'cosmetico';
+export type ItemRarity = 'comum' | 'raro' | 'epico' | 'lendario';
+/** Where a worn item goes; one item per slot. */
+export type EquipSlot = 'faixa' | 'coleira' | 'mochila';
+
+/** What using an item does. Each effect is handled in one place (systems/inventory.ts `useItem`). */
+export type ItemEffect =
+  /** Faster and higher jumps for a while (the energy potion). */
+  | { kind: 'impulso'; seconds: number };
+
 export interface Item {
   id: string;
   name: string;
   icon: string;
   description: string;
   hidden?: boolean;
-  /** Wearable band color (cosmetic reward). */
+  /** Missing = 'missao' (story items: never sold, never used up by the player). */
+  category?: ItemCategory;
+  rarity?: ItemRarity;
+  /** Coins a shop pays for one; missing = cannot be sold. */
+  sellPrice?: number;
+  /** Using it spends one and applies the effect. */
+  use?: ItemEffect;
+  /** Wearable: the slot it goes in. */
+  slot?: EquipSlot;
+  /** Wearable band color (the 'faixa' slot paints Shinichi's headband). */
   band?: string;
 }
 

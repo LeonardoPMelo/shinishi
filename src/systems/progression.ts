@@ -9,6 +9,7 @@ export const emptyProgress = (): Progress => ({
   tracked: null,
   learning: {},
   solved: [],
+  equipped: {},
 });
 
 const list = (v?: string | string[]) => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
