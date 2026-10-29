@@ -3,6 +3,7 @@ import { CHAPTER3_ITEMS } from './chapter3';
 import { TEMPLE_ITEMS } from './temple';
 import { SHOP_ITEMS } from './shop';
 import { REDESIGN_ITEMS } from './redesign';
+import { INTERIOR_ITEMS } from './interiors';
 
 const list: Item[] = [
   { id: 'receita', name: 'Receita do Bolinho Supremo', icon: '📜', description: 'A receita secreta da Chef Hana. Está um pouco amassada e cheira a peixe.' },
@@ -22,7 +23,7 @@ const list: Item[] = [
   { id: 'faixa_dourada', name: 'Faixa Ninja Dourada', icon: '🟨', description: 'Para quem trouxe a luz de volta à vila. Pode usar com orgulho.', band: '#D9A520' },
 ];
 
-list.push(...CHAPTER3_ITEMS, ...TEMPLE_ITEMS, ...SHOP_ITEMS, ...REDESIGN_ITEMS);
+list.push(...CHAPTER3_ITEMS, ...TEMPLE_ITEMS, ...SHOP_ITEMS, ...REDESIGN_ITEMS, ...INTERIOR_ITEMS);
 
 // every band is worn in the 'faixa' slot (the color paints Shinichi's headband)
 for (const item of list) {

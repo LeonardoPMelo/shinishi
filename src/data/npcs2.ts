@@ -1,5 +1,6 @@
 import type { NPCDefinition, DialogueTree, DialogueOption, DialogueRoute, Condition } from '../types';
 import { KURO_MIRANTE } from './world2';
+import { MOCHI_CLOCK_ROUTES } from './interiors';
 
 /** Capítulo 2: new characters and the dialogue routes added to existing ones. */
 
@@ -179,7 +180,7 @@ const mochi: NPCDefinition = {
   position: [7.4, 0, -14.4],
   look: { species: 'cat', fur: '#E9E4EE', belly: '#FFFFFF', scale: 0.95, wide: 1.15, eyes: 'closed', accessory: 'granny' },
   voice: 'meow',
-  offers: [{ mission: 'ponte', when: { done: 'peixes' } }],
+  offers: [{ mission: 'ponte', when: { done: 'peixes' } }, { mission: 'relogio_parado', when: { done: 'horta' } }],
   barks: ['Ai, minhas costas...', 'No meu tempo, a gente subia o Mirante todo dia!', 'Quer um biscoito, querido?'],
   routes: [
     { when: { active: 'ponte', step: 'ponte.luneta' }, tree: {
@@ -211,6 +212,7 @@ const mochi: NPCDefinition = {
         options: [{ label: '🧮 Calcular', nextNodeId: null, action: 'CHALLENGE:tabuas_degraus' }, bye('Depois')],
       },
     } },
+    ...MOCHI_CLOCK_ROUTES,
     chatterRoute('Vovó Mochi', [
       'O Mirante fica lindo ao pôr do sol. A escada agora é firme como meu tricô!',
       'Sabia que o primeiro gato ninja tomava chá comigo? Ele odiava açúcar.',

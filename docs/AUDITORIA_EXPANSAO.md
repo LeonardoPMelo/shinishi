@@ -92,11 +92,12 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 1 | `@types/node` para checar o `vite.config.ts` (precisa instalar pacote) | quando aprovado |
 | 2 | Referências com símbolo de folha no repositório público | decisão do usuário |
 | 3 | Botão "Instalar" da PWA + instruções manuais | 10 (ou antes, se pedido) |
-| 4 | Pipo desliza 27% | 3 / 9 |
+| 4 | ~~Pipo desliza 27%~~ resolvido na Etapa 3 (0%) | — |
 | 5 | 13 efeitos sonoros sintetizados; música de combate | 9 |
 | 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido | 9 |
 | 7 | Teste com controle físico e celular real | manual |
-| 8 | Interiores, Mikage, academia, lojas, região selvagem, combate, narrativa | 4–8 |
+| 8 | ~~Interiores~~ (Etapa 4); Mikage, academia, lojas, região selvagem, combate, narrativa | 5–8 |
+| 9 | Mais casas com interior (só a cantina e a casa do relojoeiro têm) | 5–6, conforme as missões pedirem |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -173,3 +174,56 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 - **Esquiva:** fica para a Etapa 7 (combate). Sem inimigos, seria um segundo "impulso".
 - **Nadar e escalar:** não implementados. A água continua sendo um aviso que devolve o gato ao último lugar seco.
 - **Alimentar animais:** depende dos petiscos da loja (Etapa 6).
+
+## 7. Registro da Etapa 4 — Casas e interiores (2026-10-29)
+
+### Implementado
+| Parte | O que faz |
+|---|---|
+| **Entrar e sair** (`game/systems/zone.ts`) | Na porta aparece "Entrar: <casa>"; o E escurece a tela, põe o gato num ponto livre do outro lado, vira a câmera para onde ele anda e clareia. Dentro, "Sair" na porta faz o caminho de volta, e o gato sai de frente para a rua, 1,4 m fora da casa. O mundo de fora fica escondido enquanto se está dentro (desempenho). A zona **não** vai para o save: recarregar dentro de uma casa volta para fora, com o progresso intacto |
+| **Salas** (`data/interiors.ts`, `game/world/Interiors.tsx`) | **Cantina da Chef Hana** (balcão, fogão, prateleiras, quadro de receitas, aquário, 3 mesas baixas com almofadas, barris, lanternas, janelas) e **Casa do Relojoeiro** (relógio de pêndulo, bancada, estante, móveis cobertos, tapete, teias). Paredes e móveis sólidos. A parede sul (entre a câmera e o gato) é desenhada baixa, mas continua sólida na altura toda; a saída é um capacho iluminado. As salas ficam longe do mapa (x > 150), sem chance de se cruzarem com a vila |
+| **Objetos interativos** | Pilha de tigelas (desafio), baú da cantina (moedas + onigiri, abre uma vez), aquário e quadro de receitas (falas), diário (pista), relógio (desafio; os ponteiros mostram 7:40 e, resolvido, 3:00 com o compartimento aberto), compartimento (engrenagem dourada, abre uma vez), estante |
+| **Moradora nova: Mimi** | Ajudante da cantina, modelo próprio (gata malhada laranja, bata azul, avental e bandana; Blender, 360 KB + LOD de 209 KB) |
+| **Missões** | **Mesa Posta** (Mimi; multiplicação e subtração: 3 × 4 − 5 = 7) e **O Relógio Parado** (Vovó Mochi; ler o diário, ângulo reto no relógio = 3 horas, compartimento secreto, contar à Mochi; medalha "Detetive do Tempo") |
+| **Navegação** | De fora, o rastro do objetivo e o mapa apontam para a **porta** da casa onde está o alvo; de dentro, para o próprio alvo (`reachablePosition`). Dentro, o minimapa dá lugar ao nome da sala |
+
+### Defeitos encontrados e corrigidos nesta etapa
+- **O gato voltava para dentro da sala ao sair** (e às vezes não entrava): a zona mudava, mas o corpo ficava onde estava. A causa foi achada instrumentando `setTranslation`:
+  - o `userData={{ player: true }}` do corpo do Shinichi era um objeto novo a cada renderização;
+  - o @react-three/rapier trata isso como uma opção mudada e põe o corpo de volta onde o objeto 3D estava no último passo da física;
+  - a troca de zona renderiza a cena de novo entre dois passos, e isso desfazia o teletransporte.
+  
+  Agora é uma constante. Depois disso: **12 de 12 travessias** (2 casas × 3 voltas × entrar e sair) caíram exatamente no ponto esperado (desvio 0,00 m), com o rótulo certo em cada uma.
+- **O registro de missões mostrava como "disponível" uma missão que o NPC não oferecia.** Cada morador oferece uma coisa de cada vez (a primeira fala que vale ganha). O registro lia a lista de ofertas em outra ordem. Dois casos:
+  - **Vovó Mochi** (o relógio): agora vem depois da horta, ponte → horta → relógio, com a mesma condição no registro e na fala;
+  - **Seu Bigodes** (anterior a esta etapa: o registro dizia "peixe fujão", a fala oferecia o banquete): as ofertas do Capítulo 3 agora entram **depois** das ofertas antigas de cada morador, na mesma ordem do registro (`data/npcs.ts`).
+- **Ponteiros do relógio:** eram barras centradas, então às 3:00 formavam um "+". Agora saem do centro.
+- **Parede da frente escondia o gato** (vista nas capturas): virou meia-parede. As janelas passaram para as paredes laterais. O vazio amarelo em volta da sala virou chão escuro.
+
+### Testes
+- `vitest`: **316 passando**. `tests/interiors.test.ts` (15 testes) cobre:
+  - porta de fora no muro da casa, ponto de saída fora da casa e em área andável;
+  - ponto de entrada longe das paredes e de todo móvel sólido (folga > raio da cápsula);
+  - salas longe do mapa e uma da outra;
+  - nada pendurado na parede baixa;
+  - objetos e a Mimi na sala certa;
+  - alvo dentro de casa → porta;
+  - respostas dos desafios e etapas das missões;
+  - **para todo morador, em 4 saves diferentes, a missão que o registro chama de disponível é a que a fala começa.**
+- `tsc` e build de produção: ok.
+- **No jogo (dev, pela interface):**
+  - **Mesa Posta** completa: falar com a Mimi → pilha de tigelas → 7 no teclado numérico → Mimi (recompensas e onigiris);
+  - **O Relógio Parado** completo: Mochi → porta (o rastro apontava para a porta) → diário → relógio (6 horas errado mostra a dica; 3 horas certo) → compartimento (engrenagem, abre uma vez) → Mochi (medalha);
+  - baú da cantina abre uma vez e some;
+  - paredes: o gato para a ~0,35 m nas 4 paredes das duas salas;
+  - recarregar dentro de uma casa: volta para fora, missões e itens intactos;
+  - console: nenhum erro nesta carga.
+- Capturas: `docs/expansao/etapa4_cantina.jpg`, `etapa4_relojoeiro.jpg`, `etapa4_porta_cantina.jpg`.
+
+### Critérios de aceitação
+- **Atendido:** o jogador entra e sai das casas sem ficar preso nem atravessar paredes (medido) e sem perder progresso (recarregar dentro de uma casa preserva tudo).
+- **Verificação manual pedida:** jogar no celular real e com controle físico (o E da porta é a mesma ação de interagir que já funciona nos três modos).
+
+### Pendências
+- Só duas casas têm interior; as outras continuam fechadas (pendência 9).
+- O "cair do mapa" (y < −5) devolve o gato ao ponto inicial da vila mesmo dentro de uma sala. Nunca aconteceu nos testes (chão e paredes sólidos), mas fica registrado.

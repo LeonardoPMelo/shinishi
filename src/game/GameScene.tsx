@@ -28,6 +28,8 @@ import { PlayThings } from './world/PlayThings';
 import { LivingWorld } from './world/LivingWorld';
 import { Fauna } from './world/Fauna';
 import { TreeLine } from './world/TreeLine';
+import { Interiors } from './world/Interiors';
+import { useZone } from './systems/zone';
 import { FirstSteps } from './systems/FirstSteps';
 import { DemoTour } from './systems/tour';
 import { PostFX, AutoQuality } from './Effects';
@@ -161,6 +163,9 @@ function ExposePhysics() {
 
 function Scene() {
   const phase = useGameStore((s) => s.phase);
+  // inside a house (Etapa 4 da expansão) the outdoor world is not drawn: only the room, the cat and the
+  // villagers and objects inside (WorldObjects and NPCs draw by distance)
+  const outdoor = useZone((s) => s.zone === 'outdoor');
   const profile = useRenderProfile();
   const active = phase !== 'menu';
   const light = useLighting();
@@ -173,10 +178,12 @@ function Scene() {
 
       <fog attach="fog" args={[light.fog.color, light.fog.near, light.fog.far]} />
       <SkyDome />
-      <StaticMerge chunk={0}>
-        <Backdrop />
-      </StaticMerge>
-      <TreeLine />
+      <group visible={outdoor}>
+        <StaticMerge chunk={0}>
+          <Backdrop />
+        </StaticMerge>
+        <TreeLine />
+      </group>
       <WindClock />
       <FoliageFade />
       <ShadowBudget />
@@ -188,6 +195,7 @@ function Scene() {
         {import.meta.env.DEV && <ExposePhysics />}
         <SleepFixedBodies />
         <ThirdPersonCamera active={active} />
+        <group visible={outdoor}>
         <StaticMerge>
           <Ground />
           <Buildings />
@@ -206,6 +214,8 @@ function Scene() {
         </StaticMerge>
         <Foliage />
         <PlayThings />
+        </group>
+        <Interiors />
         <Shurikens />
         <TargetRange />
         <FaroTrail />
@@ -214,12 +224,16 @@ function Scene() {
         {NPC_DEFINITIONS.map((npc) => (
           <NPC key={npc.id} npc={npc} />
         ))}
-        <Fauna />
+        <group visible={outdoor}>
+          <Fauna />
+        </group>
       </Physics>
 
       <Particles />
       <VfxRings />
-      <LivingWorld />
+      <group visible={outdoor}>
+        <LivingWorld />
+      </group>
       <FirstSteps />
       <DemoTour />
       <DevHandle />

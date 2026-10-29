@@ -7,6 +7,7 @@ import { GORO } from './west';
 import { HINOKI } from './south';
 import { LUNA_FOREST, APPLES } from './redesign';
 import { CHAPTER3_ROUTES } from './chapter3';
+import { MIMI } from './interiors';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const bye = (label = 'Até mais!'): DialogueOption => ({ label, nextNodeId: null });
@@ -780,14 +781,16 @@ for (const npc of CHAPTER_1) {
   npc.offers = [...(npc.offers ?? []), ...ext.offerMeta];
 }
 
-export const NPC_DEFINITIONS: NPCDefinition[] = [...CHAPTER_1, ...NEW_NPCS, FUJI, GORO, HINOKI];
+export const NPC_DEFINITIONS: NPCDefinition[] = [...CHAPTER_1, ...NEW_NPCS, FUJI, GORO, HINOKI, MIMI];
 
-// Capítulo 3: same rule for every villager (old and new): in-progress routes first, offers after them.
+// Capítulo 3: in-progress routes first; the new offers go after the villager's older ones (in-progress or offer
+// routes), in the same order as `offers`, so the mission log (missionState.ts, first offer in that list) names
+// the mission the villager really offers when you talk (tests/interiors.test.ts).
 for (const npc of NPC_DEFINITIONS) {
   const ext = CHAPTER3_ROUTES[npc.id];
   if (!ext) continue;
-  const lastActive = npc.routes.reduce((acc, r, i) => (r.when?.active ? i : acc), -1);
-  npc.routes.splice(lastActive + 1, 0, ...ext.offers);
+  const lastOlder = npc.routes.reduce((acc, r, i) => (r.when?.active || r.when?.notStarted ? i : acc), -1);
+  npc.routes.splice(lastOlder + 1, 0, ...ext.offers);
   npc.routes.unshift(...ext.active);
   npc.offers = [...(npc.offers ?? []), ...ext.offerMeta];
 }

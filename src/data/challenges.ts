@@ -4,6 +4,7 @@ import { EAST_CHALLENGES } from './east';
 import { WEST_CHALLENGES } from './west';
 import { SOUTH_CHALLENGES } from './south';
 import { REDESIGN_CHALLENGES } from './redesign';
+import { INTERIOR_CHALLENGES } from './interiors';
 
 const list: Challenge[] = [
   {
@@ -181,6 +182,6 @@ const list: Challenge[] = [
   },
 ];
 
-list.push(...CHAPTER3_CHALLENGES, ...EAST_CHALLENGES, ...WEST_CHALLENGES, ...SOUTH_CHALLENGES, ...REDESIGN_CHALLENGES);
+list.push(...CHAPTER3_CHALLENGES, ...EAST_CHALLENGES, ...WEST_CHALLENGES, ...SOUTH_CHALLENGES, ...REDESIGN_CHALLENGES, ...INTERIOR_CHALLENGES);
 
 export const CHALLENGES: Record<string, Challenge> = Object.fromEntries(list.map((c) => [c.id, c]));

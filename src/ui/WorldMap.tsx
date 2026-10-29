@@ -5,6 +5,7 @@ import { NPC_DEFINITIONS, availableOffer } from '../data/npcs';
 import { availableSteps, checkCondition } from '../systems/progression';
 import { playerPosition, playerFacing } from '../game/systems/playerState';
 import { MAP_BOUNDS, VILLAGE_RECT, MAP_EAST, MAP_WEST, MAP_SOUTH, MAP_BUILDINGS, MAP_LABELS, RIVER, GARDEN, PILLARS, TALL_ROCK, TEMPLE, GATE, stepTargetPosition } from './mapData';
+import { reachablePosition } from '../data/interiors';
 
 interface Props {
   /** World units visible across the canvas; omit to fit the whole map. */
@@ -168,8 +169,10 @@ export function WorldMap({ window: span, size, labels, className }: Props) {
       for (const npc of NPC_DEFINITIONS) {
         if (!checkCondition(npc.visibleWhen, s.progress)) continue;
         const offer = availableOffer(npc, s.progress);
+        // someone inside a house shows at its door (data/interiors.ts)
+        const at = reachablePosition(npc.position);
         ctx.beginPath();
-        ctx.arc(X(npc.position[0]), Z(npc.position[2]), offer ? 4.5 : 3, 0, Math.PI * 2);
+        ctx.arc(X(at[0]), Z(at[2]), offer ? 4.5 : 3, 0, Math.PI * 2);
         ctx.fillStyle = offer ? '#FFC93C' : '#FFF6E4';
         ctx.fill();
         ctx.strokeStyle = '#221A2C';
@@ -179,7 +182,7 @@ export function WorldMap({ window: span, size, labels, className }: Props) {
           ctx.font = 'bold 10px Nunito, sans-serif';
           ctx.fillStyle = '#221A2C';
           ctx.textAlign = 'center';
-          ctx.fillText(npc.name, X(npc.position[0]), Z(npc.position[2]) - 7);
+          ctx.fillText(npc.name, X(at[0]), Z(at[2]) - 7);
         }
       }
 
@@ -187,8 +190,9 @@ export function WorldMap({ window: span, size, labels, className }: Props) {
       if (tracked && s.progress.missions[tracked.id]?.status === 'active') {
         const t = performance.now() / 1000;
         for (const step of availableSteps(tracked, s.progress)) {
-          const p = stepTargetPosition(step);
-          if (!p) continue;
+          const raw = stepTargetPosition(step);
+          if (!raw) continue;
+          const p = reachablePosition(raw);
           ctx.beginPath();
           ctx.arc(X(p[0]), Z(p[2]), 7 + Math.sin(t * 4) * 1.5, 0, Math.PI * 2);
           ctx.strokeStyle = '#3EA8E0';

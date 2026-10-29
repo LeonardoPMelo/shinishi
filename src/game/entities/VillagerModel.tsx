@@ -47,6 +47,8 @@ export const VILLAGER_ASSETS: Record<string, AssetName> = {
   // Bambuzal e Bosque Antigo (§26)
   goro: 'goro',
   hinoki: 'hinoki',
+  // Cantina por dentro (Etapa 4 da expansão)
+  mimi: 'mimi',
 };
 
 /**

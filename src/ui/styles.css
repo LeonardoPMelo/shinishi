@@ -1689,3 +1689,9 @@ body.pad-active button:focus, body.pad-active select:focus, body.pad-active inpu
 /* missions someone offers now (Missões > Disponíveis): information, not a button */
 .log-item.offer { cursor: default; opacity: 0.9; }
 .log-item.offer em { font-style: normal; opacity: 0.7; margin-left: 4px; }
+
+/* Houses you walk into (Etapa 4 da expansão) */
+.door-fade { position: fixed; inset: 0; background: #120C1C; opacity: 0; pointer-events: none; transition: opacity 0.24s ease; z-index: 90; }
+.door-fade.on { opacity: 1; pointer-events: auto; }
+.room-label { position: fixed; left: 14px; bottom: 14px; z-index: 50; padding: 8px 14px; border-radius: 999px; color: #FFF6E4; font-weight: 800; font-size: 0.95rem; }
+body.touch-ui .room-label { display: none; }

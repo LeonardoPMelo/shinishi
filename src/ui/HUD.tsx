@@ -12,6 +12,8 @@ import { levelProgress } from '../systems/leveling';
 import { onGameEvent } from '../systems/events';
 import { currentObjective, isFirstSteps } from '../systems/objective';
 import { playerPosition } from '../game/systems/playerState';
+import { useZone } from '../game/systems/zone';
+import { INTERIORS_BY_ID } from '../data/interiors';
 
 /** "Missões da Vila": the followed mission as a checklist (done steps ticked, current ones open). */
 function VillageMissions() {
@@ -229,6 +231,7 @@ function AbilityBar() {
 
 export function HUD() {
   const player = useGameStore((s) => s.player);
+  const room = useZone((s) => (s.zone === 'outdoor' ? null : INTERIORS_BY_ID[s.zone]?.name ?? null));
   const phase = useGameStore((s) => s.phase);
   const openPanel = useGameStore((s) => s.openPanel);
   const muted = useAudioSettings((s) => s.muted);
@@ -268,7 +271,9 @@ export function HUD() {
         {phase === 'playing' && <NextObjective />}
       </div>
 
-      {phase === 'playing' && (
+      {/* inside a house: its name where the minimap was (the minimap shows the outdoors) */}
+      {phase === 'playing' && room && <div className="room-label hud-glass">📍 {room}</div>}
+      {phase === 'playing' && !room && (
         <div className="minimap hud-glass" onClick={() => openPanel('map')} title="Abrir mapa (M)">
           <WorldMap size={150} window={34} />
           <span className="minimap-n">N</span>

@@ -33,6 +33,7 @@ export const ASSETS = {
   mochi: { folder: 'characters', collider: 'none', description: 'Vovó curvada com xale de tricô, óculos e bengala' },
   bigodes: { folder: 'characters', collider: 'none', description: 'Peixeiro de bigodão, bandana torcida e avental' },
   pipo: { folder: 'characters', collider: 'none', description: 'Filhote tricolor com cata-vento' },
+  mimi: { folder: 'characters', collider: 'none', description: 'Ajudante da cantina: gata laranja de quimono azul e avental' },
   liria: { folder: 'characters', collider: 'none', description: 'Inventora cuidadosa: lenço, óculos, avental e prancheta' },
   kaito: { folder: 'characters', collider: 'none', description: 'Parkour: pelagem de pontas escuras, cachecol longo e faixas' },
   tsubaki: { folder: 'characters', collider: 'none', description: 'Guardiã do templo: hakama vermelha, camélia e naginata de madeira' },

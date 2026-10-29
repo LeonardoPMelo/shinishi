@@ -2,6 +2,7 @@ import { WORLD_BOUNDS } from './world';
 import { EAST, LOOKOUT, TEA } from './east';
 import { WEST } from './west';
 import { SOUTH } from './south';
+import { INTERIORS, interiorRect } from './interiors';
 
 /**
  * Where the cat may stand, as a union of rectangles: the village and the districts outside its fence.
@@ -18,6 +19,8 @@ export const WALK_RECTS: Rect[] = [
   { minX: TEA.x0, maxX: EAST.maxX, minZ: EAST.maxZ, maxZ: LOOKOUT.z1 },
   { minX: WEST.minX, maxX: WORLD_BOUNDS.minX, minZ: WEST.minZ, maxZ: WEST.maxZ },
   { minX: SOUTH.minX, maxX: SOUTH.maxX, minZ: WORLD_BOUNDS.maxZ, maxZ: SOUTH.maxZ },
+  // the rooms of the houses you can walk into (data/interiors.ts), far east of the map
+  ...INTERIORS.map(interiorRect),
 ];
 
 const inside = (r: Rect, x: number, z: number) => x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ;

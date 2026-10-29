@@ -18,6 +18,7 @@ import { useUiSettings, reducedMotion } from './store/uiSettings';
 import './ui/styles.css';
 import { asset } from './assetPath';
 import { CrashBoundary, NoWebGL, hasWebGL } from './ui/CrashScreen';
+import { useZone } from './game/systems/zone';
 
 // Dev-only portrait studio (?studio): never part of the production bundle.
 const Studio = import.meta.env.DEV ? lazy(() => import('./game/Studio').then((m) => ({ default: m.Studio }))) : null;
@@ -85,6 +86,12 @@ function PadBridge() {
   return notice ? <div className="pad-notice" role="status" aria-live="polite">{notice}</div> : null;
 }
 
+/** Going through a door (game/systems/zone.ts): a short fade to dark and back. */
+function DoorFade() {
+  const fading = useZone((s) => s.fading);
+  return <div className={`door-fade ${fading ? 'on' : ''}`} aria-hidden />;
+}
+
 /** Accessibility settings that live on the page itself: text size and the reduced-motion class (Etapa 7). */
 function A11yBridge() {
   const mode = useUiSettings((s) => s.reduceMotion);
@@ -141,6 +148,7 @@ function Game() {
       <GameController />
       <A11yBridge />
       <PadBridge />
+      <DoorFade />
 
       {phase === 'menu' && !touring && <MainMenu />}
       {touring && <TourOverlay />}

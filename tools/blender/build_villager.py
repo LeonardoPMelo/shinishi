@@ -129,6 +129,12 @@ CAST = {
         outfit='robe', robe='#3E8C8C', trim='#F2E6D8', obi='#7A5236', hem=0.1, flare=0.05,
         apron='#F2E6D8', apron_top=0.4, pockets='#C9B48C', extras=['bandana', 'glasses', 'clipboard'], style='clipboard',
     ),
+    'mimi': dict(  # Hana's young helper in the cantina (Etapa 4 da expansão): orange tabby, sky-blue kimono
+        # (Hana wears pink), white apron, kitchen kerchief, bouncy like a kid on her first job
+        fur='#F2B56B', light='#FFF1DC', ear='#C9772F', iris='#56B36B', width=0.9,
+        outfit='robe', robe='#5FA8D3', trim='#FFFFFF', obi='#F2C94C', hem=0.12, flare=0.05,
+        apron='#FFFFFF', apron_top=0.36, stripes='#C9772F', extras=['bandana'], style='bouncy',
+    ),
     'kaito': dict(  # parkour specialist: slim, colour-point fur, tight sleeves, arm wraps, long flying scarf
         fur='#EFE3CF', light='#FFF6E8', ear='#4A3A32', iris='#3FA0E0', width=0.88,
         outfit='gi', robe='#2F4A3A', trim='#E8643A', obi='#E8643A', pants='#26302A', sleeve='tight',

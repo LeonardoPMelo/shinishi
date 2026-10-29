@@ -3,6 +3,7 @@ import { MISSIONS } from '../data/missions';
 import { NPC_DEFINITIONS, availableOffer } from '../data/npcs';
 import { availableSteps } from './progression';
 import { stepTargetPosition } from '../ui/mapData';
+import { reachablePosition } from '../data/interiors';
 
 /**
  * What the player should do next, in one line (Etapa 7). Before this, a new game showed no objective at
@@ -27,7 +28,9 @@ export function currentObjective(progress: Progress, from?: { x: number; z: numb
     const steps = availableSteps(MISSIONS[missionId], progress);
     let best: Objective | null = null;
     for (const step of steps) {
-      const position = stepTargetPosition(step);
+      const target = stepTargetPosition(step);
+      // inside a house the player is not in: point at its door (data/interiors.ts)
+      const position = target ? reachablePosition(target, from) : null;
       const o: Objective = { kind: 'step', missionId, text: step.description, position };
       if (!best) best = o;
       else if (position && (!best.position || dist(position, from) < dist(best.position, from))) best = o;
@@ -36,7 +39,7 @@ export function currentObjective(progress: Progress, from?: { x: number; z: numb
   }
   for (const npc of NPC_DEFINITIONS) {
     const offer = availableOffer(npc, progress);
-    if (offer) return { kind: 'offer', missionId: offer, text: `${npc.name} precisa da sua ajuda`, position: npc.position };
+    if (offer) return { kind: 'offer', missionId: offer, text: `${npc.name} precisa da sua ajuda`, position: reachablePosition(npc.position, from) };
   }
   return null;
 }

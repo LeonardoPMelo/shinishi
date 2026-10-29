@@ -43,6 +43,12 @@ const COYOTE_TIME = 0.13;
 const JUMP_BUFFER = 0.14;
 const FOOT = 0.68;
 const MAX_FALL = -22;
+/**
+ * Kept outside the component on purpose: @react-three/rapier treats a new userData object as a changed option
+ * and, on every re-render, puts the body back where its 3D object was at the last physics step. That undid the
+ * door teleports (zone.ts), which re-render the scene in between steps.
+ */
+const BODY_USER_DATA = { player: true };
 
 type Surface = 'grass' | 'stone' | 'wood';
 
@@ -458,7 +464,7 @@ export function Shinichi() {
       position={[SPAWN.x, SPAWN.y, SPAWN.z]}
       name="shinichi"
       ccd
-      userData={{ player: true }}
+      userData={BODY_USER_DATA}
     >
       <CapsuleCollider args={[0.28, 0.38]} position={[0, -0.02, 0]} friction={0} frictionCombineRule={CoefficientCombineRule.Min} />
       <group ref={visualRef} rotation={[0, Math.PI, 0]}>

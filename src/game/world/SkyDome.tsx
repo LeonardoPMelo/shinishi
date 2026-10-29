@@ -85,6 +85,12 @@ export function SkyDome() {
     sunDir: { value: new THREE.Vector3() },
     sunGlow: { value: new THREE.Color() },
   }), []);
+  // the dome goes where the camera goes: inside the houses (built far east of the map, Etapa 4 da expansão)
+  // the camera is beyond its 170 m radius and would see the outside of the sphere
+  const dome = useRef<THREE.Mesh>(null);
+  useFrame(({ camera }) => {
+    if (dome.current) dome.current.position.set(camera.position.x, 0, camera.position.z);
+  });
   uniforms.top.value.set(sky.top);
   uniforms.mid.value.set(sky.mid);
   uniforms.horizon.value.set(sky.horizon);
@@ -93,7 +99,7 @@ export function SkyDome() {
 
   return (
     <>
-      <mesh scale={170}>
+      <mesh ref={dome} scale={170}>
         <sphereGeometry args={[1, 32, 16]} />
         <shaderMaterial
           side={THREE.BackSide}
