@@ -1520,7 +1520,7 @@ body.touch-ui .controls-bar { display: none; }
 .intro-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--paper-edge); }
 .intro-dots span.on { background: var(--orange); }
 .intro-actions { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
-.intro-actions .btn { flex: 1 1 140px; }
+.intro-actions .btn { flex: 1 1 120px; white-space: nowrap; }
 .chapter-head { display: flex; align-items: baseline; gap: 8px; }
 .chapter-num { font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: var(--orange-dark); }
 .chapter-count { margin-left: auto; font-weight: 900; font-size: 0.85rem; }

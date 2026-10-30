@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
-import { playerPosition, cameraAngle, playerBody, playerFacing, cameraInput } from './playerState';
+import { playerPosition, cameraAngle, playerBody, playerFacing, cameraInput, abilityState } from './playerState';
+import { reducedMotion } from '../../store/uiSettings';
 import { useUiSettings } from '../../store/uiSettings';
 import { foliageFade } from '../materials';
 import { PROBES, pickView, type Probe } from './cameraProbe';
@@ -191,6 +192,13 @@ export function ThirdPersonCamera({ active }: Props) {
     const lerpFactor = 1 - Math.pow(1 - LERP_SPEED, delta * 60);
     camera.position.lerp(targetPos.current, free < wanted ? Math.max(lerpFactor, 0.5) : lerpFactor);
     camera.lookAt(pivot.current);
+    // a hit taken shakes the view for a moment, fading out (Etapa 9); never with reduced motion
+    const shakeLeft = abilityState.shakeUntil - performance.now() / 1000;
+    if (shakeLeft > 0 && !reducedMotion()) {
+      const a = abilityState.shakeAmp * Math.min(1, shakeLeft / 0.25);
+      camera.position.x += (Math.random() - 0.5) * a;
+      camera.position.y += (Math.random() - 0.5) * a;
+    }
     // tell the foliage shader where the line of sight is (leaves on it dissolve)
     foliageFade.cam.value.copy(camera.position);
     foliageFade.target.value.set(playerPosition.x, playerPosition.y + 0.1, playerPosition.z);

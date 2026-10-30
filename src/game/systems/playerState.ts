@@ -41,6 +41,9 @@ export const abilityState = {
   knock: new THREE.Vector3(),
   /** A paw caught in a snare: no walking until this time. */
   stuckUntil: 0,
+  /** A small camera shake after a hit (Etapa 9): until this time, this strong (m). */
+  shakeUntil: 0,
+  shakeAmp: 0,
 };
 
 export const FARO_DURATION = 6;

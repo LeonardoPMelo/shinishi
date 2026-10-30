@@ -177,8 +177,10 @@ export function AudioBridge() {
         x: playerPosition.x,
         z: playerPosition.z,
         inGarden: inGarden(),
-        inForest: inForest(),
+        inForest: useZone.getState().zone === 'outdoor' ? inForest() : useZone.getState().zone === 'selvagem',
         active: s.phase !== 'menu' && s.phase !== 'paused',
+        zone: useZone.getState().zone,
+        area: useZone.getState().zone === 'selvagem' ? wildAreaAt(playerPosition.x, playerPosition.z) : null,
         nekoSleeping: s.progress.missions.fantasma?.status !== 'done',
         npcPositions: NPC_DEFINITIONS
           .filter((n) => checkCondition(n.visibleWhen, s.progress))

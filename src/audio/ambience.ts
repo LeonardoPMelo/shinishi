@@ -1,5 +1,6 @@
 import { audio } from './engine';
 import { playSfx } from './sfx';
+import { CAMPFIRE, WILD_RIVER, w } from '../data/wild';
 
 /** PROVISIONAL synthesized ambience. Positional where it helps the player find things. */
 
@@ -14,6 +15,15 @@ const WATER_SPOTS: { pos: V3; gain: number; tone: number }[] = [
   { pos: [-14.2, 0.3, -17.2], gain: 0.25, tone: 1600 },
 ];
 
+/**
+ * The wild lands' river and waterfall (Etapa 9): the village's water spots are far away there, so the river
+ * would run silent. Samples along it, and the fall itself, louder and lower.
+ */
+const WILD_WATER: { pos: V3; gain: number; tone: number }[] = [
+  ...[30, 14, -2, -18, -30].map((z) => ({ pos: w((WILD_RIVER.x0 + WILD_RIVER.x1) / 2, z, 0.3), gain: 0.35, tone: 780 })),
+  { pos: w((WILD_RIVER.x0 + WILD_RIVER.x1) / 2, -38, 3), gain: 1.1, tone: 520 },
+];
+
 const HOUSES: V3[] = [[-8.5, 2, -8.5], [9.5, 2, -10], [11.5, 2, -1.5], [6.5, 2, 12], [-13.5, 2, -2.5], [13.5, 2, 7], [-3, 2, 14]];
 const MARKET: V3 = [8.6, 1, -1.5];
 const CANTINA: V3 = [-6.6, 1, -6.8];
@@ -26,6 +36,10 @@ export interface AmbienceContext {
   inGarden: boolean;
   inForest: boolean;
   active: boolean;
+  /** 'outdoor', a house's id, or 'selvagem' (game/systems/zone.ts). */
+  zone: string;
+  /** In the wild lands: the place's name (data/wild.ts), for the cave and the windy lookout. */
+  area: string | null;
   nekoSleeping: boolean;
   npcPositions: { pos: V3; voice: string }[];
 }
@@ -73,7 +87,7 @@ class Ambience {
     this.loopNoise().connect(this.windFilter).connect(gust).connect(this.wind).connect(audio.buses.ambient);
 
     // Running water, placed in the world.
-    for (const spot of WATER_SPOTS) {
+    for (const spot of [...WATER_SPOTS, ...WILD_WATER]) {
       const f = ctx.createBiquadFilter();
       f.type = 'bandpass';
       f.frequency.value = spot.tone;
@@ -95,13 +109,31 @@ class Ambience {
     if (!audio.ready) return;
     this.start();
     const t = audio.time;
-    this.wind.gain.setTargetAtTime(c.inGarden ? 0.03 : c.active ? 0.09 : 0.05, t, 0.8);
-    audio.setReverb(c.inGarden ? 0.32 : 0.16);
+    // where the cat is decides the room the sound lives in (Etapa 9): houses and the cave are closed and
+    // echo; the windy lookout is all wind
+    const indoors = c.zone !== 'outdoor' && c.zone !== 'selvagem';
+    const cave = c.area === 'Caverna da Névoa';
+    const lookout = c.area === 'Mirante do Vento';
+    const wind = indoors ? 0.015 : cave ? 0.03 : lookout ? 0.2 : c.inGarden ? 0.03 : c.active ? 0.09 : 0.05;
+    this.wind.gain.setTargetAtTime(wind, t, 0.8);
+    audio.setReverb(cave ? 0.5 : indoors ? 0.28 : c.inGarden ? 0.32 : 0.16);
     if (!c.active) return;
 
     const near = (p: V3, r: number) => Math.hypot(p[0] - c.x, p[2] - c.z) < r;
+    const around = (r: number, y = 1): V3 => {
+      const a = Math.random() * Math.PI * 2;
+      const d = r * (0.5 + Math.random() * 0.5);
+      return [c.x + Math.cos(a) * d, y, c.z + Math.sin(a) * d];
+    };
 
-    if (this.due('bird', t, c.inForest ? 1.8 : 3, c.inForest ? 5 : 8)) {
+    // inside: the Sede's garden chimes and the academy's training yard (pendência 11)
+    if (c.zone === 'sede' && this.due('sede', t, 10, 20)) playSfx('chime', { position: around(7, 2) });
+    if (c.zone === 'academia' && this.due('dojo', t, 3, 7)) playSfx('thwack', { position: around(8) });
+    // the cave drips; the camp fire crackles
+    if (cave && this.due('drip', t, 1.2, 3.5)) playSfx('drip', { position: around(6, 2.5) });
+    if (c.zone === 'selvagem' && near(CAMPFIRE.at, 9) && this.due('fire', t, 1.5, 3.5)) playSfx('sizzle', { position: CAMPFIRE.at });
+
+    if (!indoors && !cave && this.due('bird', t, c.inForest ? 1.8 : 3, c.inForest ? 5 : 8)) {
       const a = Math.random() * Math.PI * 2;
       const r = 6 + Math.random() * 9;
       playSfx('bird', { position: [c.x + Math.cos(a) * r, 5 + Math.random() * 3, c.z + Math.sin(a) * r] });

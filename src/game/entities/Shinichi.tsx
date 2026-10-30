@@ -26,7 +26,7 @@ import { ShinichiCat, type AnimState } from './ShinichiCat';
 import { useFromBag } from '../systems/itemEffects';
 import { inWildRiver, inWildWorld, toLocal, WILD_RESPAWN } from '../../data/wild';
 import { PAW } from '../../systems/combat';
-import { heartsMissing } from '../systems/hearts';
+import { heartsMissing, useHearts } from '../systems/hearts';
 import { useZone } from '../systems/zone';
 
 /** The wild lands' river (Etapa 7): the rope bridge holds only once it is tied. */
@@ -363,6 +363,9 @@ export function Shinichi() {
     const leanGoal = THREE.MathUtils.clamp((-turn / Math.max(delta, 1e-3)) * 0.045 * Math.min(speed / RUN_SPEED, 1), -0.28, 0.28);
     s.lean += (leanGoal - s.lean) * (1 - Math.exp(-10 * delta));
     visualRef.current.rotation.set(dashing ? -0.12 : 0, s.yAngle, s.lean, 'YXZ');
+    // after a hit, the cat blinks while nothing can hurt it (Etapa 9): the player sees the safe moment
+    const safe = useHearts.getState().safeUntil - t;
+    visualRef.current.visible = !(safe > 0 && useZone.getState().zone === 'selvagem') || Math.floor(t * 10) % 2 === 0;
     playerFacing.angle = s.yAngle;
     playerGround.grounded = s.grounded;
 

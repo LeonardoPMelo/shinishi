@@ -219,6 +219,8 @@ export const recipes: Record<string, Recipe> = {
     blip(d, t, 140, { type: 'sine', dur: 0.08, slide: 0.6, vel: 0.35 * v });
     noiseBurst(d, t, { dur: 0.05, vel: 0.12 * v, from: 1200 });
   },
+  // Etapa 9 (synthesized, provisional): a water drop in the cave
+  drip: (d, t, v) => blip(d, t, rnd(1500, 1900), { type: 'sine', dur: 0.12, slide: 0.45, vel: 0.07 * v }),
   // Etapa 7 (synthesized, like the other ability sounds): the paw swipe's whoosh and the "ouch" of a hit taken
   swipe: (d, t, v) => noiseBurst(d, t, { dur: 0.14, vel: 0.16 * v, from: 2600, to: 700, q: 1.4 }),
   hurt: (d, t, v) => {
@@ -261,7 +263,7 @@ const rules: Record<string, Rule> = {
   gem: { gap: 0.3 }, ui_open: { gap: 0.15 }, ui_close: { gap: 0.15 }, item: { gap: 0.2 },
   temple_bell: { gap: 2.5 }, shuriken: { gap: 0.1, max: 3 }, target_hit: { gap: 0.08 }, dash: { gap: 0.2 }, potion: { gap: 0.5 }, wish: { gap: 0.5 }, chest: { gap: 0.5 },
   bird: { gap: 0.6, max: 2, bus: 'ambient' }, chime: { gap: 2, bus: 'ambient' }, thwack: { gap: 0.4, bus: 'ambient' },
-  sizzle: { gap: 1, bus: 'ambient' }, firework_pop: { gap: 0.1, max: 3 }, flop: { gap: 0.3 }, giggle: { gap: 1.2 }, boing: { gap: 0.15 }, swipe: { gap: 0.12 }, hurt: { gap: 0.3 }, chatter: { gap: 0.6, bus: 'ambient' }, voice_snore: { gap: 1.5 },
+  sizzle: { gap: 1, bus: 'ambient' }, firework_pop: { gap: 0.1, max: 3 }, flop: { gap: 0.3 }, giggle: { gap: 1.2 }, boing: { gap: 0.15 }, swipe: { gap: 0.12 }, hurt: { gap: 0.3 }, drip: { gap: 0.4, bus: 'ambient' }, chatter: { gap: 0.6, bus: 'ambient' }, voice_snore: { gap: 1.5 },
 };
 
 const lastPlayed = new Map<string, number>();

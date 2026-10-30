@@ -93,18 +93,18 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 2 | Referências com símbolo de folha no repositório público | decisão do usuário |
 | 3 | Botão "Instalar" da PWA + instruções manuais | 10 (ou antes, se pedido) |
 | 4 | ~~Pipo desliza 27%~~ resolvido na Etapa 3 (0%) | — |
-| 5 | 15 efeitos sonoros sintetizados (a Etapa 7 somou a patada e o "ai"); a luta usa a música de treino, não uma de combate própria | 9 |
-| 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido | 9 |
+| 5 | 16 efeitos sonoros sintetizados (a Etapa 9 somou a gota da caverna); a luta usa a música de treino. Os pacotes Kenney baixados antes não estão mais no computador: trocar por gravações CC0 exige baixar de novo (precisa de aprovação) | quando aprovado |
+| 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido. Medição real exige a janela visível (o painel oculto só dá custo de CPU por quadro) | 10 (teste manual) |
 | 7 | Teste com controle físico e celular real | manual |
 | 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); ~~lojas~~ (Etapa 6); ~~região selvagem, combate~~ (Etapa 7); ~~narrativa~~ (Etapa 8) | — |
 | 9 | Mais casas com interior (cantina, relojoeiro, Academia e Sede têm) | 6–8, conforme as missões pedirem |
 | 10 | ~~A rota da Expedição muda o caminho~~ resolvido na Etapa 7: a corda conserta a ponte, a capa vence o vento do mirante; a outra se compra no Armazém | — |
-| 11 | Som ambiente próprio da Sede (hoje só a música muda dentro dela) | 9 |
+| 11 | ~~Som ambiente da Sede~~ resolvido na Etapa 9 (carrilhão do jardim, eco de sala; Academia com golpes de treino) | — |
 | 12 | ~~Poções de cura~~ resolvido na Etapa 7 (Poção de Ervas: Armazém e caldeirão) | — |
 | 13 | ~~Corda Ninja e Capa Corta-Vento sem uso~~ resolvido na Etapa 7 | — |
 | 14 | ~~Registro de missões × conversa~~ resolvido na Etapa 8: o "!", o registro, o mapa e o próximo passo só anunciam uma missão que a conversa realmente oferece | — |
 | 15 | Nas terras selvagens, os bichos voltam a cada visita e pagam moedas de novo (pouco: 3 a 5 por bicho). Depois do pacto (capítulo 7), só restam os espíritos e o javali. Avaliar um limite se a economia pedir | 9 |
-| 16 | Pacote principal cresceu para 895 KB (gzip 283 KB): avaliar dividir os dados das missões e as regiões em pedaços carregados sob demanda | 9 |
+| 16 | Pacote principal: 899 KB (gzip 285 KB). Avaliado na Etapa 9: todo esse código é necessário antes do primeiro quadro, então dividir não reduz o que o jogador baixa; só mudaria o cache entre versões. Mantido | — |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -509,3 +509,53 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 
 ### Observação
 - Nesta etapa, um comando `npx tsx` baixou o pacote `tsx` para o cache do npm (fora do projeto) sem aprovação prévia. Foi um erro. O pacote não foi usado, e nada no projeto depende dele.
+## 12. Registro da Etapa 9 — Polimento visual e sonoro (2026-10-30)
+
+### Auditoria (antes)
+- Som ambiente sintetizado com água só nas posições da vila: o rio e a cachoeira das terras selvagens ficavam mudos, e a caverna, as casas, a Sede e a Academia soavam como campo aberto.
+- O rio selvagem era um plano de cor lisa; a caverna era clara como lá fora; a névoa eram esferas cinzas de borda dura.
+- Ao levar um golpe, o gato só era empurrado: nada mostrava o tempo em que ele não pode ser atingido.
+- Os bichos deslizavam (sem passada).
+- Os pacotes de som Kenney, de onde vieram os 25 efeitos gravados, não estão mais no computador.
+
+### Implementado
+| Parte | O que faz |
+|---|---|
+| **Som por lugar** (`audio/ambience.ts`) | Água posicionada ao longo do rio selvagem e na cachoeira (mais forte e grave). Casas e caverna com eco (reverberação maior) e menos vento; o Mirante do Vento com muito vento. Sede: carrilhão do jardim (gravação). Academia: golpes de treino (gravação). Caverna: gotas (sintetizado, provisório). Fogueira do acampamento: estalos |
+| **Rio que corre** | Textura de brilhos suaves correndo rio abaixo |
+| **Caverna** | Ao entrar, o ar escurece e a névoa chega mais perto (e volta exatamente como era na saída); a câmera sobe e se aproxima, como numa sala, e devolve o enquadramento do jogador na saída. Névoa em camadas planas e esfumadas; chão de rocha lisa |
+| **Golpe no gato** | O Shinichi pisca enquanto não pode ser atingido; a câmera treme de leve (desligado com "movimento reduzido") |
+| **Golpe nos bichos** | Um anel marca onde o golpe acertou; um anel cinza quando os espinhos bloqueiam |
+| **Bichos andando** | Raposa e javali com passada de trote (diagonais juntas), mais rápida quanto mais rápido andam; parados, as patas param |
+| **Paredões** | Pedregulhos do topo achatados e dentro da colisão; os da base menores e embutidos. A câmera não fica mais atrás de uma pedra sem colisão |
+| Interfaces | Introdução, duelo e Jornada conferidos no celular (375 × 812) sem rolagem lateral; botões da introdução numa linha só |
+
+### Problemas encontrados e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| Riscos do rio pareciam pixels | Captura | Brilhos ovais esfumados |
+| Névoa da caverna em polígonos cinzas | Captura | Camadas planas com borda esfumada |
+| Câmera atrás de pedregulho ou do paredão na boca da caverna | Captura e raio da câmera até o gato | Pedregulhos dentro da colisão; câmera mais alta e próxima dentro da caverna |
+| Chão da caverna e estelas com cara de tijolo | Captura | Cor lisa (a textura "stone" é de alvenaria) |
+| Passada errada (dois lados juntos) | Leitura dos ângulos das patas | Trote nas diagonais |
+| "TROT is not defined" na tela de erro | Navegador, depois de duas edições seguidas | Módulo intermediário do Vite. O código está certo (tsc e build); depois de reiniciar o servidor, página nova sem erros |
+
+### Testes
+- `vitest`: 496 passando. `tsc` ok. Build ok (pacote principal 899 KB, gzip 285 KB).
+- **No navegador:**
+  - rio correndo e caverna escurecendo: névoa medida antes e dentro, cor `f4c6a4` → `856d5f`, distância 42–150 → 12,6–67,5;
+  - câmera dentro da caverna (`phi` 0,95, distância 5,2) mostrando o gato;
+  - gato piscando durante o tempo protegido;
+  - patas da raposa alternando com a passada;
+  - telas no celular;
+  - página nova com os quatro tipos de bicho desenhados e nenhum erro.
+- **Custo de CPU por quadro**: medição indicativa no painel oculto, de 240 px, então quase só CPU.
+  - Acampamento 18,5 ms, floresta 17 ms, caverna 19,4 ms.
+  - Praça da vila 29–31 ms (28 ms na Etapa 7, em condições parecidas mas não idênticas). A diferença está perto do ruído da medição; não é conclusiva.
+- Capturas: `docs/expansao/etapa9_rio.jpg`, `etapa9_caverna.jpg`.
+
+### Critérios de aceitação
+- **Atendido em parte:** os efeitos visuais e sonoros novos estão ligados ao jogo (cada som e efeito responde a um lugar ou a uma ação) e não trouxeram falha de desempenho perceptível nas medições indicativas.
+- **Pendente:**
+  - os 16 efeitos sintetizados continuam provisórios: substituir por gravações exige baixar arquivos, o que depende de aprovação;
+  - a meta de 45 fps (pendência 6) exige medir com a janela visível ou num aparelho de verdade.

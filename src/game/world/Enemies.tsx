@@ -17,6 +17,7 @@ import { combatWorld, hurtPlayer, useHearts } from '../systems/hearts';
 import { useZone } from '../systems/zone';
 import { registerTarget } from '../systems/shuriken';
 import { spawnParticles } from '../systems/particles';
+import { spawnRing } from '../systems/vfx';
 import { useSpot, useIconTexture } from '../systems/training';
 import { interactFallback } from '../systems/interaction';
 import { press } from '../systems/input';
@@ -137,11 +138,14 @@ function Fox({ skin }: { skin: THREE.Material }) {
           <meshBasicMaterial color="#F2E27A" />
         </mesh>
       ))}
-      {[[-0.12, 0.15], [0.12, 0.15], [-0.12, -0.15], [0.12, -0.15]].map(([x, z]) => (
-        <mesh key={`${x}${z}`} position={[x, 0.15, z]}>
-          <cylinderGeometry args={[0.04, 0.035, 0.3, 6]} />
-          <Toon color="#3A2A22" />
-        </mesh>
+      {[[-0.12, 0.15], [0.12, 0.15], [-0.12, -0.15], [0.12, -0.15]].map(([x, z], i) => (
+        // legs hang from the hip so they swing (Enemies' frame loop moves the ones tagged `leg`)
+        <group key={`${x}${z}`} position={[x, 0.3, z]} userData={LEG[TROT[i]]}>
+          <mesh position={[0, -0.15, 0]}>
+            <cylinderGeometry args={[0.04, 0.035, 0.3, 6]} />
+            <Toon color="#3A2A22" />
+          </mesh>
+        </group>
       ))}
       <mesh position={[0, 0.55, -0.42]} rotation={[0.9, 0, 0]}>
         <capsuleGeometry args={[0.1, 0.3, 4, 8]} />
@@ -206,15 +210,22 @@ function Boar({ skin }: { skin: THREE.Material }) {
           <meshBasicMaterial color="#1E1A1A" />
         </mesh>
       ))}
-      {[[-0.32, 0.4], [0.32, 0.4], [-0.32, -0.45], [0.32, -0.45]].map(([x, z]) => (
-        <mesh key={`${x}${z}`} position={[x, 0.18, z]}>
-          <cylinderGeometry args={[0.1, 0.09, 0.36, 7]} />
-          <Toon color="#4A3E36" />
-        </mesh>
+      {[[-0.32, 0.4], [0.32, 0.4], [-0.32, -0.45], [0.32, -0.45]].map(([x, z], i) => (
+        <group key={`${x}${z}`} position={[x, 0.36, z]} userData={LEG[TROT[i]]}>
+          <mesh position={[0, -0.18, 0]}>
+            <cylinderGeometry args={[0.1, 0.09, 0.36, 7]} />
+            <Toon color="#4A3E36" />
+          </mesh>
+        </group>
       ))}
     </group>
   );
 }
+
+/** Leg tags: the two diagonals swing in opposite phase (constants: inline userData objects reset on render). */
+const LEG = [{ leg: 1 }, { leg: -1 }];
+/** Legs listed front-left, front-right, back-left, back-right: a trot moves the diagonals together. */
+const TROT = [0, 1, 1, 0];
 
 const LOOK = {
   ourico: { color: '#8C6A4E', scale: 1 },
@@ -281,7 +292,7 @@ function Creature({ e, register }: { e: Enemy; register: (id: string, g: Creatur
   );
 }
 
-interface CreatureRefs { root: THREE.Group; body: THREE.Group; marks: THREE.Group; bar: THREE.Mesh; skin: THREE.MeshToonMaterial }
+interface CreatureRefs { root: THREE.Group; body: THREE.Group; marks: THREE.Group; bar: THREE.Mesh; skin: THREE.MeshToonMaterial; legs?: THREE.Object3D[]; last?: { x: number; z: number } }
 
 // ── The fight ─────────────────────────────────────────────────────────────────
 
@@ -384,7 +395,9 @@ export function Enemies() {
     if (r === 'hit' || r === 'defeated') {
       emit({ type: 'sfx', name: by === 'paw' ? 'kick' : 'target_hit' });
       spawnParticles('sparkle', [e.x, 0.6, e.z], 8, '#FFFFFF');
-    }
+      // the impact mark: a quick ring where the blow landed (Etapa 9)
+      spawnRing([e.x, 0.55, e.z], { color: '#FFF3C4', size: 0.9, life: 0.25 });
+    } else if (r === 'blocked') spawnRing([e.x, 0.55, e.z], { color: '#9AA4B0', size: 0.6, life: 0.2 });
     if (r === 'defeated') defeated(e);
     const tip = RESULT_TIPS[r];
     if (tip && !seen.current.tips.has(`${r}${e.kind}`)) {
@@ -476,6 +489,17 @@ export function Enemies() {
       const gone = e.mode === 'defeated' && e.timer <= 0;
       g.root.visible = !gone;
       if (gone) continue;
+      // walking legs: how far it moved this frame sets the stride (still when standing)
+      if (!g.legs) {
+        g.legs = [];
+        g.body.traverse((o) => {
+          if (o.userData.leg) g.legs!.push(o);
+        });
+      }
+      const moved = g.last ? Math.hypot(e.x - g.last.x, e.z - g.last.z) / Math.max(dt, 1e-3) : 0;
+      g.last = { x: e.x, z: e.z };
+      const swing = Math.min(1, moved / 2.5) * 0.6 * Math.sin(t * (6 + moved * 2));
+      for (const leg of g.legs) leg.rotation.x = swing * leg.userData.leg;
       g.root.position.set(e.x, 0, e.z);
       g.root.rotation.y = e.heading;
       const spec = ENEMIES[e.kind];

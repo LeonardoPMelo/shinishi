@@ -37,6 +37,8 @@ export function hurtPlayer(damage: number, fromX: number, fromZ: number) {
   const d = Math.max(Math.hypot(dx, dz), 1e-3);
   abilityState.knock.set((dx / d) * KNOCK.speed, 0, (dz / d) * KNOCK.speed);
   abilityState.knockUntil = now() + KNOCK.seconds;
+  abilityState.shakeUntil = now() + 0.3;
+  abilityState.shakeAmp = 0.12 * damage;
   emit({ type: 'sfx', name: 'hurt' });
   spawnParticles('sparkle', [playerPosition.x, playerPosition.y + 0.4, playerPosition.z], 10, '#FF9A8A');
   if (r.fainted) {

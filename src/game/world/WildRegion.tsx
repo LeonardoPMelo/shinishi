@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { create } from 'zustand';
@@ -12,7 +12,7 @@ import { StaticMerge } from '../StaticMerge';
 import { useSpot, useIconTexture } from '../systems/training';
 import { useGameStore } from '../../store/gameStore';
 import { emit } from '../../systems/events';
-import { playerPosition, playerMotion, abilityState, now } from '../systems/playerState';
+import { playerPosition, playerMotion, abilityState, now, cameraAngle } from '../systems/playerState';
 import { spawnParticles } from '../systems/particles';
 import { combatWorld, hurtPlayer, refillHearts, useHearts } from '../systems/hearts';
 import { useZone } from '../systems/zone';
@@ -109,8 +109,48 @@ function Trails() {
   );
 }
 
+/** Soft light streaks on the water, scrolled downstream every frame (Etapa 9: the river was a flat plane). */
+function useWaterTexture() {
+  const tex = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 256;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#FFFFFF';
+    g.fillRect(0, 0, 128, 256);
+    // soft oval glints along the flow (hard rectangles read as pixels)
+    for (let i = 0; i < 46; i++) {
+      const x = Math.random() * 128;
+      const y = Math.random() * 256;
+      const rx = 2 + Math.random() * 5;
+      const ry = 8 + Math.random() * 22;
+      g.save();
+      g.translate(x, y);
+      g.scale(1, ry / rx);
+      const grad = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+      grad.addColorStop(0, `rgba(205, 238, 250, ${0.55 + Math.random() * 0.3})`);
+      grad.addColorStop(1, 'rgba(205, 238, 250, 0)');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(0, 0, rx, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
+  useFrame((_s, d) => {
+    tex.offset.y += d * 0.12;
+  });
+  return tex;
+}
+
 function River() {
   const { x0, x1, z0, z1 } = WILD_RIVER;
+  const water = useWaterTexture();
+  water.repeat.set(1.5, (z1 - z0) / 6);
   const banks = useMemo(() => {
     const out: [number, number, number][] = [];
     for (let z = z0 + 2; z < z1; z += 2.6) {
@@ -123,7 +163,7 @@ function River() {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, 0.03, (z0 + z1) / 2]}>
         <planeGeometry args={[x1 - x0, z1 - z0]} />
-        <Toon color="#4E9CC0" emissive="#1E5A78" emissiveIntensity={0.25} />
+        <meshToonMaterial color="#4E9CC0" map={water} emissive="#1E5A78" emissiveIntensity={0.3} gradientMap={getGradient()} />
       </mesh>
       {banks.map(([x, z, v], i) => (
         <Rock key={i} variant={Math.floor(v)} kind="pebble" position={[x, 0.08, z]} scale={[0.5, 0.3, 0.6]} color="#8E877C" contact={false} />
@@ -258,10 +298,13 @@ function Wall({ wl }: { wl: WildWall }) {
     for (let i = 0; i <= n; i++) {
       const t = n === 0 ? 0.5 : i / n;
       const s = 0.9 + ((i * 37) % 7) / 10;
-      // on the top edge, and half sunk in the foot of both faces (natural rock, not a built wall)
+      // on the top edge, and small ones mostly sunk in the foot of both faces (natural rock, not a built wall).
+      // Small and embedded: they have no collider, so a big one sticking out would hide the cat from the camera
+      // (seen in Etapa 9 at the cave's mouth)
+      const foot = s * 0.42;
       if (along) {
-        out.push([wl.x0 + t * w0, wl.h * 0.9, cz, s], [wl.x0 + t * w0 + 1.6, 0.5, wl.z0 + 0.15, s * 0.8], [wl.x0 + t * w0 - 1.2, 0.5, wl.z1 - 0.15, s * 0.8]);
-      } else out.push([cx, wl.h * 0.9, wl.z0 + t * d0, s], [wl.x0 + 0.15, 0.5, wl.z0 + t * d0 + 1.4, s * 0.8], [wl.x1 - 0.15, 0.5, wl.z0 + t * d0 - 1.1, s * 0.8]);
+        out.push([wl.x0 + t * w0, wl.h * 0.9, cz, s], [wl.x0 + t * w0 + 1.6, 0.25, wl.z0 + 0.3, foot], [wl.x0 + t * w0 - 1.2, 0.25, wl.z1 - 0.3, foot]);
+      } else out.push([cx, wl.h * 0.9, wl.z0 + t * d0, s], [wl.x0 + 0.3, 0.25, wl.z0 + t * d0 + 1.4, foot], [wl.x1 - 0.3, 0.25, wl.z0 + t * d0 - 1.1, foot]);
     }
     return out;
   }, [wl, w0, d0, cx, cz]);
@@ -286,9 +329,12 @@ function Wall({ wl }: { wl: WildWall }) {
       </RigidBody>
     );
   }
+  // the collider also wraps the boulders on top (1.4 m more): the camera keeps out of colliders, and a boulder
+  // with nothing around it hid the cat at the cave's mouth (Etapa 9). Nobody jumps a 4.5 m cliff anyway.
+  const ch = wl.h + 1.4;
   return (
     <RigidBody type="fixed" colliders={false} userData={STONE_DATA}>
-      <CuboidCollider args={[w0 / 2, wl.h / 2, d0 / 2]} position={[cx, wl.h / 2, cz]} />
+      <CuboidCollider args={[w0 / 2, ch / 2, d0 / 2]} position={[cx, ch / 2, cz]} />
       <mesh position={[cx, wl.h / 2, cz]} castShadow receiveShadow>
         <boxGeometry args={[w0, wl.h, d0]} />
         {/* plain rock (the "stone" texture reads as masonry: right for the ruins, wrong for a cliff) */}
@@ -299,9 +345,13 @@ function Wall({ wl }: { wl: WildWall }) {
         <boxGeometry args={[w0 - 0.1, 0.08, d0 - 0.1]} />
         <Toon color="#6E9A52" />
       </mesh>
-      {boulders.map(([x, y, z, s], i) => (
-        <Rock key={i} variant={i % 4} position={[x, y, z]} scale={[s * 1.6, s * 1.1, s * 1.4]} color="#8A8276" contact={false} />
-      ))}
+      {boulders.map(([x, y, z, s], i) => {
+        // the ones on top are flattened and no wider than the wall, so they stay inside its collider (the
+        // camera never ends up behind one); the ones at the foot keep their round shape
+        const top = y > 1;
+        const wide = top ? Math.min(s * 1.5, Math.min(w0, d0) * 0.85) : s * 1.5;
+        return <Rock key={i} variant={i % 4} position={[x, top ? wl.h + 0.1 : y, z]} scale={[wide, top ? s * 0.55 : s * 1.1, wide]} color="#8A8276" contact={false} />;
+      })}
     </RigidBody>
   );
 }
@@ -596,7 +646,7 @@ function Cave() {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, 0.02, (z0 + z1) / 2]} receiveShadow>
         <planeGeometry args={[x1 - x0, z1 - z0]} />
-        <Toon color="#4A4E58" tex="stone" />
+        <Toon color="#3E424C" />
       </mesh>
       {spikes.map(([x, z, h], i) => (
         <RigidBody key={i} type="fixed" colliders={false} position={[x, 0, z]}>
@@ -611,22 +661,44 @@ function Cave() {
   );
 }
 
-/** Mist in the cave, drifting slowly. */
+/** A soft round wisp: white in the middle, fading to nothing at the edge. */
+function useWispTexture() {
+  return useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d')!;
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(225, 233, 245, 0.9)');
+    grad.addColorStop(0.5, 'rgba(225, 233, 245, 0.35)');
+    grad.addColorStop(1, 'rgba(225, 233, 245, 0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
+}
+
+/**
+ * Mist in the cave, drifting slowly: soft flat wisps in two layers at knee and shoulder height (Etapa 9: the
+ * old see-through spheres read as grey polygons with hard edges).
+ */
 function CaveMist() {
   const g = useRef<THREE.Group>(null);
-  const puffs = useMemo(() => Array.from({ length: 14 }, (_, i) => [CAVE.x0 + 1 + ((i * 53) % 140) / 10, CAVE.z0 + 1.5 + ((i * 37) % 120) / 10, 0.9 + (i % 3) * 0.4]), []);
+  const wisp = useWispTexture();
+  const puffs = useMemo(() => Array.from({ length: 16 }, (_, i) => [CAVE.x0 + 1 + ((i * 53) % 140) / 10, CAVE.z0 + 1.5 + ((i * 37) % 120) / 10, 2.2 + (i % 3) * 0.9, i % 2 ? 0.25 : 0.9]), []);
   useFrame(({ clock }) => {
     g.current?.children.forEach((m, i) => {
-      m.position.x = puffs[i][0] + Math.sin(clock.elapsedTime * 0.2 + i) * 0.8;
-      m.position.y = 0.4 + Math.sin(clock.elapsedTime * 0.35 + i * 2) * 0.15;
+      m.position.x = puffs[i][0] + Math.sin(clock.elapsedTime * 0.15 + i) * 0.9;
+      m.rotation.z = clock.elapsedTime * 0.03 * (i % 2 ? 1 : -1);
     });
   });
   return (
     <group ref={g}>
-      {puffs.map(([x, z, r], i) => (
-        <mesh key={i} position={[x, 0.4, z]} scale={[r * 1.8, r * 0.5, r * 1.4]} userData={{ dynamic: true }}>
-          <sphereGeometry args={[1, 10, 8]} />
-          <meshBasicMaterial color="#DCE6F2" transparent opacity={0.18} depthWrite={false} />
+      {puffs.map(([x, z, r, y], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[-Math.PI / 2, 0, 0]} scale={[r * 1.6, r, 1]} userData={{ dynamic: true }}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial map={wisp} transparent opacity={y > 0.5 ? 0.3 : 0.45} depthWrite={false} />
         </mesh>
       ))}
     </group>
@@ -1089,6 +1161,47 @@ function Wind() {
   );
 }
 
+/**
+ * Inside the cave the air turns dark and close (Etapa 9): the fog fades toward a cold dusk and comes nearer,
+ * and goes back exactly as it was on the way out. The fog itself belongs to the lighting (GameScene); this only
+ * bends it while the cat is in there.
+ */
+function CaveMood() {
+  const scene = useThree((s) => s.scene);
+  const st = useRef({ k: 0, base: new THREE.Color(), near: 0, far: 0, dark: new THREE.Color('#1C2130'), view: null as null | { phi: number; distance: number } });
+  useFrame((_s, d) => {
+    const fog = scene.fog as THREE.Fog | null;
+    if (!fog) return;
+    const s = st.current;
+    const l = local();
+    const inside = inZone() && l.x > CAVE.x0 && l.x < CAVE.x1 && l.z > CAVE.z0 && l.z < CAVE.z1;
+    // the camera, too: the cave is narrow and its walls tall, so from the usual distance the camera sat on top
+    // of a wall and the wall hid the cat (Etapa 9). Inside, it looks from higher and closer, like in a room;
+    // on the way out, the player's own framing comes back.
+    if (inside && !s.view) {
+      s.view = { phi: cameraAngle.phi, distance: cameraAngle.distance };
+      cameraAngle.phi = Math.max(cameraAngle.phi, 0.95);
+      cameraAngle.distance = Math.min(cameraAngle.distance, 5.2);
+    } else if (!inside && s.view) {
+      cameraAngle.phi = s.view.phi;
+      cameraAngle.distance = s.view.distance;
+      s.view = null;
+    }
+    if (s.k === 0) {
+      // outside: remember the fog the lighting set, so the way back restores it
+      s.base.copy(fog.color);
+      s.near = fog.near;
+      s.far = fog.far;
+      if (!inside) return;
+    }
+    s.k = THREE.MathUtils.clamp(s.k + (inside ? d : -d) * 1.5, 0, 1);
+    fog.color.copy(s.base).lerp(s.dark, s.k * 0.75);
+    fog.near = s.near * (1 - 0.7 * s.k);
+    fog.far = s.far * (1 - 0.55 * s.k);
+  });
+  return null;
+}
+
 /** Checks done every few frames: past the boar, and the first-time tips for a few places. */
 function Watch() {
   const said = useRef(new Set<string>());
@@ -1160,6 +1273,7 @@ export function WildRegion() {
       <BridgeRepair />
       <BentoTree />
       <Watch />
+      <CaveMood />
     </>
   );
 }
