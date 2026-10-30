@@ -33,6 +33,7 @@ export function checkCondition(cond: Condition | undefined, p: Progress, coins =
   if (cond.item && (p.inventory[cond.item.id] ?? 0) < (cond.item.count ?? 1)) return false;
   if (cond.counter && (p.counters[cond.counter.id] ?? 0) < cond.counter.atLeast) return false;
   if (cond.ability && !p.abilities.includes(cond.ability)) return false;
+  if (cond.wearing && !Object.values(p.equipped ?? {}).includes(cond.wearing)) return false;
   return true;
 }
 

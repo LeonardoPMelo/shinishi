@@ -31,6 +31,7 @@ import { TreeLine } from './world/TreeLine';
 import { Interiors } from './world/Interiors';
 import { WildRegion, TrailGateVillage } from './world/WildRegion';
 import { Enemies } from './world/Enemies';
+import { StoryPropsOutdoor, StoryPropsSede } from './world/StoryProps';
 import { useZone } from './systems/zone';
 import { FirstSteps } from './systems/FirstSteps';
 import { DemoTour } from './systems/tour';
@@ -219,7 +220,9 @@ function Scene() {
         <Foliage />
         <PlayThings />
         <TrailGateVillage />
+        <StoryPropsOutdoor />
         </group>
+        <StoryPropsSede />
         <Interiors />
         <WildRegion />
         <Enemies />

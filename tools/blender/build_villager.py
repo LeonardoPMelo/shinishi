@@ -204,6 +204,12 @@ CAST = {
         mask='#4A3A2E', belly=True, tail='bushy', tail_rings='#4A3A2E', ears='round', whiskers=False,
         extras=['straw_hat', 'backpack', 'clipboard'], style='clipboard',
     ),
+    # O Pacto das Duas Margens (Etapa 8 da expansão)
+    'general_hissui': dict(  # from the far bank: jade-grey fur, dark armour, jade scarf, arms crossed, sharp eyes
+        fur='#6E8C80', light='#D3DED6', ear='#46625A', iris='#E8C23A', width=1.28,
+        outfit='gi', robe='#2E3A36', trim='#C9A23A', obi='#7A2E2E', pants='#2E3A36',
+        sharp=True, stripes='#4E6A60', scarf_col='#4FA383', extras=['armor', 'brows', 'scarf'], style='crossed',
+    ),
     'momo': dict(  # the expedition's herbalist: cream cat with brown patches, leaf-green robe, apron, flower, herb satchel
         fur='#F4EBDD', light='#FFFFFF', ear='#C99A6A', iris='#5FA35A', width=1.0,
         outfit='robe', robe='#4F8A5A', trim='#F2E6D8', obi='#7A5236', hem=0.06, flare=0.05,

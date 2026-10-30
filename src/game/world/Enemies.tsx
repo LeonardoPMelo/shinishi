@@ -329,6 +329,18 @@ export function Enemies() {
     refs.current.clear();
     setEnemies(list);
   }, [active]);
+  // the story moves on during a visit (Hissui sends his guards away; the pact): the creatures whose spawn
+  // condition no longer holds leave now, not at the next visit. Calmed or beaten ones stay to finish their scene.
+  useEffect(() => useGameStore.subscribe((s, prev) => {
+    if (s.progress === prev.progress || combatWorld.enemies.length === 0) return;
+    const stay = combatWorld.enemies.filter((e) => {
+      const spawn = ENEMY_SPAWNS.find((x) => x.id === e.id);
+      return !isActive(e) || !spawn || checkCondition(spawn.when, s.progress);
+    });
+    if (stay.length === combatWorld.enemies.length) return;
+    combatWorld.enemies = stay;
+    setEnemies(stay);
+  }), []);
   // after a faint, they walk back to their posts (the beaten ones stay beaten until the next visit)
   useEffect(() => useHearts.subscribe((s, prev) => {
     if (s.fainted && !prev.fainted) combatWorld.enemies.forEach((e) => resetEnemy(e, true));

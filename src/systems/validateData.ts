@@ -69,6 +69,7 @@ export function validateData(): DataReport {
     [...list(c.step), ...list(c.notStep)].forEach((r) => stepRef(r, where));
     [...list(c.flag), ...list(c.notFlag)].forEach((f) => flagsRead.add(f));
     if (c.item && !ITEMS[c.item.id]) errors.push(`${where}: item inexistente "${c.item.id}"`);
+    if (c.wearing && !ITEMS[c.wearing]?.slot) errors.push(`${where}: "${c.wearing}" não é item de vestir`);
     if (c.counter) countersRead.add(c.counter.id);
     if (c.ability && !ABILITIES.has(c.ability)) errors.push(`${where}: técnica desconhecida "${c.ability}"`);
   };

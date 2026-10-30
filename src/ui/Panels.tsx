@@ -8,7 +8,8 @@ import { MISSIONS, MISSION_ORDER } from '../data/missions';
 import { ITEMS } from '../data/items';
 import { availableSteps } from '../systems/progression';
 import { WorldMap } from './WorldMap';
-import { CHAPTERS, NEXT_CHAPTER_TEASER } from '../data/campaign';
+import { CHAPTERS, NEXT_CHAPTER_TEASER, CHAPTER_RECAPS, STORY_EPILOGUE } from '../data/campaign';
+import { IntroStory } from './IntroStory';
 import { ABILITY_INFO } from '../data/abilities';
 import { SKILLS, SKILL_ORDER, skillStars, nextStarAt } from '../data/skills';
 import { ShopPanel, shopTitle } from './ShopPanel';
@@ -209,7 +210,8 @@ function Journey() {
                 <span className="chapter-count">{done}/{ids.length}</span>
               </div>
               <div className="chapter-bar"><i style={{ width: `${(done / ids.length) * 100}%` }} /></div>
-              <p>{ch.blurb}</p>
+              {/* a finished chapter tells what happened in it (Etapa 8); an open one, what is coming */}
+              {done === ids.length ? <p className="chapter-recap">📜 {CHAPTER_RECAPS[ch.id]}</p> : <p>{ch.blurb}</p>}
               <ul className="chapter-missions">
                 {ids.map((id) => {
                   const mp = progress.missions[id];
@@ -225,7 +227,8 @@ function Journey() {
             </div>
           );
         })}
-        <p className="log-hint">{NEXT_CHAPTER_TEASER}</p>
+        <p className="log-hint">{MISSION_ORDER.every((id) => progress.missions[id]?.status === 'done') ? STORY_EPILOGUE : NEXT_CHAPTER_TEASER}</p>
+        <button className="btn btn-ghost" onClick={() => useGameStore.getState().openPanel('intro')}>🎬 Rever a introdução</button>
       </section>
       <section>
         <h3>Saberes <span className="journey-gems">💎 {player.gems ?? 0} {(player.gems ?? 0) === 1 ? 'Gema' : 'Gemas'} do Saber</span></h3>
@@ -448,6 +451,7 @@ export function GamePanels() {
   if (panel === 'missions') return <PanelFrame title="Missões" icon="📜" onClose={close} wide><MissionLog /></PanelFrame>;
   if (panel === 'inventory') return <PanelFrame title="Mochila" icon="🎒" onClose={close} wide><Inventory /></PanelFrame>;
   if (panel === 'journey') return <PanelFrame title="Jornada" icon="📖" onClose={close} wide><Journey /></PanelFrame>;
+  if (panel === 'intro') return <IntroStory />;
   if (panel === 'map') return <PanelFrame title="Vila das Patas" icon="🗺️" onClose={close}><MapPanel /></PanelFrame>;
   if (panel === 'shop') {
     const shop = shopTitle(useGameStore.getState().shopId);

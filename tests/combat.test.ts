@@ -329,11 +329,8 @@ describe('Terras Selvagens: itens e missões', () => {
 describe('moradores com várias missões', () => {
   it('com uma missão dele em andamento, a próxima que ele oferece aparece mesmo na conversa (todos os NPCs)', () => {
     const problems: string[] = [];
-    // found by this test in Etapa 7, older than it: the mission log says "available" while the villager's
-    // talk is about the mission running (pendência 14 in docs/AUDITORIA_EXPANSAO.md)
-    const KNOWN = new Set(['chef_tofu', 'taro', 'mochi', 'bigodes']);
+    // (found in Etapa 7 for Chef Hana, Taro, Vovó Mochi and Seu Bigodes; fixed in Etapa 8 in availableOffer)
     for (const npc of NPC_DEFINITIONS) {
-      if (KNOWN.has(npc.id)) continue;
       const offers = (npc.offers ?? []).map((o) => o.mission).filter((id) => MISSIONS[id]?.giver === npc.id);
       if (offers.length < 2) continue;
       offers.forEach((running, k) => {

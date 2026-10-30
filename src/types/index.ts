@@ -64,6 +64,8 @@ export interface Condition {
   counter?: { id: string; atLeast: number };
   ability?: string;
   coins?: number;
+  /** This item is worn, in any slot (Etapa 8: the jade ribbon changes what Hissui says). */
+  wearing?: string;
 }
 
 /**
@@ -245,4 +247,6 @@ export interface NPCDefinition {
   faceRotation?: number;
   /** Walking speed along the patrol (default 1.3). */
   speed?: number;
+  /** Lines said in passing that change with the story (first match wins; `barks` otherwise). Etapa 8. */
+  reactions?: { when: Condition; barks: string[] }[];
 }

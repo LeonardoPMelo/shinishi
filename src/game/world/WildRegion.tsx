@@ -801,7 +801,7 @@ function Traps() {
   useFrame(() => {
     const on = abilityState.faroUntil > now();
     glow.current?.children.forEach((c) => (c.visible = on));
-    if (!inZone() || useGameStore.getState().phase !== 'playing') return;
+    if (!inZone() || useGameStore.getState().phase !== 'playing' || flag('hissui_aliado')) return;
     const l = local();
     TRAPS.forEach(([x, z], i) => {
       if (useGameStore.getState().progress.flags[`armadilha_${i}`] || useVisit.getState().sprung.includes(i)) return;
@@ -813,6 +813,8 @@ function Traps() {
     });
   });
   const off = disarmed.split(',');
+  // after the pact, Hissui took his snares apart (chapter 7)
+  if (useGameStore.getState().progress.flags.hissui_aliado) return null;
   return (
     <group>
       {TRAPS.map(([x, z], i) => (off[i] === 'true' ? null : <Trap key={i} i={i} x={x} z={z} sprung={sprung.includes(i)} />))}

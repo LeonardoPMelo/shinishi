@@ -35,7 +35,7 @@ interface ActiveChallenge {
   reward: { xp: number; coins: number; gems: number; firstTry: boolean } | null;
 }
 
-export type Panel = 'missions' | 'inventory' | 'journey' | 'map' | 'settings' | 'shop' | null;
+export type Panel = 'missions' | 'inventory' | 'journey' | 'map' | 'settings' | 'shop' | 'intro' | null;
 
 interface GameStore {
   phase: GamePhase;

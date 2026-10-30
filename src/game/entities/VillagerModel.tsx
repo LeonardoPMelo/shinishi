@@ -61,6 +61,10 @@ export const VILLAGER_ASSETS: Record<string, AssetName> = {
   bento: 'bento',
   bento_arvore: 'bento',
   momo: 'momo',
+  // O Pacto das Duas Margens (Etapa 8 da expansão)
+  hissui: 'general_hissui',
+  hissui_sede: 'general_hissui',
+  hissui_aliado: 'general_hissui',
 };
 
 /**

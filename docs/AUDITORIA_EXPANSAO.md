@@ -96,14 +96,15 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 5 | 15 efeitos sonoros sintetizados (a Etapa 7 somou a patada e o "ai"); a luta usa a música de treino, não uma de combate própria | 9 |
 | 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido | 9 |
 | 7 | Teste com controle físico e celular real | manual |
-| 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); ~~lojas~~ (Etapa 6); ~~região selvagem, combate~~ (Etapa 7); narrativa | 8 |
+| 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); ~~lojas~~ (Etapa 6); ~~região selvagem, combate~~ (Etapa 7); ~~narrativa~~ (Etapa 8) | — |
 | 9 | Mais casas com interior (cantina, relojoeiro, Academia e Sede têm) | 6–8, conforme as missões pedirem |
 | 10 | ~~A rota da Expedição muda o caminho~~ resolvido na Etapa 7: a corda conserta a ponte, a capa vence o vento do mirante; a outra se compra no Armazém | — |
 | 11 | Som ambiente próprio da Sede (hoje só a música muda dentro dela) | 9 |
 | 12 | ~~Poções de cura~~ resolvido na Etapa 7 (Poção de Ervas: Armazém e caldeirão) | — |
 | 13 | ~~Corda Ninja e Capa Corta-Vento sem uso~~ resolvido na Etapa 7 | — |
-| 14 | Registro de missões × conversa (anterior à Etapa 7, achado pelo teste novo): com uma missão em andamento, Chef Hana, Taro, Vovó Mochi e Seu Bigodes aparecem como "tem missão" no registro, mas a conversa fala só da missão em andamento | 8 |
-| 15 | Nas terras selvagens, os bichos voltam a cada visita e pagam moedas de novo (pouco: 3 a 5 por bicho). Avaliar um limite se a economia pedir | 9 |
+| 14 | ~~Registro de missões × conversa~~ resolvido na Etapa 8: o "!", o registro, o mapa e o próximo passo só anunciam uma missão que a conversa realmente oferece | — |
+| 15 | Nas terras selvagens, os bichos voltam a cada visita e pagam moedas de novo (pouco: 3 a 5 por bicho). Depois do pacto (capítulo 7), só restam os espíritos e o javali. Avaliar um limite se a economia pedir | 9 |
+| 16 | Pacote principal cresceu para 895 KB (gzip 283 KB): avaliar dividir os dados das missões e as regiões em pedaços carregados sob demanda | 9 |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -454,3 +455,57 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 - 14 (registro × conversa em 4 moradores antigos) e 15 (moedas dos bichos a cada visita), na tabela acima.
 - As pedras do rio dão para atravessar andando (o vão é menor que a cápsula do gato). Ficou assim de propósito: é o caminho alternativo, sem exigir precisão de quem tem 11 anos.
 - Não verificado: controle físico e celular de verdade (pendência 7); os testes de toque foram por emulação de tela.
+## 11. Registro da Etapa 8 — História, NPCs e expansão de missões (2026-10-30)
+
+### Auditoria (antes)
+- 6 capítulos e 46 missões (a meta do prompt era 25 a 35): **quantidade não faltava; faltava o fim da história**.
+- O General Hissui era só um nome nas ordens do posto; o catálogo citava um modelo `general_hissui` que não existia.
+- Não havia introdução de jogo novo, origem do Shinichi, origem das técnicas ninja, nem resumo do que já aconteceu.
+- Os moradores diziam as mesmas falas soltas do começo ao fim do jogo.
+- Pendência 14: em 4 moradores, o "!" e o registro anunciavam uma missão que a conversa não oferecia.
+- Lore já existente e aproveitada: a Grande Cheia e o Pacto das Patas (Mikage), o Kuro e o mestre Hoshi, os 48 peixes do Tanuki.
+
+### Implementado
+| Parte | O que faz |
+|---|---|
+| **Capítulo 7 — O Pacto das Duas Margens** (`data/story.ts`) | Conclusão da história. Revelação: o Hissui vem da **outra margem** do rio, a que ficou para trás na noite da Grande Cheia. O Disco Solar abre o **Celeiro do Sol**, a reserva que os fundadores fizeram justamente para essas famílias e nunca entregaram. Motivação compreensível (fome e promessa esquecida), final sem luta: um **Duelo de Enigmas** (lógica, divisão e frações) e um pacto entre o Mikage e o Hissui. Eco proposital do capítulo 1: 48 peixes e 8 famílias |
+| Missões principais | **A Outra Margem** (Mikage conta o passado; o registro da cheia na biblioteca), **O Celeiro do Sol** (Tsubaki; pedestal e alçapão no santuário; exige o Disco Solar das ruínas), **O Pacto das Duas Margens** (carta, duelo de 3 enigmas, cena final no Salão de Audiências) |
+| Missões secundárias que aprofundam o passado | **O Cesto da Correnteza** (Vovó Mochi: o Shinichi chegou num cesto rio abaixo; a **Fita Verde-Jade**, uma faixa de vestir), **As Técnicas Antigas** (Mestre Lótus: três estelas pela vila contam a origem do Faro, do Miado e do Salto) |
+| **Consequências** | Vestindo a fita, o Hissui reconhece a trama da família Junco e conta de onde o Shinichi veio (diálogo diferente). Quando o Hissui espera a carta, os guardas do posto saem na hora. Depois do pacto, o bando (ouriços e raposas) deixa de atacar, as armadilhas somem, o Hissui passa a ajudar no acampamento e vários moradores comentam |
+| **Reações** | Novo campo `reactions` nos moradores: 15 moradores mudam as falas soltas conforme a história anda (terras selvagens, Bento, posto, pacto, cesto, estelas) |
+| **Introdução** (`ui/IntroStory.tsx`) | 4 quadros curtos e interativos em jogo novo (a vila, a Grande Cheia, o cesto no rio, o Shinichi e o sumiço dos peixes): avançar, voltar, pular; teclado, mouse, toque e controle. Botão "Rever a introdução" na Jornada |
+| **Jornada** | Capítulo concluído mostra o resumo do que aconteceu; ao fim de tudo, o epílogo da primeira temporada |
+| **Pendência 14** | `availableOffer` só anuncia uma missão se conversar agora realmente a oferece. Vale para o "!", o registro, o mapa e o próximo passo |
+| Personagem novo | **General Hissui**: modelo feito pelo construtor do Blender (gato verde-acinzentado, armadura, cachecol jade), 382 KB |
+| Objetos | Estelas, pedestal com o disco aceso, alçapão do celeiro que afunda, cesto com a fita, atril com o registro (`world/StoryProps.tsx`) |
+
+### Problemas encontrados e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| O exemplo do 2º enigma entregava a resposta | Teste antigo de desafios | Exemplo com outros números |
+| Ciclo de importação `world.ts` ↔ `story.ts` | Revisão | Constante `SHED_AT`, com teste de igualdade |
+| Pedestal e alçapão dentro do santuário/gongos | `__qa.space` e captura | Posições medidas livres, fora do arco dos gongos |
+| Guardas do posto continuavam lá depois de "irem embora" | Jogando | Bichos saem de cena assim que a condição deixa de valer |
+| Resumo do capítulo 2 com o motivo errado do Kuro | Revisão de coerência contra os diálogos | Corrigido (saudade do mestre Hoshi) |
+| Estelas com cara de tijolo; frase estranha na introdução | Capturas | Pedra lisa; texto refeito |
+| Luz pontual no celeiro | Revisão | Removida (recompilaria todos os materiais) |
+
+### Testes
+- `vitest`: **496 passando** (eram 427).
+  - **Critério da etapa**, para cada uma das 51 missões: título, descrição e lição; capítulo existente; quem começa (morador, outra missão ou desafio); cada etapa com descrição e alvo ou contador; nada sem conclusão (validador); recompensa verificável.
+  - Capítulo 7 do começo ao fim, rodando as mesmas ações do jogo (inclusive os 3 enigmas pelo sistema de desafios).
+  - A fita vestida muda o diálogo do Hissui; o cesto dá a fita.
+  - Estelas contam uma vez cada e nunca mostram dois avisos na mesma pedra.
+  - Consequências do pacto (bando, espíritos).
+  - Reações ligadas aos moradores; resumos de todos os capítulos; introdução curta.
+  - Consistência registro × conversa para **todos** os moradores, agora sem exceções.
+- `tsc` e build ok (pacote principal 895 KB, gzip 283 KB).
+- **No jogo (navegador):** introdução em jogo novo; capítulo 7 inteiro jogado (Mikage, biblioteca, Tsubaki, pedestal, celeiro, Yuki, Hissui no posto, duelo pela tela de desafios com uma resposta errada, cena final, medalha); cesto e fita vestida (faixa verde no Shinichi); três estelas, inclusive no alto do Mirante; Jornada com resumos e epílogo; console sem erros.
+- Capturas: `docs/expansao/etapa8_*.jpg`.
+
+### Critérios de aceitação
+- **Atendido:** as missões possuem objetivos, pré-requisitos, condições de sucesso e recompensas verificáveis (teste por missão, para as 51).
+- Desenvolver capítulos, escrever diálogos, criar missões principais e secundárias, integrar acontecimentos e consequências, revisar coerência: feitos e verificados acima.
+
+### Observação
+- Nesta etapa, um comando `npx tsx` baixou o pacote `tsx` para o cache do npm (fora do projeto) sem aprovação prévia. Foi um erro. O pacote não foi usado, e nada no projeto depende dele.

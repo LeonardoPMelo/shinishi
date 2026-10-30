@@ -192,20 +192,24 @@ export const TRAP = { trigger: 0.65, disarm: 1.5, stuck: 1.0 };
 
 // ── Creatures ────────────────────────────────────────────────────────────────
 
+/** Hissui's band (the hedgehogs and the foxes): after the pact (chapter 7) they help the expedition instead. */
+export const HISSUI_BAND: Condition = { notFlag: 'hissui_aliado' };
+
 export interface EnemySpawn { id: string; kind: EnemyKind; at: [number, number]; r: number; heading?: number; when?: Condition }
 export const ENEMY_SPAWNS: EnemySpawn[] = [
   // the bandits' clearing
-  { id: 'ourico_1', kind: 'ourico', at: [-16, -10], r: 4 },
-  { id: 'ourico_2', kind: 'ourico', at: [-11, -15], r: 3 },
-  { id: 'ourico_3', kind: 'ourico', at: [-21, -14], r: 3 },
+  { id: 'ourico_1', kind: 'ourico', at: [-16, -10], r: 4, when: HISSUI_BAND },
+  { id: 'ourico_2', kind: 'ourico', at: [-11, -15], r: 3, when: HISSUI_BAND },
+  { id: 'ourico_3', kind: 'ourico', at: [-21, -14], r: 3, when: HISSUI_BAND },
   // the one guarding Bento's tree
   { id: 'ourico_bento', kind: 'ourico', at: [-34.5, 25], r: 2.5, when: { notStep: 'explorador.descer' } },
-  { id: 'ourico_mata', kind: 'ourico', at: [-12, 13], r: 4 },
+  { id: 'ourico_mata', kind: 'ourico', at: [-12, 13], r: 4, when: HISSUI_BAND },
   // foxes: by the stepping stones, at the ruins, and the two outpost guards
-  { id: 'raposa_pedras', kind: 'raposa', at: [-4, -16], r: 4 },
-  { id: 'raposa_ruinas', kind: 'raposa', at: [36, -4], r: 3 },
-  { id: 'raposa_posto_1', kind: 'raposa', at: [-37, -31], r: 3, heading: 0 },
-  { id: 'raposa_posto_2', kind: 'raposa', at: [-31, -35], r: 2.5, heading: -Math.PI / 2 },
+  { id: 'raposa_pedras', kind: 'raposa', at: [-4, -16], r: 4, when: HISSUI_BAND },
+  { id: 'raposa_ruinas', kind: 'raposa', at: [36, -4], r: 3, when: HISSUI_BAND },
+  // the outpost guards: Hissui sends them away when he waits for Shinichi's letter (chapter 7)
+  { id: 'raposa_posto_1', kind: 'raposa', at: [-37, -31], r: 3, heading: 0, when: { notStep: 'hissui.ouvir' } },
+  { id: 'raposa_posto_2', kind: 'raposa', at: [-31, -35], r: 2.5, heading: -Math.PI / 2, when: { notStep: 'hissui.ouvir' } },
   // the cave
   { id: 'espirito_1', kind: 'espirito', at: [22, -31], r: 3 },
   { id: 'espirito_2', kind: 'espirito', at: [30, -32], r: 3 },

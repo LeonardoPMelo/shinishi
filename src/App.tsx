@@ -8,6 +8,7 @@ import { MathChallenge } from './ui/MathChallenge';
 import { RewardNotification } from './ui/RewardNotification';
 import { MissionComplete } from './ui/MissionComplete';
 import { GamePanels } from './ui/Panels';
+import { IntroTrigger } from './ui/IntroStory';
 import { TouchControls } from './ui/TouchControls';
 import { AudioBridge } from './audio/AudioBridge';
 import { TourOverlay } from './ui/TourOverlay';
@@ -149,6 +150,7 @@ function Game() {
       <A11yBridge />
       <PadBridge />
       <DoorFade />
+      <IntroTrigger />
 
       {phase === 'menu' && !touring && <MainMenu />}
       {touring && <TourOverlay />}

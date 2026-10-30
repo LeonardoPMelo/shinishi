@@ -11,6 +11,7 @@ import { MIMI } from './interiors';
 import { ACADEMY_NPCS } from './academy';
 import { SEDE_NPCS } from './mikage';
 import { WILD_NPCS } from './wild';
+import { STORY_NPCS, STORY_ROUTES, STORY_REACTIONS } from './story';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const bye = (label = 'Até mais!'): DialogueOption => ({ label, nextNodeId: null });
@@ -784,7 +785,7 @@ for (const npc of CHAPTER_1) {
   npc.offers = [...(npc.offers ?? []), ...ext.offerMeta];
 }
 
-export const NPC_DEFINITIONS: NPCDefinition[] = [...CHAPTER_1, ...NEW_NPCS, FUJI, GORO, HINOKI, MIMI, ...ACADEMY_NPCS, ...SEDE_NPCS, ...WILD_NPCS];
+export const NPC_DEFINITIONS: NPCDefinition[] = [...CHAPTER_1, ...NEW_NPCS, FUJI, GORO, HINOKI, MIMI, ...ACADEMY_NPCS, ...SEDE_NPCS, ...WILD_NPCS, ...STORY_NPCS];
 
 // Capítulo 3: in-progress routes first; the new offers go after the villager's older ones (in-progress or offer
 // routes), in the same order as `offers`, so the mission log (missionState.ts, first offer in that list) names
@@ -810,10 +811,41 @@ export function resolveDialogue(npc: NPCDefinition, progress: Progress): { tree:
   return null;
 }
 
-/** The first mission this NPC can offer right now (drives the "!" marker). */
+/** Every mission a dialogue can start, anywhere in its tree. */
+function startsIn(tree: DialogueTree) {
+  const out = new Set<string>();
+  for (const node of Object.values(tree)) {
+    for (const a of [node.onEnter, ...(node.options ?? []).map((o) => o.action)]) {
+      for (const part of (a ?? '').split(';')) if (part.startsWith('START:')) out.add(part.slice(6));
+    }
+  }
+  return out;
+}
+
+/**
+ * The first mission this NPC can offer right now (drives the "!" marker, the mission log, the map and the
+ * next-step card). Only if talking to them now really offers it: while another of their missions is running,
+ * their talk is about that one, and announcing the next would send the player to a villager who doesn't offer
+ * it (pendência 14, found in Etapa 7: Chef Hana, Taro, Vovó Mochi and Seu Bigodes).
+ */
 export function availableOffer(npc: NPCDefinition, progress: Progress): string | null {
   for (const offer of npc.offers ?? []) {
-    if (!progress.missions[offer.mission] && checkCondition(offer.when, progress)) return offer.mission;
+    if (progress.missions[offer.mission] || !checkCondition(offer.when, progress)) continue;
+    const talk = resolveDialogue(npc, progress);
+    return talk && startsIn(talk.tree).has(offer.mission) ? offer.mission : null;
   }
   return null;
+}
+// Capítulo 7 (Etapa 8): the chapter's in-progress routes, then its offers, ahead of everything older. Its
+// offers only open at the end of the campaign, when the villager's older missions are long settled, so the
+// mission log and the talk agree (tests/combat.test.ts checks every villager). And the lines said in passing
+// that follow the story.
+for (const npc of NPC_DEFINITIONS) {
+  const ext = STORY_ROUTES[npc.id];
+  if (ext) {
+    npc.routes.unshift(...ext.offers);
+    npc.routes.unshift(...ext.active);
+    npc.offers = [...(npc.offers ?? []), ...ext.offerMeta];
+  }
+  if (STORY_REACTIONS[npc.id]) npc.reactions = STORY_REACTIONS[npc.id];
 }

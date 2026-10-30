@@ -238,7 +238,9 @@ function NPCBody({ npc }: { npc: NPCDefinition }) {
     nextBark.current -= delta;
     if (npc.barks && nextBark.current <= 0 && dist < 7 && dist > TALK_RADIUS && store.phase === 'playing') {
       nextBark.current = 16 + Math.random() * 14;
-      setBubble(npc.barks[Math.floor(Math.random() * npc.barks.length)]);
+      // the story moves on: what the villager talks about changes with it (data/story.ts)
+      const lines = npc.reactions?.find((r) => checkCondition(r.when, store.progress))?.barks ?? npc.barks;
+      setBubble(lines[Math.floor(Math.random() * lines.length)]);
       bubbleUntil.current = t + 3.2;
     }
     if (bubble && (t > bubbleUntil.current || inDialogue)) setBubble(null);
