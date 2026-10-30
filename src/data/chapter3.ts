@@ -195,7 +195,7 @@ export const CHAPTER3_MISSIONS: Mission[] = [
       { id: 'dobrar', description: 'Calcule o chá para o pote inteiro de mel', target: { npc: 'mei_floresta' } },
       { id: 'entregar', description: 'Leve o chá ao Guarda Roku, que anda nervoso', target: { npc: 'roku' } },
     ],
-    rewards: { xp: 60, coins: 15, gems: 2, badges: ['Aprendiz de Curandeiro'] },
+    rewards: { xp: 60, coins: 15, gems: 2, badges: ['Aprendiz de Curandeiro'], items: { cha_erva: 1 } },
     lesson: 'Proporção é manter a mesma relação: se o chá dobra, o mel dobra junto.',
   },
   {

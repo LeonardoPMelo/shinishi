@@ -22,6 +22,10 @@ export const abilityState = {
   dashReadyAt: 0,
   /** Energy potion: faster and springier until this time. */
   boostUntil: 0,
+  /** Grilled fish: springier (jump only) until this time (Etapa 6). */
+  jumpUntil: 0,
+  /** Catnip tea: seconds of Faro to start on the next frame, cooldown or not (0 = none; Etapa 6). */
+  faroRequest: 0,
   /** Faro trail: glowing paw prints from here to the current objective. */
   trail: null as null | { from: THREE.Vector3; to: THREE.Vector3; until: number },
   /** Last time and place Shinichi meowed; NPCs nearby react once per meow. */

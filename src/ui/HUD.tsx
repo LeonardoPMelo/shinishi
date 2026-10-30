@@ -3,7 +3,9 @@ import { useGameStore } from '../store/gameStore';
 import { useAudioSettings } from '../audio/audioSettings';
 import { MISSIONS } from '../data/missions';
 import { availableSteps } from '../systems/progression';
-import { abilityState, now, FARO_COOLDOWN, MIADO_COOLDOWN, SHURIKEN_COOLDOWN, DASH_COOLDOWN } from '../game/systems/playerState';
+import { abilityState, now, MIADO_COOLDOWN, SHURIKEN_COOLDOWN, DASH_COOLDOWN } from '../game/systems/playerState';
+import { faroTimes, hasPassive, nearestPaw, screenBearing } from '../systems/gear';
+import { cameraAngle } from '../game/systems/playerState';
 import { press } from '../game/systems/input';
 import { WorldMap } from './WorldMap';
 import { useTouchUi } from './TouchControls';
@@ -197,7 +199,7 @@ function AbilityBar() {
     },
     {
       key: pad ? pad.top : '4', icon: '👃', name: 'Faro Ninja', desc: 'Revela segredos e mostra patinhas até o objetivo',
-      locked: !abilities.includes('faro'), cooldown: cd(abilityState.faroReadyAt, FARO_COOLDOWN), active: abilityState.faroUntil > t, onClick: () => press('faro'),
+      locked: !abilities.includes('faro'), cooldown: cd(abilityState.faroReadyAt, faroTimes(useGameStore.getState().progress).cooldown), active: abilityState.faroUntil > t, onClick: () => press('faro'),
     },
     {
       key: pad ? pad.right : 'R', icon: '😺', name: 'Miado Ninja', desc: 'Os moradores reagem ao seu miado',
@@ -246,6 +248,39 @@ function useRoomLabel() {
     return () => window.clearInterval(id);
   }, [zone]);
   return label;
+}
+
+/**
+ * The Mochila do Explorador's compass (Etapa 6): an arrow to the nearest Golden Paw still to be found, with
+ * how far it is. Outdoors only (the paws are all outside).
+ */
+function TreasureCompass() {
+  const on = useGameStore((s) => hasPassive(s.progress, 'detector'));
+  const outdoor = useZone((s) => s.zone === 'outdoor');
+  const [read, setRead] = useState<{ angle: number; dist: number } | null | 'none'>(null);
+  useEffect(() => {
+    if (!on || !outdoor) return;
+    const tick = () => {
+      const target = nearestPaw(useGameStore.getState().progress, playerPosition.x, playerPosition.z);
+      if (!target) return setRead('none');
+      setRead({
+        angle: screenBearing(target.position[0] - playerPosition.x, target.position[2] - playerPosition.z, cameraAngle.theta),
+        dist: target.dist,
+      });
+    };
+    tick();
+    const id = window.setInterval(tick, 200);
+    return () => window.clearInterval(id);
+  }, [on, outdoor]);
+  if (!on || !outdoor || !read) return null;
+  if (read === 'none') return <div className="treasure-compass hud-glass">🧭 Todas as Patas Douradas achadas!</div>;
+  const warm = read.dist < 6 ? 'quente' : read.dist < 15 ? 'morno' : 'frio';
+  return (
+    <div className={`treasure-compass hud-glass ${warm}`} title="Mochila do Explorador">
+      <span className="tc-arrow" style={{ transform: `rotate(${read.angle - Math.PI / 2}rad)` }}>➤</span>
+      <span>🐾 {Math.round(read.dist)} m</span>
+    </div>
+  );
 }
 
 /** The clock of a timed test (the academy circuit). */
@@ -312,6 +347,7 @@ export function HUD() {
       {/* inside a house: its name where the minimap was (the minimap shows the outdoors) */}
       {phase === 'playing' && room && <div className="room-label hud-glass">📍 {room}</div>}
       {phase === 'playing' && <TrainingTimer />}
+      {phase === 'playing' && <TreasureCompass />}
       {phase === 'playing' && !room && (
         <div className="minimap hud-glass" onClick={() => openPanel('map')} title="Abrir mapa (M)">
           <WorldMap size={150} window={34} />

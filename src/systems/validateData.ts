@@ -9,6 +9,7 @@ import { SKILLS } from '../data/skills';
 import { TEMPLE_SOLVE_ACTIONS } from '../data/temple';
 import { ACADEMY_CODE_ACTIONS } from '../data/academy';
 import { SEDE_CODE_ACTIONS } from '../data/mikage';
+import { SHOPS, SHOPS_BY_ID } from '../data/shops';
 import { parseActions } from './progression';
 
 /**
@@ -24,7 +25,7 @@ const CODE_FLAGS = new Set(['alvo_numeros']);
 /** Steps completed by world components rather than by data actions. */
 const CODE_STEPS = new Set(['peixe_fujao.pegar']);
 /** Counters bumped by world components (rings, leaves, goal) rather than by data. */
-const CODE_COUNTERS = new Set(['argolas', 'folhas', 'gols', 'compras_sora']);
+const CODE_COUNTERS = new Set(['argolas', 'folhas', 'gols', 'compras_sora', 'coelhos_alimentados', 'circuito_recorde']);
 
 export interface DataReport {
   errors: string[];
@@ -87,6 +88,7 @@ export function validateData(): DataReport {
       if (cmd === 'ABILITY' && !ABILITIES.has(arg)) errors.push(`${where}: técnica desconhecida "${arg}"`);
       if (cmd === 'COUNT') countersSet.add(arg);
       if (cmd === 'SKILL' && !SKILLS[arg as keyof typeof SKILLS]) errors.push(`${where}: habilidade desconhecida "${arg}"`);
+      if (cmd === 'SHOP' && arg && !SHOPS_BY_ID[arg]) errors.push(`${where}: loja inexistente "${arg}"`);
       if (['COINS', 'XP', 'GEMS'].includes(cmd) && Number.isNaN(Number(arg))) errors.push(`${where}: valor inválido em "${cmd}:${arg}"`);
     }
   };
@@ -168,6 +170,19 @@ export function validateData(): DataReport {
   for (const m of Object.values(MISSIONS)) {
     for (const st of m.steps) {
       if (!st.counter && !stepsDone.has(`${m.id}.${st.id}`)) errors.push(`missão ${m.id}.${st.id}: nada completa esta etapa`);
+    }
+  }
+
+  // shops (Etapa 6): every offer sells a real item, ids are unique, locked offers say why
+  const offerIds = new Set<string>();
+  for (const shop of SHOPS) {
+    for (const o of shop.offers) {
+      const where = `loja ${shop.id}/${o.id}`;
+      if (offerIds.has(o.id)) errors.push(`${where}: oferta repetida`);
+      offerIds.add(o.id);
+      if (!ITEMS[o.item]) errors.push(`${where}: item inexistente "${o.item}"`);
+      cond(o.when, where);
+      if (o.when && !o.lockedText) errors.push(`${where}: bloqueada sem dizer por quê`);
     }
   }
 

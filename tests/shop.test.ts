@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGameStore } from '../src/store/gameStore';
 import { SHOP_OFFERS, OFFERS_BY_ID, unitPrice } from '../src/data/shop';
 import { ITEMS } from '../src/data/items';
@@ -44,8 +44,14 @@ describe('loja de gemas', () => {
     expect(st().buyOffer('faixa_verde')).toBe('ok');
     expect(st().buyOffer('faixa_verde')).toBe('owned');
     expect(st().player.gems).toBe(20 - 4);
+    // two clicks in a blink are one purchase (Etapa 6); a second click a moment later buys again
+    let t = 10_000;
+    const clock = vi.spyOn(performance, 'now').mockImplementation(() => t);
     expect(st().buyOffer('pocao_1')).toBe('ok');
+    expect(st().buyOffer('pocao_1')).toBe('busy');
+    t += 1000;
     expect(st().buyOffer('pocao_1')).toBe('ok');
+    clock.mockRestore();
     expect(st().progress.inventory.pocao_energia).toBe(2);
   });
 

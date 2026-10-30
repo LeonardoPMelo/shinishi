@@ -9,6 +9,7 @@ import { REDESIGN_OBJECTS } from './redesign';
 import { INTERIOR_OBJECTS } from './interiors';
 import { ACADEMY_OBJECTS } from './academy';
 import { SEDE_OBJECTS } from './mikage';
+import { SHOP_OBJECTS } from './shops';
 
 export type WorldObjectKind =
   | 'pickup_herb'
@@ -345,7 +346,7 @@ export const WORLD_OBJECTS: WorldObject[] = [
   },
 ];
 
-WORLD_OBJECTS.push(...WORLD_OBJECTS_2, ...CHAPTER3_OBJECTS, ...TEMPLE_OBJECTS, ...EAST_OBJECTS, ...WEST_OBJECTS, ...SOUTH_OBJECTS, ...REDESIGN_OBJECTS, ...INTERIOR_OBJECTS, ...ACADEMY_OBJECTS, ...SEDE_OBJECTS);
+WORLD_OBJECTS.push(...WORLD_OBJECTS_2, ...CHAPTER3_OBJECTS, ...TEMPLE_OBJECTS, ...EAST_OBJECTS, ...WEST_OBJECTS, ...SOUTH_OBJECTS, ...REDESIGN_OBJECTS, ...INTERIOR_OBJECTS, ...ACADEMY_OBJECTS, ...SEDE_OBJECTS, ...SHOP_OBJECTS);
 
 export const OBJECTS_BY_ID: Record<string, WorldObject> = Object.fromEntries(WORLD_OBJECTS.map((o) => [o.id, o]));
 

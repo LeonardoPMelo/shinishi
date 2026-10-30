@@ -263,7 +263,38 @@ const pipo: NPCDefinition = {
   look: { species: 'cat', fur: '#FFFFFF', belly: '#FFFFFF', scale: 0.72, mask: '#E39B4A', stripes: '#2E2A30', accessory: 'kid' },
   voice: 'meow_high',
   barks: ['Pega-pega! Você tá com ela!', 'Não me pega! Não me pega!', 'Shinichi, me ensina a pular alto?'],
+  offers: [{ mission: 'coelhos', when: { done: 'peixes' } }],
   routes: [
+    // Amigo dos Coelhos (Etapa 6 da expansão): a shop, an item and the animals
+    { when: { active: 'coelhos', step: 'coelhos.alimentar' }, tree: {
+      start: {
+        id: 'start', speaker: 'Pipo', mood: 'surprised',
+        text: 'TRÊS coelhos comeram da sua pata?! Como?!',
+        options: [{ label: '🥫 Petisco, calma e nada de correr.', nextNodeId: 'fim' }],
+      },
+      fim: {
+        id: 'fim', speaker: 'Pipo', mood: 'happy',
+        text: 'Então o segredo não é ser rápido... é ser calmo. Hmm. Isso é difícil para mim.\nVou treinar! Fica com esses petiscos, você é melhor nisso do que eu.',
+        options: [{ label: '🐰 Boa sorte, Pipo!', nextNodeId: null, action: 'STEP:coelhos.contar' }],
+      },
+    } },
+    { when: { active: 'coelhos' }, tree: {
+      start: {
+        id: 'start', speaker: 'Pipo',
+        text: 'A Peixaria do Seu Bigodes vende petisco de atum. Chega perto de um coelho e aperta E!\nTem coelho perto da casa do Tanuki, no prado do sul e na clareira do bambuzal.',
+        options: [{ label: 'Já vou!', nextNodeId: null }],
+      },
+    } },
+    { when: { done: 'peixes', notStarted: 'coelhos' }, tree: {
+      start: {
+        id: 'start', speaker: 'Pipo',
+        text: 'Shinichi! Os coelhos fogem de mim. TODOS. Eu só quero fazer carinho!\nVocê é ninja... sabe o segredo para eles gostarem da gente?',
+        options: [
+          { label: '🐰 Vou descobrir!', nextNodeId: null, action: 'START:coelhos;STEP:coelhos.ouvir' },
+          { label: 'Agora não, Pipo.', nextNodeId: null },
+        ],
+      },
+    } },
     chatterRoute('Pipo', [
       'Quando eu crescer quero ser ninja igual você! Ou peixeiro. Ou os dois!',
       'Sabia que se você correr em volta da fonte 100 vezes fica tonto? Eu sei porque testei.',

@@ -11,7 +11,7 @@ import { WorldMap } from './WorldMap';
 import { CHAPTERS, NEXT_CHAPTER_TEASER } from '../data/campaign';
 import { ABILITY_INFO } from '../data/abilities';
 import { SKILLS, SKILL_ORDER, skillStars, nextStarAt } from '../data/skills';
-import { SHOP_OFFERS, OFFERS_BY_ID, unitPrice } from '../data/shop';
+import { ShopPanel, shopTitle } from './ShopPanel';
 import { useFromBag } from '../game/systems/itemEffects';
 import { offeredMissions } from '../systems/missionState';
 
@@ -140,6 +140,9 @@ function Inventory() {
           <div className="inv-detail">
             <strong>{item.icon} {item.name}</strong>
             <p>{item.description}</p>
+            {item.effectText && <p className="inv-effect">✨ {item.effectText}</p>}
+            {item.slot && progress.equipped[item.slot] === item.id && <p className="inv-worn">🥷 Vestindo agora</p>}
+            {!item.use && !item.slot && item.sellPrice !== undefined && <p className="inv-sell">🪙 Vale {item.sellPrice} no Armazém do Boku.</p>}
             {item.slot && (
               <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={() => {
                 const st = useGameStore.getState();
@@ -422,70 +425,6 @@ export function Settings({ inGame }: { inGame: boolean }) {
   );
 }
 
-/** A Sacola da Sora: spend gems on bands and potions; a little price-comparison question on the side. */
-function Shop() {
-  const gems = useGameStore((s) => s.player.gems ?? 0);
-  const inventory = useGameStore((s) => s.progress.inventory);
-  const [note, setNote] = useState<{ text: string; good: boolean } | null>(null);
-  const [answered, setAnswered] = useState<null | 'single' | 'pack'>(null);
-  const single = OFFERS_BY_ID.pocao_1;
-  const pack = OFFERS_BY_ID.pocao_3;
-  const buy = (id: string) => {
-    const o = OFFERS_BY_ID[id];
-    const r = useGameStore.getState().buyOffer(id);
-    const name = ITEMS[o.item].name;
-    if (r === 'ok') setNote({ text: o.qty > 1 ? `Comprado: ${o.qty}× ${name}! Está na mochila.` : `Comprado: ${name}! Está na mochila.`, good: true });
-    else if (r === 'poor') setNote({ text: `Faltam ${o.price - gems} gema(s). Resolva desafios e missões para ganhar mais!`, good: false });
-    else if (r === 'owned') setNote({ text: 'Você já tem essa faixa. Vista na mochila!', good: false });
-  };
-  const answer = (pick: 'single' | 'pack') => {
-    if (answered) return;
-    setAnswered(pick);
-    useGameStore.getState().recordPractice('proporcoes', pick === 'pack', true);
-  };
-  return (
-    <div className="shop">
-      <div className="shop-head">
-        <p>“Achados das minhas viagens! Aceito gemas. Minhocas, não.” <b>— Sora</b></p>
-        <span className="shop-gems">💎 {gems}</span>
-      </div>
-      <div className="shop-grid">
-        {SHOP_OFFERS.map((o) => {
-          const it = ITEMS[o.item];
-          const owned = !!o.once && (inventory[o.item] ?? 0) > 0;
-          const short = gems < o.price;
-          return (
-            <div key={o.id} className={`shop-card ${owned ? 'owned' : ''}`}>
-              <div className="shop-icon">{it.icon}{o.qty > 1 && <b>×{o.qty}</b>}</div>
-              <strong>{it.name}</strong>
-              <small>{o.pitch}</small>
-              <button className={`btn ${owned ? 'btn-ghost' : short ? 'btn-secondary' : 'btn-primary'}`} disabled={owned} onClick={() => buy(o.id)}>
-                {owned ? '✓ Já é sua' : short ? `💎 ${o.price} · faltam ${o.price - gems}` : `💎 ${o.price}`}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-      {note && <p className={`shop-note ${note.good ? 'good' : ''}`}>{note.text}</p>}
-      <div className="shop-quiz">
-        <strong>🤔 Pergunta da Sora:</strong> uma poção custa 💎 {single.price}; o pacote com {pack.qty} custa 💎 {pack.price}. Qual sai mais barato <i>por poção</i>?
-        {!answered ? (
-          <div className="shop-quiz-actions">
-            <button className="btn btn-secondary" onClick={() => answer('single')}>A poção sozinha</button>
-            <button className="btn btn-secondary" onClick={() => answer('pack')}>O pacote de {pack.qty}</button>
-          </div>
-        ) : (
-          <p>
-            {answered === 'pack' ? '✅ Isso! ' : '🌱 Quase! '}
-            No pacote, cada poção sai por {pack.price} ÷ {pack.qty} ≈ {unitPrice(pack).toFixed(2).replace('.', ',')} gemas, menos que {unitPrice(single)} gemas.
-            {' '}Mas só vale a pena se você for usar as {pack.qty}!
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function GamePanels() {
   const panel = useGameStore((s) => s.panel);
   const phase = useGameStore((s) => s.phase);
@@ -497,7 +436,10 @@ export function GamePanels() {
   if (panel === 'inventory') return <PanelFrame title="Mochila" icon="🎒" onClose={close} wide><Inventory /></PanelFrame>;
   if (panel === 'journey') return <PanelFrame title="Jornada" icon="📖" onClose={close} wide><Journey /></PanelFrame>;
   if (panel === 'map') return <PanelFrame title="Vila das Patas" icon="🗺️" onClose={close}><MapPanel /></PanelFrame>;
-  if (panel === 'shop') return <PanelFrame title="Sacola da Sora" icon="🎒" onClose={close} wide><Shop /></PanelFrame>;
+  if (panel === 'shop') {
+    const shop = shopTitle(useGameStore.getState().shopId);
+    return <PanelFrame title={shop.name} icon={shop.icon} onClose={close} wide><ShopPanel /></PanelFrame>;
+  }
   if (panel === 'settings') return <PanelFrame title="Configurações" icon="⚙️" onClose={close}><Settings inGame /></PanelFrame>;
 
   if (phase === 'paused') {

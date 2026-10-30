@@ -1616,6 +1616,21 @@ body.touch-ui .controls-bar { display: none; }
   border: 2px solid var(--ink); border-radius: 999px; padding: 0 5px;
 }
 .shop-note { margin: 0; font-weight: 800; color: var(--red); }
+/* Etapa 6: each shop wears its own colours; tabs to buy and sell; what each item does */
+.shop-themed { background: var(--shop-bg, transparent); border-left: 6px solid var(--shop-accent, transparent); border-radius: 12px; padding: 8px 12px; }
+.shop-tabs { display: flex; gap: 6px; }
+.shop-tab { flex: 1; padding: 8px; border-radius: 10px; border: 2px solid var(--paper-edge); background: #FFF8EC; font-weight: 800; cursor: pointer; color: var(--ink); }
+.shop-tab.on { background: var(--shop-accent, var(--orange)); color: #FFF; border-color: transparent; }
+.shop-card.locked { opacity: 0.75; filter: saturate(0.6); }
+.shop-effect { font-size: 0.8rem; font-weight: 800; color: var(--shop-accent, var(--green-dark)); line-height: 1.25; }
+.sell-list { display: flex; flex-direction: column; gap: 8px; }
+.sell-hint { margin: 0; color: var(--ink-soft); font-weight: 700; }
+.sell-row { display: flex; align-items: center; gap: 10px; background: #FFF8EC; border: 2px solid var(--paper-edge); border-radius: 12px; padding: 6px 10px; }
+.sell-icon { font-size: 1.6rem; }
+.sell-name { flex: 1; }
+.sell-row .btn { white-space: nowrap; }
+.inv-effect { color: var(--green-dark); font-weight: 800; margin: 6px 0 0; }
+.inv-worn, .inv-sell { color: var(--ink-soft); font-weight: 700; margin: 4px 0 0; }
 .shop-note.good { color: var(--green-dark); }
 .shop-quiz { background: #FFF1D6; border: 3px dashed var(--paper-edge); border-radius: 14px; padding: 10px 12px; font-weight: 600; line-height: 1.45; }
 .shop-quiz p { margin: 8px 0 0; }
@@ -1695,6 +1710,12 @@ body.pad-active button:focus, body.pad-active select:focus, body.pad-active inpu
 .door-fade.on { opacity: 1; pointer-events: auto; }
 .room-label { position: fixed; left: 14px; bottom: 14px; z-index: 50; padding: 8px 14px; border-radius: 999px; color: #FFF6E4; font-weight: 800; font-size: 0.95rem; }
 body.touch-ui .room-label { display: none; }
+/* Etapa 6: the Mochila do Explorador's compass, above the minimap (top left on touch screens) */
+.treasure-compass { position: fixed; left: 14px; bottom: 176px; z-index: 50; padding: 6px 12px; border-radius: 999px; color: #FFF6E4; font-weight: 800; display: flex; align-items: center; gap: 8px; pointer-events: none; }
+.treasure-compass .tc-arrow { display: inline-block; transform-origin: 50% 50%; font-size: 1.15rem; transition: transform 0.2s linear; }
+.treasure-compass.morno .tc-arrow { color: #FFD54A; }
+.treasure-compass.quente .tc-arrow { color: #FF8A3D; }
+body.touch-ui .treasure-compass { left: 10px; bottom: auto; top: 112px; }
 /* Etapa 5: the clock of the academy circuit (top centre, clear of the minimap and the touch buttons) */
 .training-timer { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 55; padding: 8px 16px; border-radius: 14px; color: #FFF6E4; display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
 .training-timer b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }

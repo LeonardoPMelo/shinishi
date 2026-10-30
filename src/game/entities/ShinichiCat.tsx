@@ -11,6 +11,7 @@ import { useEffectiveQuality } from '../../store/uiSettings';
 import { ITEMS } from '../../data/items';
 import { onGameEvent, type GameEvent } from '../../systems/events';
 import { asset } from '../../assetPath';
+import { ShinichiGear } from './ShinichiGear';
 
 /**
  * Shinichi as a rigged quadruped cat (GLB built by tools/blender/build_shinichi.py).
@@ -523,6 +524,7 @@ export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
     // Shifted back a little so the body (nose to rump) is centered in the round collider.
     <group position={[0, FEET_Y, -0.11]} scale={SCALE}>
       <primitive object={rig.root} />
+      <ShinichiGear root={rig.root} />
     </group>
   );
 }

@@ -20,6 +20,19 @@ export function applyItemEffect(effect: ItemEffect, itemId: string) {
       spawnParticles('sparkle', [playerPosition.x, playerPosition.y + 0.3, playerPosition.z], 16);
       break;
     }
+    case 'salto': {
+      abilityState.jumpUntil = Math.max(abilityState.jumpUntil, now() + effect.seconds);
+      emit({ type: 'sfx', name: 'boing' });
+      emit({ type: 'toast', icon: item?.icon ?? '🍢', text: `${item?.name ?? 'Mola'}: pulando mais alto por ${effect.seconds} segundos.` });
+      spawnParticles('sparkle', [playerPosition.x, playerPosition.y + 0.1, playerPosition.z], 12, '#FFB347');
+      break;
+    }
+    case 'faro': {
+      // Shinichi.tsx starts it on the next frame, with the trail to the objective, like the key does
+      abilityState.faroRequest = effect.seconds;
+      emit({ type: 'toast', icon: item?.icon ?? '🍵', text: `${item?.name ?? 'Chá'}: Faro por ${effect.seconds} segundos!` });
+      break;
+    }
   }
 }
 

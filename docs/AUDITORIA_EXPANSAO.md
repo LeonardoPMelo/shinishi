@@ -96,10 +96,12 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 5 | 13 efeitos sonoros sintetizados; música de combate | 9 |
 | 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido | 9 |
 | 7 | Teste com controle físico e celular real | manual |
-| 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); lojas, região selvagem, combate, narrativa | 6–8 |
+| 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); ~~lojas~~ (Etapa 6); região selvagem, combate, narrativa | 7–8 |
 | 9 | Mais casas com interior (cantina, relojoeiro, Academia e Sede têm) | 6–8, conforme as missões pedirem |
 | 10 | A rota escolhida na Expedição (`rota_rio` / `rota_montanha`) precisa mudar o caminho nas terras selvagens | 7 |
 | 11 | Som ambiente próprio da Sede (hoje só a música muda dentro dela) | 9 |
+| 12 | Poções de cura e itens de combate: só fazem sentido com vida e inimigos | 7 |
+| 13 | Corda Ninja e Capa Corta-Vento (prêmios da Expedição) ainda sem uso | 7 |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -306,3 +308,73 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 - Som ambiente próprio da Sede e da Academia: hoje só a música muda (treino na Academia, mistério na Sede). Pendência 11.
 - A escolha de rota ainda não altera um caminho físico: isso só existe quando a região selvagem existir (Etapa 7). Pendência 10.
 - Ferramenta de teste: depois de várias edições seguidas, o servidor de desenvolvimento pode servir um módulo desatualizado. Reinicie o servidor antes de testar no navegador.
+## 9. Registro da Etapa 6 — Lojas, itens e economia (2026-10-29)
+
+### Auditoria (antes)
+- Uma loja só: a Sacola da Sora, com faixas e poções, paga em gemas.
+- As **moedas** se acumulavam sem nada para comprar.
+- Não havia tela de venda.
+- Os slots "coleira" e "mochila" existiam no save sem nenhum item, e nada era desenhado no gato.
+- Um só efeito de item (impulso).
+- A base (`systems/inventory.ts`, Etapa 2) já validava saldo, item único e venda. Foi aproveitada.
+
+### Implementado
+| Parte | O que faz |
+|---|---|
+| **Três lojas com especialidade** (`data/shops.ts`) | **Peixaria do Seu Bigodes** (moedas, comida com efeito), **Armazém do Boku** (moedas, equipamento; compra o que você achou), **Sacola da Sora** (gemas, enfeites e poções). Cada uma tem dono, cor, frase e balcão na barraca do mercado, com placa |
+| **Itens novos, cada um com função** | **Peixe Grelhado** (pula mais alto por 20 s). **Chá de Erva-de-gato** (Faro na hora, 14 s, mesmo recarregando). **Petisco de Atum** (alimenta um coelho, que confia em você por 1 minuto). **Mochila do Explorador** (vestida: bússola na tela até a Pata Dourada mais perto que falta). **Coleira do Faro** (vestida: Faro de 9 s em vez de 6, recarga de 8 s em vez de 12). **Coleira do Sininho** (enfeite) |
+| Liberados pela história | Peixe Grelhado depois do Peixe Fujão; Chá depois do Chá da Luna; Mochila depois do Mapa do Tesouro; Coleira do Faro para graduados da Academia. Trancados aparecem com 🔒 e o motivo |
+| Tela de loja | Abas Comprar e Vender. Cada item mostra ícone, nome, para que serve, preço e o que falta. Mensagem clara para cada resultado: comprado, falta dinheiro, já é seu, trancado, vendido, vestido (tire antes de vender) |
+| Proteções | Clique duplo compra uma vez só (350 ms). Item único não se compra duas vezes. Nenhuma compra ou venda dá lucro (venda sempre abaixo da compra). Coleções e itens de missão não se vendem |
+| Vestir | Coleira e mochila aparecem **no Shinichi**, presas aos ossos do modelo (seguem as animações). A mochila mostra a descrição, o efeito e "Vestindo agora" |
+| Missão nova | **Amigo dos Coelhos** (Pipo): comprar petiscos, alimentar 3 coelhos, contar o segredo ao Pipo. Medalha "Amigo dos Bichos". Missões antigas apresentam os itens novos: o Peixe Fujão dá um Peixe Grelhado e o Chá da Luna dá um Chá |
+
+### Problemas encontrados no jogo e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| O petisco não dava para usar andando | Andando, o coelho se assusta a 3,2 m, e dar o petisco exige 2,2 m | Com petisco na mochila, o cheiro deixa o coelho curioso: um gato andando chega a ~1,4 m. Correndo, continua assustando |
+| Um coelho só contava como vários | O mesmo coelho podia comer de novo segundos depois | Coelho que já confia no gato não come de novo |
+| Peixe Grelhado forte demais | Medido: 2,03 m de pulo, que com a subida da cápsula vencia a pedra alta reservada ao salto duplo | Força 1,16 → 1,13: medido 1,90 m. Teste novo protege o portão da Etapa 3 |
+| Coleira invisível | A cabeça chibi cobre o pescoço; um anel de 0,11 m sumia no pelo | Medido ao vivo: anel na base do pescoço com 0,24 m. Visível de trás, a câmera normal de jogo |
+| Placas escondidas pelas lanternas | Captura do mercado | Placas acima do varal de lanternas |
+| Itens antigos sem dizer para que servem | Tela da Peixaria | Onigiri, poção e faixas ganharam a linha de efeito |
+
+### Testes
+- `vitest`: **395 passando** (eram 374). São 21 testes novos em `tests/economy.test.ts`, mais um teste antigo (`tests/shop.test.ts`) atualizado: ele esperava que dois cliques instantâneos comprassem duas vezes, e a Etapa 6 pede o contrário. Cobrem:
+  - cada item novo tem função; lojas, moedas e ids certos;
+  - **nenhum lucro comprando e vendendo**; pacote mais barato por unidade;
+  - compra com e sem saldo, clique duplo, itens trancados que não cobram, item único, moeda certa por loja;
+  - quem compra o quê, venda de item vestido;
+  - Faro com a coleira; molas que não se somam; efeitos ao comer e beber;
+  - bússola (mais perto, ignora as achadas, direção da seta);
+  - petisco (alcance, correndo não, coelho já confiante não come de novo, cheiro do petisco);
+  - nenhuma comida vence a pedra alta;
+  - recompensas novas e a missão completa sem pagar duas vezes;
+  - o save guarda itens e equipamentos.
+- O validador de dados agora confere as lojas: item existe, id não se repete, trancado diz por quê e toda ação `SHOP:` aponta para uma loja real.
+- `tsc` e build ok (pacote principal 775 KB, gzip 245 KB).
+- **No jogo (navegador):**
+  - **Compras:** balcões abrem as lojas; clique duplo real comprou uma vez (40 → 35 moedas, 3 petiscos); venda (+1 moeda); mochila e coleira compradas pelo Armazém (100 → 35) e vestidas pela mochila.
+  - **Persistência:** moedas, itens e missão continuaram iguais depois de recarregar a página.
+  - **Efeitos:**
+    - bússola mostrando "🐾 17 m";
+    - Faro com a coleira: 9 s, recarga 8 s;
+    - pulo normal 1,51 m e com o peixe 1,90 m;
+    - chá ligando o Faro no meio da recarga, por 14 s.
+  - **Coelhos:** 3 alimentados andando, sem agachar.
+  - **Missão do Pipo:** completa.
+  - **Console:** nenhum erro.
+- Capturas: `docs/expansao/etapa6_mercado.jpg`, `etapa6_gato_mochila.jpg`.
+
+### Critérios de aceitação
+- **Atendido:** compras, vendas, inventário e efeitos funcionam e não duplicam recompensas.
+  - Saldo validado, clique duplo e item único protegidos.
+  - Nenhuma compra e venda dá lucro.
+  - Recompensas pagas uma vez.
+  - O save guarda tudo.
+
+### Pendências
+- Poções de cura e itens de combate ficam para a Etapa 7: sem vida e sem inimigos, seriam itens sem função (pendência 12).
+- Corda Ninja e Capa Corta-Vento ganham uso na região selvagem (pendência 13).
+- Lanterna e áreas escuras: só se a região selvagem tiver cavernas.
+- Limite de espaço na mochila: não existe, de propósito (a mochila é pequena e cada item tem uso).

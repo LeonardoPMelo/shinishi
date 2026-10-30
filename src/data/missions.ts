@@ -7,6 +7,7 @@ import { SOUTH_MISSIONS } from './south';
 import { INTERIOR_MISSIONS } from './interiors';
 import { ACADEMY_MISSIONS } from './academy';
 import { SEDE_MISSIONS } from './mikage';
+import { ECONOMY_MISSIONS } from './shops';
 
 /**
  * Campaign — Capítulo 1: "O Faro do Gato Ninja".
@@ -306,7 +307,7 @@ const list: Mission[] = [
       { id: 'pegar', description: 'Pegue o peixe dourado no mercado (corra com Shift e encurrale!)', target: { position: [9, 0, -2] } },
       { id: 'devolver', description: 'Devolva o peixe ao Seu Bigodes', target: { npc: 'bigodes' } },
     ],
-    rewards: { xp: 40, coins: 20, badges: ['Pega-Peixe'] },
+    rewards: { xp: 40, coins: 20, badges: ['Pega-Peixe'], items: { peixe_grelhado: 1 } },
     lesson: 'Quando algo foge de você, correr atrás nem sempre basta: encurralar usando o espaço é estratégia.',
   },
   {
@@ -327,7 +328,7 @@ const list: Mission[] = [
   },
 ];
 
-list.push(...CHAPTER3_MISSIONS, ...TEMPLE_MISSIONS, ...EAST_MISSIONS, ...WEST_MISSIONS, ...SOUTH_MISSIONS, ...INTERIOR_MISSIONS, ...ACADEMY_MISSIONS, ...SEDE_MISSIONS);
+list.push(...CHAPTER3_MISSIONS, ...TEMPLE_MISSIONS, ...EAST_MISSIONS, ...WEST_MISSIONS, ...SOUTH_MISSIONS, ...INTERIOR_MISSIONS, ...ACADEMY_MISSIONS, ...SEDE_MISSIONS, ...ECONOMY_MISSIONS);
 
 export const MISSIONS: Record<string, Mission> = Object.fromEntries(list.map((m) => [m.id, m]));
 export const MISSION_ORDER = list.map((m) => m.id);

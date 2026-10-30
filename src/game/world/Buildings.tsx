@@ -1,3 +1,4 @@
+import { ShopSigns } from './ShopSigns';
 import { SedeGate } from './SedeGate';
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -637,6 +638,8 @@ export function Buildings() {
       <FishCart position={[11.4, 0, 2.9]} rotY={0.45} />
       <LanternString from={[7.2, 2.7, 2.4]} to={[7.2, 2.7, -5.4]} sag={0.4} count={8} />
       <CrateSteps />
+      {/* the shops at the market stalls (Etapa 6) */}
+      <ShopSigns />
       <LanternLights />
       <SecretGlint position={[8.6, 2.6, -3.8]} flag="bau_toldo" />
       {/* Luna's family house */}

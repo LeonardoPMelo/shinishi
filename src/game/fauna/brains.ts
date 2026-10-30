@@ -23,6 +23,8 @@ export interface Cat {
   crouch: boolean;
   /** Horizontal speed (m/s): a running cat scares from farther away. */
   speed: number;
+  /** Carrying a tuna treat (Etapa 6): the smell makes the animals curious, so a walking cat may come close. */
+  treat?: boolean;
 }
 
 const TAU = Math.PI * 2;
@@ -34,6 +36,9 @@ const approach = (v: number, target: number, rate: number, dt: number) => v + (t
 export function threatRadius(base: number, cat: Cat) {
   if (cat.crouch) return base * 0.38;
   if (cat.speed > 4) return base * 1.45;
+  // the treat's smell: a walking cat may come to ~1.4 m, inside the 2.2 m it needs to feed (measured in play:
+  // without this, walking scared the rabbits at 3.2 m and the treat could only be given crouching)
+  if (cat.treat) return base * 0.45;
   return base;
 }
 
@@ -84,6 +89,26 @@ export function petRabbit(r: Rabbit) {
   r.mode = 'petted';
   r.timer = PET.seconds;
   r.trust = PET.trust;
+  r.hop = null;
+  r.hopsLeft = 0;
+}
+
+/**
+ * Feeding (Etapa 6 da expansão): with a tuna treat the cat need not sneak, only not run, and a little farther
+ * away works; the rabbit sits to eat and trusts the cat for a whole minute (only a cat running right at it
+ * makes it hop away, as with petting).
+ */
+export const FEED = { reach: 2.2, seconds: 3.2, trust: 60, maxSpeed: 4 };
+
+/** A rabbit already trusting the cat is not fed again (a treat each, and three rabbits are three rabbits). */
+export function canFeed(r: Rabbit, cat: Cat) {
+  return r.trust <= 0 && !r.fleeing && r.mode !== 'hop' && r.mode !== 'petted' && cat.speed <= FEED.maxSpeed && dist(r.x, r.z, cat.x, cat.z) <= FEED.reach;
+}
+
+export function feedRabbit(r: Rabbit) {
+  r.mode = 'petted';
+  r.timer = FEED.seconds;
+  r.trust = FEED.trust;
   r.hop = null;
   r.hopsLeft = 0;
 }

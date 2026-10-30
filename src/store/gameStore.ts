@@ -1,15 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { GamePhase, PlayerStats, DialogueTree, Challenge, Progress, Mission, Skill, ItemEffect, EquipSlot } from '../types';
-import { emptyProgress, availableSteps, parseActions } from '../systems/progression';
+import { emptyProgress, availableSteps, parseActions, checkCondition } from '../systems/progression';
 import { emit } from '../systems/events';
 import { levelForXp } from '../systems/leveling';
 import { MISSIONS } from '../data/missions';
 import { CHALLENGES } from '../data/challenges';
 import { CHALLENGE_REWARD, emptySkill } from '../data/skills';
-import { OFFERS_BY_ID } from '../data/shop';
+import { ALL_OFFERS } from '../data/shops';
 import { sanitizeSave } from './saveSanitize';
 import { buy, sell, useItem as useItemRule, equip, unequip, withItem, type BuyResult, type SellResult, type UseResult, type EquipResult } from '../systems/inventory';
+
+export type ShopBuyResult = BuyResult | 'locked' | 'busy';
+
+/** A second click on the same offer this soon is a double click, not a second purchase. */
+export const REPEAT_BUY_MS = 350;
+let lastBuy = { offer: '', at: -Infinity };
 
 interface ActiveDialogue {
   npcId: string;
@@ -72,7 +78,10 @@ interface GameStore {
   addCoins: (amount: number) => void;
   addGems: (amount: number) => void;
   /** Sora's shop: spends gems on an offer. Bands can only be bought once. */
-  buyOffer: (offerId: string) => BuyResult;
+  /** Which shop the shop panel shows (data/shops.ts). */
+  shopId: string;
+  /** Buys an offer from any shop; 'locked' before its unlock, 'busy' for a repeated click (Etapa 6). */
+  buyOffer: (offerId: string) => ShopBuyResult;
   /** Sells items for coins (rules in systems/inventory.ts). */
   sellItem: (itemId: string, qty?: number) => SellResult;
   /** Spends one usable item; returns its effect for the game to apply. */
@@ -145,6 +154,7 @@ export const useGameStore = create<GameStore>()(
       activeDialogue: null,
       activeChallenge: null,
       panel: null,
+      shopId: 'sora',
       celebrations: [],
 
       startGame: () => set({ phase: 'playing' }),
@@ -225,6 +235,7 @@ export const useGameStore = create<GameStore>()(
               return;
             case 'SHOP':
               s.closeDialogue();
+              set({ shopId: arg || 'sora' });
               s.openPanel('shop');
               return;
           }
@@ -302,12 +313,19 @@ export const useGameStore = create<GameStore>()(
 
       buyOffer: (offerId) => {
         const s = get();
-        const { result, bag } = buy({ player: s.player, progress: s.progress }, OFFERS_BY_ID[offerId]);
+        const o = ALL_OFFERS[offerId];
+        if (!o) return 'unknown';
+        if (!checkCondition(o.when, s.progress)) return 'locked';
+        const { result, bag } = buy({ player: s.player, progress: s.progress }, o);
+        // a refusal (no money, already yours) is always said; only a purchase that would go through twice in a
+        // blink is taken as a double click
         if (result !== 'ok') return result;
-        const o = OFFERS_BY_ID[offerId];
+        const t = performance.now();
+        if (lastBuy.offer === offerId && t - lastBuy.at < REPEAT_BUY_MS) return 'busy';
+        lastBuy = { offer: offerId, at: t };
         set({ player: bag.player, progress: bag.progress });
         emit({ type: 'item', itemId: o.item, amount: o.qty });
-        get().bumpCounter('compras_sora');
+        if (o.shop === 'sora') get().bumpCounter('compras_sora');
         emit({ type: 'sfx', name: 'coin' });
         return 'ok';
       },

@@ -10,7 +10,7 @@ import { clampToRegions } from '../../data/regions';
 import { playerPosition, playerMotion } from '../systems/playerState';
 import { fenceLayout, FENCE_POST_TOP } from './Ground';
 import {
-  makeRabbit, rabbitStep, makeBird, birdStep, makeButterfly, butterflyStep, canPet, petRabbit,
+  makeRabbit, rabbitStep, makeBird, birdStep, makeButterfly, butterflyStep, canPet, petRabbit, canFeed, feedRabbit,
   type Env, type Cat, type Rabbit, type Bird, type Butterfly, type Spot, type Flower,
 } from '../fauna/brains';
 import { rabbitGeometry, birdGeometry, butterflyGeometry, faunaMaterial } from '../fauna/models';
@@ -172,18 +172,37 @@ export function Fauna() {
     }
   }, [meshes]);
 
-  // Petting (Etapa 3): sneak up to a calm rabbit and press E. One interaction target follows the nearest
-  // rabbit that can be petted; it has no label (no tag, no action) while there is none.
+  // Petting (Etapa 3): sneak up to a calm rabbit and press E. Feeding (Etapa 6): with a tuna treat in the bag,
+  // no need to sneak, and the trust lasts a minute. One interaction target follows the nearest rabbit that can
+  // be fed or petted; it has no label (no tag, no action) while there is none.
   const petTarget = useRef<Rabbit | null>(null);
+  const feeding = useRef(false);
   const petItem = useMemo<Interactable>(() => ({
     id: 'fauna-pet-rabbit',
     position: new THREE.Vector3(0, -50, 0),
-    radius: 1.7,
+    radius: 2.3,
     tagHeight: 0.9,
-    label: () => (petTarget.current ? 'Fazer carinho no coelho' : null),
+    label: () => {
+      if (!petTarget.current) return null;
+      if (!feeding.current) return 'Fazer carinho no coelho';
+      const n = useGameStore.getState().progress.inventory.petisco_atum ?? 0;
+      return `Dar petisco ao coelho (🥫 ${n})`;
+    },
     onInteract: () => {
       const r = petTarget.current;
       if (!r) return;
+      if (feeding.current) {
+        const store = useGameStore.getState();
+        if ((store.progress.inventory.petisco_atum ?? 0) < 1) return;
+        store.addItem('petisco_atum', -1);
+        feedRabbit(r);
+        petTarget.current = null;
+        spawnParticles('sparkle', [r.x, 0.45, r.z], 16, '#FF8FB1');
+        emit({ type: 'sfx', name: 'purr', position: [r.x, 0.3, r.z] });
+        store.bumpCounter('coelhos_alimentados');
+        emit({ type: 'toast', icon: '🐰', text: 'Nhac! O coelho comeu da sua pata e vai confiar em você por um minuto.' });
+        return;
+      }
       petRabbit(r);
       petTarget.current = null;
       spawnParticles('sparkle', [r.x, 0.45, r.z], 10, '#FF8FB1');
@@ -210,6 +229,7 @@ export function Fauna() {
     cat.z = playerPosition.z;
     cat.crouch = playerMotion.crouch;
     cat.speed = playerMotion.speed;
+    cat.treat = (useGameStore.getState().progress.inventory.petisco_atum ?? 0) > 0;
     const { rng } = herd;
 
     // rabbits
@@ -228,14 +248,16 @@ export function Fauna() {
     });
     let pet: Rabbit | null = null;
     let petDist = Infinity;
+    const hasTreat = !!cat.treat;
     for (const r of herd.rabbits) {
       const d = Math.hypot(r.x - cat.x, r.z - cat.z);
-      if (d < petDist && canPet(r, cat)) {
+      if (d < petDist && ((hasTreat && canFeed(r, cat)) || canPet(r, cat))) {
         pet = r;
         petDist = d;
       }
     }
     petTarget.current = pet;
+    feeding.current = !!pet && hasTreat && canFeed(pet, cat);
     if (pet) petItem.position.set(pet.x, 0, pet.z);
     else petItem.position.set(0, -50, 0);
 

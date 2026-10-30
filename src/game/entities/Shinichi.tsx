@@ -1,3 +1,4 @@
+import { faroTimes, jumpMultiplier } from '../../systems/gear';
 import { useMemo, useRef } from 'react';
 import { blobMaterial, blobForHeight } from './contactBlob';
 import { useFrame } from '@react-three/fiber';
@@ -7,7 +8,7 @@ import * as THREE from 'three';
 import { input, consume } from '../systems/input';
 import {
   playerPosition, playerFacing, cameraAngle, playerBody, playerGround, playerMotion, abilityState, SPAWN, now,
-  MIADO_COOLDOWN, FARO_COOLDOWN, FARO_DURATION, SHURIKEN_COOLDOWN, DASH_COOLDOWN, EMOTE_COOLDOWN,
+  MIADO_COOLDOWN, SHURIKEN_COOLDOWN, DASH_COOLDOWN, EMOTE_COOLDOWN,
 } from '../systems/playerState';
 import { throwShuriken } from '../systems/shuriken';
 import { currentObjective } from '../../systems/objective';
@@ -34,7 +35,6 @@ const LIGHT_STEP_SPEED = 3.3;
 const DASH_SPEED = 13;
 const DASH_TIME = 0.2;
 const BOOST_SPEED = 1.3;
-const BOOST_JUMP = 1.12;
 const JUMP_FORCE = 7.4;
 const DOUBLE_JUMP_FORCE = 6.8;
 const ACCEL = 14;
@@ -237,7 +237,7 @@ export function Shinichi() {
     const abilities = useGameStore.getState().progress.abilities;
     if (s.bufferedJump > 0) {
       if ((s.grounded || s.sinceGrounded < COYOTE_TIME) && s.jumpLock <= 0) {
-        vy = JUMP_FORCE * (boosted ? BOOST_JUMP : 1);
+        vy = JUMP_FORCE * jumpMultiplier(boosted, abilityState.jumpUntil > t);
         s.jumpLock = 0.2;
         s.grounded = false;
         s.sinceGrounded = COYOTE_TIME;
@@ -388,16 +388,21 @@ export function Shinichi() {
       }
     }
     // 4 (or Q): Faro reveals secrets and lays glowing paw prints toward the tracked objective.
-    if (consume('faro')) {
-      if (t >= abilityState.faroReadyAt) {
-        abilityState.faroUntil = t + FARO_DURATION;
-        abilityState.faroReadyAt = t + FARO_COOLDOWN;
+    // The catnip tea asks for a Faro right away (and longer), cooldown or not; the Faro Collar lengthens it.
+    const teaFaro = abilityState.faroRequest;
+    abilityState.faroRequest = 0;
+    if (consume('faro') || teaFaro > 0) {
+      const times = faroTimes(useGameStore.getState().progress);
+      const faroSeconds = teaFaro > 0 ? teaFaro : times.duration;
+      if (teaFaro > 0 || t >= abilityState.faroReadyAt) {
+        abilityState.faroUntil = Math.max(abilityState.faroUntil, t + faroSeconds);
+        abilityState.faroReadyAt = t + (teaFaro > 0 ? faroSeconds : times.cooldown);
         emit({ type: 'sfx', name: 'faro' });
         spawnParticles('sparkle', [pos.x, pos.y + 0.6, pos.z], 14);
         // the tracked mission's nearest step, or (no mission yet) the villager who has one to offer
         const target = currentObjective(useGameStore.getState().progress, playerPosition)?.position;
         const goal = target ? new THREE.Vector3(target[0], 0, target[2]) : null;
-        abilityState.trail = goal ? { from: new THREE.Vector3(pos.x, 0, pos.z), to: goal, until: t + FARO_DURATION } : null;
+        abilityState.trail = goal ? { from: new THREE.Vector3(pos.x, 0, pos.z), to: goal, until: t + faroSeconds } : null;
       } else emit({ type: 'sfx', name: 'denied' });
     }
     // G / R3 / 🎉: celebrate. Standing on the ground only; the villagers around react (NPC.tsx).

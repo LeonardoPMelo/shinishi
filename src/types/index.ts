@@ -171,7 +171,18 @@ export type EquipSlot = 'faixa' | 'coleira' | 'mochila';
 /** What using an item does. Each effect is handled in one place (systems/inventory.ts `useItem`). */
 export type ItemEffect =
   /** Faster and higher jumps for a while (the energy potion). */
-  | { kind: 'impulso'; seconds: number };
+  | { kind: 'impulso'; seconds: number }
+  /** Higher jumps only, for a while (grilled fish; Etapa 6). */
+  | { kind: 'salto'; seconds: number }
+  /** The Faro at once, longer, without waiting for it to recharge (catnip tea; Etapa 6). */
+  | { kind: 'faro'; seconds: number };
+
+/**
+ * What a worn item does while it is worn (Etapa 6), read by the game code that it changes:
+ *  - faro_longo: the Faro lasts longer and recharges faster (Shinichi.tsx);
+ *  - detector: a compass to the nearest Golden Paw not yet found (HUD).
+ */
+export type ItemPassive = 'faro_longo' | 'detector';
 
 export interface Item {
   id: string;
@@ -190,6 +201,12 @@ export interface Item {
   slot?: EquipSlot;
   /** Wearable band color (the 'faixa' slot paints Shinichi's headband). */
   band?: string;
+  /** Collar colour and charm (the 'coleira' slot, drawn on Shinichi's neck). */
+  collar?: { color: string; charm: 'sino' | 'folha' };
+  /** What it does while worn. */
+  passive?: ItemPassive;
+  /** One line on what it is for, shown in the shops and the bag ("Pula mais alto por 20 s"). */
+  effectText?: string;
 }
 
 export type Species = 'cat' | 'dog' | 'rabbit' | 'tanuki' | 'bear';
