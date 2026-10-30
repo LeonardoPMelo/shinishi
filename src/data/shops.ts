@@ -121,6 +121,20 @@ export const SHOPS: ShopDef[] = [
         id: 'arm_coleira', item: 'coleira_faro', qty: 1, price: 30, once: true, pitch: 'Só vendo para quem se formou na Academia. Regra da Professora Sumi.',
         when: { done: 'academia' }, lockedText: 'Para graduados da Academia Ninja.',
       },
+      // Etapa 7: the wild lands. The expedition gives the rope or the cape (the route chosen with Yuki); the
+      // other one is sold here, so both ways in the wild lands stay open
+      {
+        id: 'arm_pocao_cura', item: 'pocao_cura', qty: 1, price: 6, pitch: 'Receita da Doutora Momo. Para as terras selvagens, nunca saia sem duas.',
+        when: { done: 'trilha' }, lockedText: 'Chega com a expedição às terras selvagens.',
+      },
+      {
+        id: 'arm_corda', item: 'corda_ninja', qty: 1, price: 40, once: true, pitch: 'Corda de expedição. Amarra ponte, amarra barco, amarra o Taro.',
+        when: { done: 'expedicao' }, lockedText: 'Material da expedição da Sede.',
+      },
+      {
+        id: 'arm_capa', item: 'capa_vento', qty: 1, price: 40, once: true, pitch: 'Capa grossa: nem a ventania do mirante derruba quem usa.',
+        when: { done: 'expedicao' }, lockedText: 'Material da expedição da Sede.',
+      },
     ],
     buys: (it) => it.sellPrice !== undefined && it.category !== 'missao' && it.category !== 'colecionavel',
     buysText: 'O Boku compra comida, equipamentos e enfeites (colecionáveis e itens de missão, não).',

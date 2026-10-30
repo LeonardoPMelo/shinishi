@@ -3,6 +3,7 @@ import { input, press } from '../game/systems/input';
 import { useUiSettings } from '../store/uiSettings';
 import { useGameStore } from '../store/gameStore';
 import { usePad } from '../game/systems/gamepad';
+import { useZone } from '../game/systems/zone';
 
 const RADIUS = 52;
 
@@ -75,6 +76,7 @@ export function TouchControls() {
   const phase = useGameStore((s) => s.phase);
   const show = useTouchUi();
   const [crouch, setCrouch] = useState(false);
+  const wild = useZone((s) => s.zone === 'selvagem');
 
   useEffect(() => {
     document.body.classList.toggle('touch-ui', show);
@@ -98,6 +100,7 @@ export function TouchControls() {
       <div className="touch-buttons">
         <button className="touch-btn jump" onPointerDown={tap(() => { press('jump'); input.jumpHeld = true; })} onPointerUp={() => (input.jumpHeld = false)} onPointerCancel={() => (input.jumpHeld = false)} onPointerLeave={() => (input.jumpHeld = false)} aria-label="Pular">⤒</button>
         <button className="touch-btn act" onPointerDown={tap(() => press('interact'))} aria-label="Interagir">E</button>
+        {wild && <button className="touch-btn small attack" onPointerDown={tap(() => press('attack'))} aria-label="Patada">👊</button>}
         <button className="touch-btn small faro" onPointerDown={tap(() => press('faro'))} aria-label="Faro Ninja">👃</button>
         <button className="touch-btn small miado" onPointerDown={tap(() => press('miado'))} aria-label="Miado Ninja">😺</button>
         <button className="touch-btn small emote" onPointerDown={tap(() => press('emote'))} aria-label="Comemorar">🎉</button>

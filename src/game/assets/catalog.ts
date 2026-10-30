@@ -39,6 +39,9 @@ export const ASSETS = {
   haru: { folder: 'characters', collider: 'none', description: 'Professor de movimento: gato cor de areia, quimono branco, faixa preta, bandana e faixas nos braços' },
   toshi: { folder: 'characters', collider: 'none', description: 'Guarda do portão da Sede: tigrado escuro, armadura, bandana e naginata de madeira' },
   yuki: { folder: 'characters', collider: 'none', description: 'Estrategista: gata branca, manto azul-aço, cachecol longo e prancheta' },
+  // Terras Selvagens (Etapa 7 da expansão)
+  bento: { folder: 'characters', collider: 'none', description: 'Cartógrafo da expedição: tanuki de chapéu de palha, gi verde-oliva, mochila e prancheta de mapas' },
+  momo: { folder: 'characters', collider: 'none', description: 'Herbalista da expedição: gata creme, manto verde, avental, flor e bolsa de ervas' },
   fumi: { folder: 'characters', collider: 'none', description: 'Bibliotecário: tanuki de manto ameixa, óculos e bolsa de livros' },
   liria: { folder: 'characters', collider: 'none', description: 'Inventora cuidadosa: lenço, óculos, avental e prancheta' },
   kaito: { folder: 'characters', collider: 'none', description: 'Parkour: pelagem de pontas escuras, cachecol longo e faixas' },

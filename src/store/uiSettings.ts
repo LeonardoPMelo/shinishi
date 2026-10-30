@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { CombatLevel } from '../systems/combat';
 
 export type Quality = 'alta' | 'media' | 'baixa';
 
@@ -29,6 +30,9 @@ interface UiSettings {
   setQuality: (v: UiSettings['quality']) => void;
   setAutoQuality: (v: Quality) => void;
   setAutoLevel: (v: number) => void;
+  /** How hard the creatures of the wild lands are (Etapa 7): hearts and pace, never what a mission asks. */
+  combatLevel: CombatLevel;
+  setCombatLevel: (v: CombatLevel) => void;
 }
 
 export const useUiSettings = create<UiSettings>()(
@@ -52,10 +56,12 @@ export const useUiSettings = create<UiSettings>()(
       setQuality: (quality) => set({ quality, autoQuality: 'alta' }),
       setAutoQuality: (autoQuality) => set({ autoQuality }),
       setAutoLevel: (autoLevel) => set({ autoLevel: Math.max(0, Math.min(AUTO_LADDER.length - 1, autoLevel)) }),
+      combatLevel: 'normal',
+      setCombatLevel: (combatLevel) => set({ combatLevel }),
     }),
     {
       name: 'shinichi-ui',
-      partialize: (s) => ({ touch: s.touch, cameraSensitivity: s.cameraSensitivity, quality: s.quality, timeOfDay: s.timeOfDay, autoLevel: s.autoLevel, reduceMotion: s.reduceMotion, textScale: s.textScale, invertY: s.invertY }),
+      partialize: (s) => ({ touch: s.touch, cameraSensitivity: s.cameraSensitivity, quality: s.quality, timeOfDay: s.timeOfDay, autoLevel: s.autoLevel, reduceMotion: s.reduceMotion, textScale: s.textScale, invertY: s.invertY, combatLevel: s.combatLevel }),
     }
   )
 );

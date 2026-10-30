@@ -17,6 +17,8 @@ export interface Interactable {
 }
 
 const registry = new Map<string, Interactable>();
+/** What the interact button does when nothing is in reach (set by the wild lands: the paw swipe). */
+export const interactFallback: { current: (() => void) | null } = { current: null };
 
 export function useInteractable(item: Interactable | null) {
   useEffect(() => {
@@ -67,7 +69,12 @@ export function InteractionManager() {
     const id = best?.id ?? null;
     if (id !== nearbyInteractableId || bestLabel !== nearbyInteractableLabel) setNearby(id, bestLabel);
 
-    if (consume('interact') && best && phase === 'playing') best.onInteract();
+    if (consume('interact') && phase === 'playing') {
+      if (best) best.onInteract();
+      // in the wild lands, the interact button with nothing around is the paw swipe (the pad has no free
+      // face button for it; keyboard F does the same)
+      else if (interactFallback.current) interactFallback.current();
+    }
   });
 
   return null;

@@ -1,4 +1,7 @@
 import { useZone } from '../game/systems/zone';
+import { combatWorld } from '../game/systems/hearts';
+import { isHostile } from '../systems/combat';
+import { wildAreaAt } from '../data/wild';
 import { useEffect } from 'react';
 import { audio } from './engine';
 import { music, stinger, type TrackId } from './music';
@@ -41,6 +44,12 @@ function desiredTrack(previous: TrackId | null): { id: TrackId; immediate: boole
   // Etapa 5: the academy trains to the training theme; Mikage's residence is calm and a little mysterious
   const zone = useZone.getState().zone;
   if (zone === 'academia') return { id: 'training', immediate: false };
+  // Etapa 7, the wild lands: a creature after the cat → the training theme (the fight); the cave is
+  // mysterious; the rest is the forest
+  if (zone === 'selvagem') {
+    if (combatWorld.enemies.some((e) => isHostile(e) && Math.hypot(e.x - playerPosition.x, e.z - playerPosition.z) < 14)) return { id: 'training', immediate: false };
+    return { id: wildAreaAt(playerPosition.x, playerPosition.z) === 'Caverna da Névoa' ? 'secret' : 'forest', immediate: false };
+  }
   if (zone === 'sede') {
     const t = s.progress.tracked ? MISSIONS[s.progress.tracked] : null;
     return { id: t?.category === 'investigação' && s.progress.missions[t.id]?.status === 'active' ? 'investigation' : 'secret', immediate: false };

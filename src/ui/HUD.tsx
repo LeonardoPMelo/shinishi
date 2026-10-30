@@ -17,6 +17,10 @@ import { playerPosition } from '../game/systems/playerState';
 import { useZone } from '../game/systems/zone';
 import { INTERIORS_BY_ID, areaAt } from '../data/interiors';
 import { useTraining } from '../game/systems/training';
+import { useHearts } from '../game/systems/hearts';
+import { wildAreaAt } from '../data/wild';
+import { PAW } from '../systems/combat';
+import { useFromBag } from '../game/systems/itemEffects';
 
 /** "Missões da Vila": the followed mission as a checklist (done steps ticked, current ones open). */
 function VillageMissions() {
@@ -149,13 +153,14 @@ function RewardFly() {
 
 function ControlsBar() {
   const pad = usePad((s) => (s.active ? FACE_LABELS[s.style] : null));
+  const wild = useZone((s) => s.zone === 'selvagem');
   if (pad) {
     return (
       <div className="controls-bar" aria-hidden>
         <span><kbd>🕹️ L</kbd> Mover</span>
         <span><kbd>🕹️ R</kbd> Câmera</span>
         <span><kbd>{pad.bottom}</kbd> Pular</span>
-        <span><kbd>{pad.left}</kbd> Interagir</span>
+        <span><kbd>{pad.left}</kbd> {wild ? 'Interagir / Patada' : 'Interagir'}</span>
         <span><kbd>RT</kbd> Correr</span>
         <span><kbd>LT</kbd> Agachar</span>
       </div>
@@ -168,6 +173,7 @@ function ControlsBar() {
       <span><kbd>Espaço</kbd> Pular</span>
       <span><kbd>E</kbd> Interagir</span>
       <span><kbd>C</kbd> Agachar</span>
+      {wild && <span><kbd>F</kbd> Patada</span>}
     </div>
   );
 }
@@ -175,6 +181,8 @@ function ControlsBar() {
 function AbilityBar() {
   const abilities = useGameStore((s) => s.progress.abilities);
   const potions = useGameStore((s) => s.progress.inventory.pocao_energia ?? 0);
+  const herbPotions = useGameStore((s) => s.progress.inventory.pocao_cura ?? 0);
+  const wild = useZone((s) => s.zone === 'selvagem');
   const [, force] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => force((n) => n + 1), 150);
@@ -184,7 +192,20 @@ function AbilityBar() {
   const t = now();
   const cd = (readyAt: number, total: number) => Math.max(0, readyAt - t) / total;
 
-  const slots = [
+  // the wild lands add the paw swipe and the herb potion
+  type Slot = { key: string; icon: string; name: string; desc: string; locked: boolean; cooldown: number; active: boolean; onClick?: () => void; count?: number; passive?: boolean };
+  const wildSlots: Slot[] = wild ? [
+    {
+      key: pad ? pad.left : 'F', icon: '👊', name: 'Patada', desc: 'Espanta os bichos de perto (o ouriço só quando está tonto)',
+      locked: false, cooldown: cd(abilityState.attackReadyAt, PAW.cooldown), active: false, onClick: () => press('attack'),
+    },
+    {
+      key: pad ? '▲' : '3', icon: '🧉', name: 'Poção de Ervas', desc: herbPotions > 0 ? `+2 corações (${herbPotions} na mochila; a tecla 3 usa quando falta coração)` : 'Nenhuma — o Armazém vende, e o caldeirão do acampamento faz',
+      locked: herbPotions === 0, cooldown: 0, active: false, count: herbPotions, onClick: () => useFromBag('pocao_cura'),
+    },
+  ] : [];
+  const slots: Slot[] = [
+    ...wildSlots,
     {
       key: pad ? 'RB' : '1', icon: '✴️', name: 'Shuriken de Treino', desc: 'Acerta alvos e mecanismos (passa pelos moradores sem machucar)',
       locked: false, cooldown: cd(abilityState.shurikenReadyAt, SHURIKEN_COOLDOWN), active: false, onClick: () => press('shuriken'),
@@ -237,6 +258,13 @@ function useRoomLabel() {
   const zone = useZone((s) => s.zone);
   const [label, setLabel] = useState<string | null>(null);
   useEffect(() => {
+    // the wild lands (Etapa 7): the name of the place the cat is in
+    if (zone === 'selvagem') {
+      const readWild = () => setLabel(wildAreaAt(playerPosition.x, playerPosition.z) ?? 'Terras Selvagens');
+      readWild();
+      const id = window.setInterval(readWild, 300);
+      return () => window.clearInterval(id);
+    }
     const def = zone === 'outdoor' ? null : INTERIORS_BY_ID[zone];
     if (!def) {
       setLabel(null);
@@ -279,6 +307,36 @@ function TreasureCompass() {
     <div className={`treasure-compass hud-glass ${warm}`} title="Mochila do Explorador">
       <span className="tc-arrow" style={{ transform: `rotate(${read.angle - Math.PI / 2}rad)` }}>➤</span>
       <span>🐾 {Math.round(read.dist)} m</span>
+    </div>
+  );
+}
+
+/**
+ * Shinichi's hearts in the wild lands (Etapa 7): full ones, empty ones, and a blink after a hit (the moment
+ * nothing can hurt him). Only there: the village is safe.
+ */
+function HeartsBar() {
+  const wild = useZone((s) => s.zone === 'selvagem');
+  const hearts = useHearts((s) => s.hearts);
+  const max = useHearts((s) => s.max);
+  const safeUntil = useHearts((s) => s.safeUntil);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (safeUntil <= now()) return;
+    const id = window.setInterval(() => tick((n) => n + 1), 120);
+    const stop = window.setTimeout(() => window.clearInterval(id), (safeUntil - now()) * 1000 + 150);
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(stop);
+    };
+  }, [safeUntil]);
+  if (!wild) return null;
+  const blinking = safeUntil > now();
+  return (
+    <div className={`hearts-bar hud-glass ${blinking ? 'blink' : ''} ${hearts <= 1 ? 'low' : ''}`} role="status" aria-label={`Corações: ${hearts} de ${max}`}>
+      {Array.from({ length: max }, (_, i) => (
+        <span key={i} className={i < hearts ? 'full' : 'empty'}>{i < hearts ? '❤️' : '🤍'}</span>
+      ))}
     </div>
   );
 }
@@ -347,6 +405,7 @@ export function HUD() {
       {/* inside a house: its name where the minimap was (the minimap shows the outdoors) */}
       {phase === 'playing' && room && <div className="room-label hud-glass">📍 {room}</div>}
       {phase === 'playing' && <TrainingTimer />}
+      {phase === 'playing' && <HeartsBar />}
       {phase === 'playing' && <TreasureCompass />}
       {phase === 'playing' && !room && (
         <div className="minimap hud-glass" onClick={() => openPanel('map')} title="Abrir mapa (M)">

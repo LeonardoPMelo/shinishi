@@ -10,6 +10,7 @@ import { CHAPTER3_ROUTES } from './chapter3';
 import { MIMI } from './interiors';
 import { ACADEMY_NPCS } from './academy';
 import { SEDE_NPCS } from './mikage';
+import { WILD_NPCS } from './wild';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const bye = (label = 'Até mais!'): DialogueOption => ({ label, nextNodeId: null });
@@ -783,7 +784,7 @@ for (const npc of CHAPTER_1) {
   npc.offers = [...(npc.offers ?? []), ...ext.offerMeta];
 }
 
-export const NPC_DEFINITIONS: NPCDefinition[] = [...CHAPTER_1, ...NEW_NPCS, FUJI, GORO, HINOKI, MIMI, ...ACADEMY_NPCS, ...SEDE_NPCS];
+export const NPC_DEFINITIONS: NPCDefinition[] = [...CHAPTER_1, ...NEW_NPCS, FUJI, GORO, HINOKI, MIMI, ...ACADEMY_NPCS, ...SEDE_NPCS, ...WILD_NPCS];
 
 // Capítulo 3: in-progress routes first; the new offers go after the villager's older ones (in-progress or offer
 // routes), in the same order as `offers`, so the mission log (missionState.ts, first offer in that list) names

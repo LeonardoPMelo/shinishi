@@ -9,6 +9,7 @@ import { SKILLS } from '../data/skills';
 import { TEMPLE_SOLVE_ACTIONS } from '../data/temple';
 import { ACADEMY_CODE_ACTIONS } from '../data/academy';
 import { SEDE_CODE_ACTIONS } from '../data/mikage';
+import { WILD_CODE_ACTIONS } from '../data/wild';
 import { SHOPS, SHOPS_BY_ID } from '../data/shops';
 import { parseActions } from './progression';
 
@@ -18,14 +19,14 @@ import { parseActions } from './progression';
  * returns the full report. Missing references are the bugs that only show up hours into play.
  */
 
-const KNOWN_CMDS = new Set(['START', 'STEP', 'FLAG', 'UNFLAG', 'GIVE', 'TAKE', 'COINS', 'XP', 'GEMS', 'COUNT', 'ABILITY', 'TRACK', 'SFX', 'SECRET', 'CHALLENGE', 'CLOSE', 'SKILL', 'SHOP']);
+const KNOWN_CMDS = new Set(['START', 'STEP', 'FLAG', 'UNFLAG', 'GIVE', 'TAKE', 'COINS', 'XP', 'GEMS', 'COUNT', 'ABILITY', 'TRACK', 'SFX', 'SECRET', 'CHALLENGE', 'CLOSE', 'SKILL', 'SHOP', 'TRAVEL']);
 const ABILITIES = new Set(['faro', 'miado', 'double_jump', 'passo_leve']);
 /** Flags the game code sets directly (not through data actions). */
 const CODE_FLAGS = new Set(['alvo_numeros']);
 /** Steps completed by world components rather than by data actions. */
 const CODE_STEPS = new Set(['peixe_fujao.pegar']);
 /** Counters bumped by world components (rings, leaves, goal) rather than by data. */
-const CODE_COUNTERS = new Set(['argolas', 'folhas', 'gols', 'compras_sora', 'coelhos_alimentados', 'circuito_recorde']);
+const CODE_COUNTERS = new Set(['argolas', 'folhas', 'gols', 'compras_sora', 'coelhos_alimentados', 'circuito_recorde', 'ervas_colhidas', 'cristais_colhidos', 'bichos_espantados', 'armadilhas_desarmadas']);
 
 export interface DataReport {
   errors: string[];
@@ -137,6 +138,7 @@ export function validateData(): DataReport {
   for (const [k, a] of Object.entries(TEMPLE_SOLVE_ACTIONS)) act(a, `templo ${k}`);
   for (const [k, a] of Object.entries(ACADEMY_CODE_ACTIONS)) act(a, `academia ${k}`);
   for (const [k, a] of Object.entries(SEDE_CODE_ACTIONS)) act(a, `sede ${k}`);
+  for (const [k, a] of Object.entries(WILD_CODE_ACTIONS)) act(a, `selvagem ${k}`);
 
   // NPCs
   const npcIds = new Set<string>();

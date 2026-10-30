@@ -29,6 +29,8 @@ import { LivingWorld } from './world/LivingWorld';
 import { Fauna } from './world/Fauna';
 import { TreeLine } from './world/TreeLine';
 import { Interiors } from './world/Interiors';
+import { WildRegion, TrailGateVillage } from './world/WildRegion';
+import { Enemies } from './world/Enemies';
 import { useZone } from './systems/zone';
 import { FirstSteps } from './systems/FirstSteps';
 import { DemoTour } from './systems/tour';
@@ -166,6 +168,8 @@ function Scene() {
   // inside a house (Etapa 4 da expansão) the outdoor world is not drawn: only the room, the cat and the
   // villagers and objects inside (WorldObjects and NPCs draw by distance)
   const outdoor = useZone((s) => s.zone === 'outdoor');
+  // the wild lands (Etapa 7) are outdoors too, far away: the village's animals live there as well
+  const wild = useZone((s) => s.zone === 'selvagem');
   const profile = useRenderProfile();
   const active = phase !== 'menu';
   const light = useLighting();
@@ -214,8 +218,11 @@ function Scene() {
         </StaticMerge>
         <Foliage />
         <PlayThings />
+        <TrailGateVillage />
         </group>
         <Interiors />
+        <WildRegion />
+        <Enemies />
         <Shurikens />
         <TargetRange />
         <FaroTrail />
@@ -224,7 +231,7 @@ function Scene() {
         {NPC_DEFINITIONS.map((npc) => (
           <NPC key={npc.id} npc={npc} />
         ))}
-        <group visible={outdoor}>
+        <group visible={outdoor || wild}>
           <Fauna />
         </group>
       </Physics>

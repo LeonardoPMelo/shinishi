@@ -14,6 +14,7 @@ import { SKILLS, SKILL_ORDER, skillStars, nextStarAt } from '../data/skills';
 import { ShopPanel, shopTitle } from './ShopPanel';
 import { useFromBag } from '../game/systems/itemEffects';
 import { offeredMissions } from '../systems/missionState';
+import { LEVELS, type CombatLevel } from '../systems/combat';
 
 function PanelFrame({ title, icon, children, onClose, wide }: { title: string; icon: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
   return (
@@ -372,7 +373,19 @@ export function Settings({ inGame }: { inGame: boolean }) {
           <label>Sensibilidade da câmera</label>
           <input type="range" min={30} max={200} value={Math.round(ui.cameraSensitivity * 100)} onChange={(e) => ui.setCameraSensitivity(Number(e.target.value) / 100)} aria-label="Sensibilidade da câmera" />
         </div>
-        <p className="setting-note">WASD mover · Shift correr · C (ou Ctrl) agachar em silêncio · Espaço pular · E interagir · Q faro · R miado · G comemorar · I mochila · J missões · K jornada · M mapa · Esc pausa · roda do mouse aproxima</p>
+        <p className="setting-note">WASD mover · Shift correr · C (ou Ctrl) agachar em silêncio · Espaço pular · E interagir · F patada (terras selvagens) · Q faro · R miado · G comemorar · I mochila · J missões · K jornada · M mapa · Esc pausa · roda do mouse aproxima</p>
+      </section>
+      <section>
+        <h3>🐾 Terras Selvagens</h3>
+        <div className="setting-row">
+          <label>Dificuldade dos bichos</label>
+          <select value={ui.combatLevel} onChange={(e) => ui.setCombatLevel(e.target.value as CombatLevel)}>
+            {(Object.keys(LEVELS) as CombatLevel[]).map((k) => (
+              <option key={k} value={k}>{LEVELS[k].name} — {LEVELS[k].hearts} corações</option>
+            ))}
+          </select>
+        </div>
+        <p className="setting-note">{LEVELS[ui.combatLevel].text} Nenhuma missão depende de lutar: dá para passar agachado, distrair com uma shuriken nas pedras ou fugir.</p>
       </section>
       <PadSection />
       <section>

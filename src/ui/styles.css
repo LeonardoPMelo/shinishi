@@ -1239,6 +1239,7 @@ kbd {
 .touch-btn.dash { right: 72px; bottom: 166px; }
 .touch-btn.pocao { right: 134px; bottom: 120px; }
 .touch-btn.emote { right: 10px; bottom: 220px; }
+.touch-btn.attack { right: 72px; bottom: 228px; background: #8C2E2E; }
 body.touch-ui .minimap { display: none; }
 body.touch-ui .ability-bar { display: none; }
 body.touch-ui .interact-prompt { bottom: 190px; }
@@ -1708,6 +1709,16 @@ body.pad-active button:focus, body.pad-active select:focus, body.pad-active inpu
 /* Houses you walk into (Etapa 4 da expansão) */
 .door-fade { position: fixed; inset: 0; background: #120C1C; opacity: 0; pointer-events: none; transition: opacity 0.24s ease; z-index: 90; }
 .door-fade.on { opacity: 1; pointer-events: auto; }
+/* Etapa 7: Shinichi's hearts in the wild lands, top centre */
+.hearts-bar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 55; padding: 6px 12px; border-radius: 999px; display: flex; gap: 3px; font-size: 1.25rem; pointer-events: none; }
+.hearts-bar .empty { opacity: 0.55; }
+.hearts-bar.blink { animation: hearts-blink 0.24s steps(2) infinite; }
+.hearts-bar.low .full { animation: hearts-beat 0.8s ease-in-out infinite; display: inline-block; }
+@keyframes hearts-blink { 50% { opacity: 0.45; } }
+@keyframes hearts-beat { 50% { transform: scale(1.18); } }
+@media (prefers-reduced-motion: reduce) { .hearts-bar.blink, .hearts-bar.low .full { animation: none; } }
+/* touch: above the joystick (the top is taken by the stats and the next-step card) */
+body.touch-ui .hearts-bar { top: auto; bottom: 214px; left: 16px; transform: none; font-size: 1.05rem; }
 .room-label { position: fixed; left: 14px; bottom: 14px; z-index: 50; padding: 8px 14px; border-radius: 999px; color: #FFF6E4; font-weight: 800; font-size: 0.95rem; }
 body.touch-ui .room-label { display: none; }
 /* Etapa 6: the Mochila do Explorador's compass, above the minimap (top left on touch screens) */

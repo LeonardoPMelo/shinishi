@@ -56,6 +56,11 @@ export const VILLAGER_ASSETS: Record<string, AssetName> = {
   toshi: 'toshi',
   yuki: 'yuki',
   fumi: 'fumi',
+  // Terras Selvagens (Etapa 7 da expansão): Yuki leads the camp in her own model
+  yuki_campo: 'yuki',
+  bento: 'bento',
+  bento_arvore: 'bento',
+  momo: 'momo',
 };
 
 /**

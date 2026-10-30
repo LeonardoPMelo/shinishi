@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { enhanceToon, getGradient } from '../materials';
 import { projectiles, allTargets, segmentHitsSphere, SHURIKEN_RANGE_TIME } from '../systems/shuriken';
 import { playerBody } from '../systems/playerState';
+import { makeNoise } from '../systems/hearts';
 import { spawnParticles } from '../systems/particles';
 import { spawnRing } from '../systems/vfx';
 import { emit } from '../../systems/events';
@@ -96,6 +97,8 @@ export function Shurikens() {
           p.pos.copy(a).addScaledVector(dir, Math.max(0, hit.timeOfImpact - 0.05));
           p.stuck = STUCK_TIME;
           emit({ type: 'sfx', name: 'thwack', position: [p.pos.x, p.pos.y, p.pos.z] });
+          // the clink is heard: in the wild lands, the creatures nearby go and look (a distraction)
+          makeNoise(p.pos.x, p.pos.z);
           spawnParticles('dust', [p.pos.x, p.pos.y, p.pos.z], 3);
           spawnRing(p.pos, { color: '#CFE6FF', size: 0.35, life: 0.25, normal: dir.clone().negate() });
         } else {

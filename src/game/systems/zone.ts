@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import type { Vec3 } from '../../types';
 import { INTERIORS_BY_ID, insideDoor, outsideDoor } from '../../data/interiors';
 import { abilityState, cameraAngle, playerBody, playerPosition } from './playerState';
-import { emit } from '../../systems/events';
+import { emit, onGameEvent } from '../../systems/events';
+import { TRAIL_GATE, WILD_GATE, WILD_RESPAWN } from '../../data/wild';
+import { faintHandler, refillHearts } from './hearts';
 
 /**
  * Where Shinichi is: outdoors, or inside one of the houses (Etapa 4 da expansão). Not saved: a reload always
@@ -73,4 +75,36 @@ export function exitInterior(id: string) {
   travel('outdoor', out.spot, out.heading, OUTDOOR_VIEW);
 }
 
-if (import.meta.env.DEV) Object.assign(window as unknown as Record<string, unknown>, { __zone: useZone, __enter: enterInterior, __exit: exitInterior });
+/**
+ * The wild lands (Etapa 7 da expansão) are a zone like a house: far from the village, the village hidden while
+ * there. The gates are world objects with a TRAVEL action (data/wild.ts); the store only emits the event.
+ */
+export const WILD_ZONE = 'selvagem';
+
+export function enterWild() {
+  refillHearts();
+  travel(WILD_ZONE, WILD_GATE.arrive, WILD_GATE.heading, OUTDOOR_VIEW);
+}
+
+export function leaveWild() {
+  refillHearts();
+  travel('outdoor', TRAIL_GATE.out, TRAIL_GATE.heading, OUTDOOR_VIEW);
+}
+
+/** Out of hearts: the screen fades and the cat wakes by the campfire, hearts full, bag untouched. */
+function faintToCamp() {
+  window.setTimeout(() => {
+    // facing the campfire
+    travel(WILD_ZONE, WILD_RESPAWN, -Math.PI / 2, OUTDOOR_VIEW);
+    window.setTimeout(refillHearts, FADE_MS);
+  }, 450);
+}
+faintHandler.current = faintToCamp;
+
+onGameEvent((e) => {
+  if (e.type !== 'travel') return;
+  if (e.to === WILD_ZONE) enterWild();
+  else if (e.to === 'vila') leaveWild();
+});
+
+if (import.meta.env.DEV) Object.assign(window as unknown as Record<string, unknown>, { __zone: useZone, __enter: enterInterior, __exit: exitInterior, __wild: enterWild, __leaveWild: leaveWild });

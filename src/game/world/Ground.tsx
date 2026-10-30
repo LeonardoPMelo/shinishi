@@ -19,7 +19,7 @@ function seeded(seed: number) {
   };
 }
 
-function useGrassTexture() {
+export function useGrassTexture() {
   return useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 512;

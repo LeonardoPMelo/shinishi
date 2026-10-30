@@ -19,7 +19,7 @@ export const input = {
 /** One-shot presses, consumed by whoever handles them. */
 const pressed = new Set<string>();
 
-export type PressKey = 'jump' | 'interact' | 'faro' | 'miado' | 'shuriken' | 'dash' | 'pocao' | 'emote';
+export type PressKey = 'jump' | 'interact' | 'faro' | 'miado' | 'shuriken' | 'dash' | 'pocao' | 'emote' | 'attack';
 
 export function press(key: PressKey) {
   pressed.add(key);
@@ -67,6 +67,8 @@ export function installKeyboard() {
     if (e.code === 'KeyR') press('miado');
     // G: celebrate (an emote the villagers react to, Etapa 3)
     if (e.code === 'KeyG') press('emote');
+    // F: the paw swipe (Etapa 7, the wild lands)
+    if (e.code === 'KeyF') press('attack');
   });
   window.addEventListener('keyup', (e) => setKey(e.code, false));
   window.addEventListener('blur', () => {

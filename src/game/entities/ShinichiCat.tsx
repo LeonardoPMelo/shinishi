@@ -337,7 +337,7 @@ export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
           feel('joy', 0.8);
           return;
         }
-        if (e.type === 'sfx' && e.name === 'shuriken') playOnce('attack', 0.55, 0.06);
+        if (e.type === 'sfx' && (e.name === 'shuriken' || e.name === 'swipe')) playOnce('attack', 0.55, 0.06);
         // the celebration emote (key G): stands up and cheers
         if (e.type === 'sfx' && e.name === 'giggle') {
           playOnce('victory', 1.8, 0.15);

@@ -1,6 +1,7 @@
 import type { Challenge, DialogueTree, Item, Mission, NPCDefinition, Vec3 } from '../types';
 import type { WorldObject } from './world';
 import { INTERIORS_BY_ID } from './interiors';
+import { YUKI_TRAIL_ROUTES } from './wild';
 import type { OrderPuzzle } from '../systems/orderPuzzle';
 
 /**
@@ -410,7 +411,9 @@ export const YUKI: NPCDefinition = {
   faceRotation: -Math.PI / 2,
   look: { species: 'cat', fur: '#F2F0EC', belly: '#FFFFFF', scale: 0.95, mask: '#D8D4CC', eyes: 'round' },
   voice: 'meow',
-  offers: [{ mission: 'expedicao', when: { done: 'audiencia' } }],
+  offers: [{ mission: 'expedicao', when: { done: 'audiencia' } }, { mission: 'trilha', when: { done: 'expedicao' } }],
+  // once the trail is open she leads the expedition from the camp in the wild lands (data/wild.ts)
+  visibleWhen: { notStep: 'trilha.portao' },
   barks: ['Um bom plano tem plano B. E plano C.', 'Hortelã ajuda a pensar. Jasmim ajuda a esquecer coisas, pelo visto.'],
   routes: [
     { when: { active: 'expedicao', step: 'expedicao.suprimentos', notStep: 'expedicao.relatorio', flag: 'rota_rio' }, tree: say('Conselheira Yuki',
@@ -430,6 +433,7 @@ export const YUKI: NPCDefinition = {
         ],
       },
     } },
+    ...YUKI_TRAIL_ROUTES,
     { when: { done: 'expedicao', flag: 'rota_rio' }, tree: say('Conselheira Yuki', 'A rota do rio está marcada no mapa. Quando as terras selvagens abrirem, a corda vai junto com você.') },
     { when: { done: 'expedicao', flag: 'rota_montanha' }, tree: say('Conselheira Yuki', 'A rota da montanha está marcada no mapa. Quando as terras selvagens abrirem, a capa vai junto com você.') },
     { tree: say('Conselheira Yuki', 'Os mapas não mentem. Os cartógrafos, às vezes, desenham peixinhos demais.') },

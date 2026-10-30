@@ -136,6 +136,12 @@ export function ShadowBudget() {
 
 /** Layer no camera renders: where SmallCull parks the pieces too small to see. */
 const PARKED_LAYER = 3;
+/**
+ * The layers each parked piece had. Kept here, not in `userData`: a component that passes `userData={{...}}`
+ * inline gets a new object on every render, which erased the note and left the piece parked for good (seen in
+ * Etapa 7: the camp fire's flame stayed invisible).
+ */
+const parkedMasks = new WeakMap<THREE.Object3D, number>();
 
 /**
  * Screen-size culling for the loose pieces (Etapa 1b): fences, targets, torches, crates and their ink hulls
@@ -179,13 +185,13 @@ export function SmallCull() {
       s.c.copy(bs.center).applyMatrix4(m.matrixWorld);
       const r = bs.radius * m.matrixWorld.getMaxScaleOnAxis();
       const ratio = r / Math.max(0.1, s.c.distanceTo(camera.position));
-      const parked = m.userData.parkedMask !== undefined;
-      if (!parked && ratio < k) {
-        m.userData.parkedMask = m.layers.mask;
+      const parked = parkedMasks.get(m);
+      if (parked === undefined && ratio < k) {
+        parkedMasks.set(m, m.layers.mask);
         m.layers.set(PARKED_LAYER);
-      } else if (parked && ratio > k * 1.25) {
-        m.layers.mask = m.userData.parkedMask;
-        delete m.userData.parkedMask;
+      } else if (parked !== undefined && ratio > k * 1.25) {
+        m.layers.mask = parked;
+        parkedMasks.delete(m);
       }
     }
     s.frame = (s.frame + slice) % Math.max(1, n);

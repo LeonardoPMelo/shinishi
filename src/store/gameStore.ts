@@ -233,6 +233,8 @@ export const useGameStore = create<GameStore>()(
             case 'CLOSE':
               s.closeDialogue();
               return;
+            // through the Trilha da Expedição (zone.ts listens; the store knows nothing about the scene)
+            case 'TRAVEL': emit({ type: 'travel', to: arg }); break;
             case 'SHOP':
               s.closeDialogue();
               set({ shopId: arg || 'sora' });

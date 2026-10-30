@@ -93,15 +93,17 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 2 | Referências com símbolo de folha no repositório público | decisão do usuário |
 | 3 | Botão "Instalar" da PWA + instruções manuais | 10 (ou antes, se pedido) |
 | 4 | ~~Pipo desliza 27%~~ resolvido na Etapa 3 (0%) | — |
-| 5 | 13 efeitos sonoros sintetizados; música de combate | 9 |
+| 5 | 15 efeitos sonoros sintetizados (a Etapa 7 somou a patada e o "ai"); a luta usa a música de treino, não uma de combate própria | 9 |
 | 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido | 9 |
 | 7 | Teste com controle físico e celular real | manual |
-| 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); ~~lojas~~ (Etapa 6); região selvagem, combate, narrativa | 7–8 |
+| 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); ~~lojas~~ (Etapa 6); ~~região selvagem, combate~~ (Etapa 7); narrativa | 8 |
 | 9 | Mais casas com interior (cantina, relojoeiro, Academia e Sede têm) | 6–8, conforme as missões pedirem |
-| 10 | A rota escolhida na Expedição (`rota_rio` / `rota_montanha`) precisa mudar o caminho nas terras selvagens | 7 |
+| 10 | ~~A rota da Expedição muda o caminho~~ resolvido na Etapa 7: a corda conserta a ponte, a capa vence o vento do mirante; a outra se compra no Armazém | — |
 | 11 | Som ambiente próprio da Sede (hoje só a música muda dentro dela) | 9 |
-| 12 | Poções de cura e itens de combate: só fazem sentido com vida e inimigos | 7 |
-| 13 | Corda Ninja e Capa Corta-Vento (prêmios da Expedição) ainda sem uso | 7 |
+| 12 | ~~Poções de cura~~ resolvido na Etapa 7 (Poção de Ervas: Armazém e caldeirão) | — |
+| 13 | ~~Corda Ninja e Capa Corta-Vento sem uso~~ resolvido na Etapa 7 | — |
+| 14 | Registro de missões × conversa (anterior à Etapa 7, achado pelo teste novo): com uma missão em andamento, Chef Hana, Taro, Vovó Mochi e Seu Bigodes aparecem como "tem missão" no registro, mas a conversa fala só da missão em andamento | 8 |
+| 15 | Nas terras selvagens, os bichos voltam a cada visita e pagam moedas de novo (pouco: 3 a 5 por bicho). Avaliar um limite se a economia pedir | 9 |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -378,3 +380,77 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 - Corda Ninja e Capa Corta-Vento ganham uso na região selvagem (pendência 13).
 - Lanterna e áreas escuras: só se a região selvagem tiver cavernas.
 - Limite de espaço na mochila: não existe, de propósito (a mochila é pequena e cada item tem uso).
+## 10. Registro da Etapa 7 — Região selvagem e combate (2026-10-30)
+
+### Auditoria (antes)
+- O mundo era só a vila, os bairros em volta e as casas com interior. Nenhum inimigo, nenhuma vida.
+- `PlayerStats.hp`/`maxHp` existiam no save sem uso. O clipe `attack` do Shinichi só tocava com a shuriken.
+- A Expedição (Etapa 5) prometia "as terras selvagens", e a Corda Ninja e a Capa Corta-Vento não tinham uso.
+- A shuriken já tinha alvos registráveis e mira assistida, e a fauna (Etapa 4) já tinha cérebros testados: os dois foram aproveitados.
+
+### Implementado
+| Parte | O que faz |
+|---|---|
+| **As Terras Selvagens** (`data/wild.ts`, `world/WildRegion.tsx`) | Zona própria, como as casas: longe do mapa (x ≈ 500), a vila não é desenhada lá. Entrada pelo **portão da Trilha da Expedição** no Bambuzal (cerca oeste); volta pelo portão do acampamento. 13 lugares com nome no HUD |
+| Lugares | **Acampamento** (barracas, fogueira que cura, caldeirão, Yuki, Momo e Bento), **Campina das Ervas** (ervas e coelhos), **Rio Corredeira** (ponte de corda quebrada e pedras), **Cachoeira do Véu** (baú secreto atrás da água), **Mata Fechada**, **Bosque das Cerejeiras**, **Acampamento Abandonado** (diário e caixote), **Clareira dos Bandidos**, **Desfiladeiro das Pedras** (com o Javali e armadilhas), **Posto Avançado do Hissui** (paliçada, barracas, torre, mesa das ordens), **Caverna da Névoa** (névoa, estalagmites, cristais), **Ruínas do Sol** (portão com mecanismo), **Mirante do Vento** (só com a capa) |
+| **Bichos** (`systems/combat.ts`, `world/Enemies.tsx`) | **Ouriço Bandido** (investe em linha reta, fica tonto; espinhos em pé bloqueiam a patada), **Raposa Ninja** (mantém distância e joga pinhas lentas), **Espírito da Névoa** (só se vê e só se atinge com o Faro), **Javali Rochoso** (dorme no desfiladeiro; pele de pedra). Modelos toon de formas simples. Fauna mansa também: coelhos (aceitam petisco), pássaros e borboletas |
+| Mente dos bichos | Estados patrulha / dormindo / alerta (❗) / persegue / avisa (treme e brilha vermelho) / ataca / tonto (💫) / distraído (❓) / volta para casa / calmo (💗) / desistiu. Visão em cone (metade agachado, mais longe correndo), audição em volta, nada através de paredes, desiste longe de casa (fuga funciona) e volta curado |
+| **Combate do gato** | **Patada** (F; no controle e no celular, o botão de interagir sem nada por perto; 👊 no toque): alcance 1,7 m na frente, recarga 0,45 s. **Shuriken** também acerta os bichos. **Corações** no HUD (5 no Normal), piscar sem dano depois de um golpe, empurrão. Desmaio: acorda na fogueira, corações cheios, mochila intacta, bichos de volta aos postos. Infantil e sem violência gráfica: o bicho "desiste" numa nuvem de fumaça e foge para casa |
+| **Sem lutar** | Toda luta tem caminho alternativo: **furtividade** (agachado, o javali não acorda; dá para ler as ordens do posto sem ser visto), **distração** (shuriken nas pedras faz barulho; quem patrulha vai olhar), **fuga** (longe de casa, eles desistem), **solução pacífica** (o javali aceita um Petisco de Atum e sai do caminho para sempre) |
+| **Dificuldade** (Ajustes → Terras Selvagens) | Tranquilo (7 corações, bichos mais lentos e avisando mais), Normal (5), Desafio (4, mais rápidos e atentos). Nenhuma missão depende de lutar |
+| Recursos e itens | **Erva de Luz** (brota de novo a cada visita), **Cristal da Névoa** (raro, só com o Faro), **Poção de Ervas** (+2 corações; Armazém ou caldeirão: 2 ervas = 1 poção; a tecla 3 a usa quando falta coração e não a gasta com os corações cheios), **Disco Solar** (lendário), **Ordens do Hissui** |
+| A rota da Expedição | **Corda Ninja** conserta a ponte (caminho curto); **Capa Corta-Vento** vence a ventania da escada do mirante. Quem escolheu uma rota compra a outra no Armazém (40 moedas), e as pedras do rio sempre servem de caminho |
+| **Armadilhas do Hissui** | Pisar prende a pata (1 coração, 1 s parado); com o Faro brilham em vermelho; agachado + E desarma (+2 moedas, salvo) |
+| **Missões (capítulo 6, 7 missões)** | **A Expedição Parte** (Yuki → portão → acampamento, com as regras explicadas), **O Explorador Pendurado** (pegadas pela mata; Bento preso numa cerejeira por um ouriço de guarda; afastar o ouriço e sacudir o tronco), **Ervas de Luz** (colher, desafio de proporção no caldeirão), **O Filhote nos Espinhos** (afastar os ouriços e soltar o filhote), **Cristais da Névoa** (caverna, Faro), **O Portão das Ruínas** (inscrição + quebra-cabeça de ordem com uma única solução), **O Posto do Hissui** (passar pelo javali de um dos três jeitos, ler as ordens: o Hissui quer o Disco Solar — gancho para a Etapa 8) |
+| Moradores novos | **Bento** (tanuki cartógrafo) e **Doutora Momo** (gata herbalista), modelos novos feitos pelo construtor do Blender (`build_villager.py`), comprimidos (383 KB e 360 KB); a Yuki comanda o acampamento |
+| Som e música | Música da floresta na região, a de mistério na caverna e a de treino quando um bicho persegue o gato. Dois efeitos novos **sintetizados** (patada e "ai"): não são finais (pendência 5) |
+
+### Problemas encontrados no jogo e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| A chegada mandava o gato de volta à vila | O rio da vila não tinha limite em x: o acampamento fica no mesmo z do rio e "espirrava" o gato para o último lugar seco, na vila | O rio da vila só vale no mapa da vila |
+| Dava para atravessar o rio segurando para frente | Depois do primeiro "splash", 1 s sem checar água: andando, o gato cruzava a ponte quebrada (e o rio da vila também) | A checagem volta em 0,3 s; só o aviso fica espaçado. Medido: ninguém passa, andando ou correndo |
+| O norte da região jogava o gato no templo | A rede de segurança do pátio do templo valia para qualquer z ao norte da vila | Só no mapa da vila |
+| Desviar da investida não adiantava | O ouriço reajustava a mira durante o aviso | A direção trava no começo do aviso: sair do caminho faz ele errar (teste) |
+| Bento não oferecia a segunda missão | Com "Cristais" em andamento, a fala de dica vinha antes da oferta das "Ruínas" | Entregas, depois ofertas, depois dicas. Teste novo para todos os moradores (achou 4 casos antigos: pendência 14) |
+| Luneta e baú do mirante sem interação | Cadastrados na altura do chão; a interação só alcança 2,2 m acima ou abaixo | Altura do mirante; teste novo |
+| Pedras das ruínas e petisco do javali difíceis de alcançar | Parado na frente (ou encostado na parede do desfiladeiro) o gato ficava fora do alcance | 1,3 m e 3 m |
+| A chama da fogueira sumia para sempre | O recorte de objetos pequenos guardava a camada original no `userData`, e um componente com `userData` em linha a apagava ao re-renderizar | Registro guardado fora do `userData` (vale para o jogo todo) |
+| Barracas pareciam tábuas soltas; trilhas laranja demais; penhascos com cara de muro de tijolo | Capturas | Barraca em prisma com porta; cor de terra; rocha lisa com pedregulhos na base |
+| No celular, corações sobre o painel do nome e patada sobre o joystick | Captura em 375 × 812 | Corações acima do joystick; patada no grupo da direita |
+| "Pedra da Sol"; placa do portão virada para fora | Leitura das capturas | "Pedra do Sol"; placa virada para a vila |
+
+### Testes
+- `vitest`: **427 passando** (eram 395). São 32 testes novos (`tests/combat.test.ts` e ajustes):
+  - detecção (frente, costas, agachado, correndo, paredes), javali dormindo e a passagem agachada pelo desfiladeiro inteiro;
+  - o ciclo do ouriço, o desvio durante o aviso, espinhos × tontura, fuga e volta curado, distração por barulho;
+  - raposa (distância, pinha acerta quem fica parado e para na parede, lenta o bastante para desviar), espírito × Faro, javali com petisco, volta dos bichos a cada visita;
+  - patada (frente sim, costas não), corações (piscar, desmaio, cura), dificuldades;
+  - o mapa: tudo em chão firme e fora do rio, moradores longe dos objetos, ponte e pedras, o posto com uma entrada só e paredes que não se pulam, cristais na caverna, nomes dos lugares, o mirante na altura certa, o quebra-cabeça com uma única ordem;
+  - itens, lojas, 7 missões; e a consistência registro × conversa para todos os moradores.
+- O validador de dados confere as ações que o código da região dispara (`WILD_CODE_ACTIONS`) e o novo comando `TRAVEL`. A campanha completa (teste antigo) passa pelas 46 missões.
+- `tsc` e build ok (pacote principal 860 KB, gzip 273 KB; eram 775/245).
+- **No jogo (navegador, com física):**
+  - portão trancado e aberto, chegada ao acampamento, volta à vila;
+  - as 7 missões do capítulo 6 concluídas jogando (com as 4 medalhas);
+  - ervas colhidas andando; desafio errado e certo; poção (não gasta com corações cheios, cura 2);
+  - ponte quebrada (ninguém passa) e consertada; pedras do rio;
+  - luta com o ouriço: aviso, desvio, tontura, três patadas, +4 moedas, sem perder coração; espírito com Faro; raposa com shurikens;
+  - javali: passou agachado sem acordar; andando acordou e investiu; com petisco ficou calmo (e continua lá depois de recarregar);
+  - desmaio: acordou na fogueira, mochila igual, javali de volta ao lugar; armadilha (dano e pata presa) e desarme agachado;
+  - distração com shuriken no paredão: o ouriço foi olhar e não viu o gato agachado; filhote solto depois de afastar os ouriços;
+  - vento sem capa (não sobe) e com capa (sobe); baú da cachoeira; dificuldade Tranquilo (7 corações);
+  - console sem erros; custo por quadro na região igual ou menor que na praça da vila (medição indicativa no painel oculto).
+- Capturas: `docs/expansao/etapa7_*.jpg` (acampamento, ponte, Bento, caverna com Faro, ruínas, desfiladeiro, mirante).
+
+### Critérios de aceitação
+- **Atendido:** o jogador explora, enfrenta ou evita inimigos, coleta recursos e conclui missões com progressão funcional.
+  - Explorar: 13 lugares, segredo na cachoeira, mirante, acampamento abandonado.
+  - Enfrentar ou evitar: luta com aviso e janela de ataque; furtividade, distração, fuga e solução pacífica.
+  - Coletar: ervas (renovam), cristais (Faro), baús, itens deixados pelos bichos.
+  - Missões: 7, todas concluídas no jogo, com recompensas pagas uma vez.
+
+### Pendências
+- 14 (registro × conversa em 4 moradores antigos) e 15 (moedas dos bichos a cada visita), na tabela acima.
+- As pedras do rio dão para atravessar andando (o vão é menor que a cápsula do gato). Ficou assim de propósito: é o caminho alternativo, sem exigir precisão de quem tem 11 anos.
+- Não verificado: controle físico e celular de verdade (pendência 7); os testes de toque foram por emulação de tela.

@@ -197,6 +197,18 @@ CAST = {
         mask='#3B2C24', belly=True, tail='bushy', tail_rings='#3B2C24', ears='round', whiskers=False,
         extras=['glasses', 'satchel'], style='hands_belly',
     ),
+    # Terras Selvagens (Etapa 7 da expansão)
+    'bento': dict(  # the expedition's cartographer: sandy tanuki, khaki field gi, straw hat, big pack, map board
+        species='tanuki', fur='#B08A5E', light='#EEDFC6', ear='#4A3A2E', iris='#4A6A3A', width=1.12,
+        outfit='gi', robe='#5E7A44', trim='#E9D9AE', obi='#4A3A2E', pants='#5A4632', jacket_hem=0.2,
+        mask='#4A3A2E', belly=True, tail='bushy', tail_rings='#4A3A2E', ears='round', whiskers=False,
+        extras=['straw_hat', 'backpack', 'clipboard'], style='clipboard',
+    ),
+    'momo': dict(  # the expedition's herbalist: cream cat with brown patches, leaf-green robe, apron, flower, herb satchel
+        fur='#F4EBDD', light='#FFFFFF', ear='#C99A6A', iris='#5FA35A', width=1.0,
+        outfit='robe', robe='#4F8A5A', trim='#F2E6D8', obi='#7A5236', hem=0.06, flare=0.05,
+        apron='#F4F1E4', apron_top=0.42, pockets='#9CC27A', patches='#B07A4A', extras=['hair_flower', 'satchel'], style='behind',
+    ),
 }
 
 # ── Anatomy (biped chibi, ~1.1 m to the ear tips) ───────────────────────────────

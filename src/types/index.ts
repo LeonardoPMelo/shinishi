@@ -175,7 +175,9 @@ export type ItemEffect =
   /** Higher jumps only, for a while (grilled fish; Etapa 6). */
   | { kind: 'salto'; seconds: number }
   /** The Faro at once, longer, without waiting for it to recharge (catnip tea; Etapa 6). */
-  | { kind: 'faro'; seconds: number };
+  | { kind: 'faro'; seconds: number }
+  /** Hearts back, in the wild lands (herb potion; Etapa 7). */
+  | { kind: 'cura'; hearts: number };
 
 /**
  * What a worn item does while it is worn (Etapa 6), read by the game code that it changes:

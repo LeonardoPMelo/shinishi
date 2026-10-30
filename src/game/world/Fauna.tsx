@@ -7,6 +7,7 @@ import { POND, EAST_PLAZA } from '../../data/east';
 import { ONSEN, CLEARING } from '../../data/west';
 import { STREAM, MEADOW } from '../../data/south';
 import { clampToRegions } from '../../data/regions';
+import { inWildRiver, inWildWorld, toLocal, w } from '../../data/wild';
 import { playerPosition, playerMotion } from '../systems/playerState';
 import { fenceLayout, FENCE_POST_TOP } from './Ground';
 import {
@@ -36,6 +37,10 @@ const inEllipse = (x: number, z: number, e: { x: number; z: number; rx: number; 
 
 /** Water the animals must not stand in (the colliders don't cover it: the cat may wade, rabbits won't). */
 export function inWater(x: number, z: number) {
+  if (inWildWorld(x, z)) {
+    const l = toLocal(x, z);
+    return inWildRiver(l.x - 0.35, l.z, false) || inWildRiver(l.x + 0.35, l.z, false);
+  }
   if (Math.abs(z - RIVER.z) < RIVER.halfWidth + 0.35 && Math.abs(x) < 19.5) return true;
   if (Math.abs(z - STREAM.z) < STREAM.halfWidth + 0.3 && Math.abs(x) < 19.5) return true;
   return inEllipse(x, z, { x: POND.x, z: POND.z, rx: POND.rx, rz: POND.rz }, 0.35) || inEllipse(x, z, ONSEN, 0.35);
@@ -47,10 +52,13 @@ const WARRENS = [
   { x: -12.5, z: 3.5, r: 2.6, n: 2 },
   { x: 11.5, z: 26.5, r: 2.6, n: 2 },
   { x: CLEARING.x - 3, z: CLEARING.z + 4, r: 2.4, n: 1 },
+  // the wild lands (Etapa 7): the meadow by the camp, and a shy pair in the cherry grove
+  { x: w(19, 22)[0], z: w(19, 22)[2], r: 4.5, n: 4 },
+  { x: w(-40, 18)[0], z: w(-40, 18)[2], r: 3, n: 2 },
 ];
 
 /** Meadows the butterflies stay around (the old flower spots, plus the districts). */
-const MEADOWS: [number, number][] = [[3.9, 3.9], [-5.3, 1.9], [-3.9, -3.9], [-15, -15.5], [-14, -13.5], [6, 10], [-8, 12], [-3, 30], [8, 28], [MEADOW.x, MEADOW.z], [24, 12], [-26, 2]];
+const MEADOWS: [number, number][] = [[3.9, 3.9], [-5.3, 1.9], [-3.9, -3.9], [-15, -15.5], [-14, -13.5], [6, 10], [-8, 12], [-3, 30], [8, 28], [MEADOW.x, MEADOW.z], [24, 12], [-26, 2], [w(18, 28)[0], w(18, 28)[2]], [w(22, 12)[0], w(22, 12)[2]], [w(-38, 30)[0], w(-38, 30)[2]]];
 const BUTTERFLY_COLORS = ['#FFD54A', '#F49AB8', '#7FD3FF', '#FFFFFF', '#C79BFF', '#FF9F5A'];
 const FUR = ['#B79A7E', '#9C8A7A', '#E9E3DA', '#C9B091', '#7F7268'];
 const FEATHERS = ['#8A6A4E', '#6E7FA0', '#9A7D5A', '#A4683F', '#77706A'];
@@ -109,7 +117,8 @@ export function Fauna() {
     const spots: Spot[] = fenceLayout()
       .filter((_, i) => i % 2 === 0)
       .map((p) => ({ x: p.pos[0], y: FENCE_POST_TOP, z: p.pos[2], ground: false }));
-    for (const [cx, cz, r0, n] of [[0, 0, 3.4, 9], [EAST_PLAZA.x, EAST_PLAZA.z, 2.2, 5]] as const) {
+    // and around the wild lands' campfire and meadow (Etapa 7)
+    for (const [cx, cz, r0, n] of [[0, 0, 3.4, 9], [EAST_PLAZA.x, EAST_PLAZA.z, 2.2, 5], [w(34, 22)[0], w(34, 22)[2], 4.2, 5], [w(18, 18)[0], w(18, 18)[2], 3, 4]] as const) {
       for (let k = 0; k < n; k++) {
         const a = (k / n) * Math.PI * 2 + 0.3;
         const x = cx + Math.cos(a) * r0;
@@ -119,7 +128,7 @@ export function Fauna() {
     }
     const taken = new Set<number>();
     const birds: Bird[] = [];
-    for (let i = 0; i < 9 && spots.length; i++) {
+    for (let i = 0; i < 13 && spots.length; i++) {
       const s = Math.floor(rng() * spots.length);
       if (taken.has(s)) continue;
       taken.add(s);

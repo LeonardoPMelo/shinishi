@@ -33,6 +33,14 @@ export const abilityState = {
   /** The last celebration (emote, key G): villagers nearby react (NPC.tsx). */
   lastEmote: { time: -1, position: new THREE.Vector3() },
   emoteReadyAt: 0,
+  /** Paw swipe (F, Etapa 7): when it can swipe again, and the last swipe (the creatures read it). */
+  attackReadyAt: 0,
+  lastSwipe: { time: -1, heading: 0 },
+  /** A hit from a creature: pushed back along `knock` until this time, and blinking (no damage) until `safeUntil`. */
+  knockUntil: 0,
+  knock: new THREE.Vector3(),
+  /** A paw caught in a snare: no walking until this time. */
+  stuckUntil: 0,
 };
 
 export const FARO_DURATION = 6;

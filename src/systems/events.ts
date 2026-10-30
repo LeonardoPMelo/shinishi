@@ -14,7 +14,9 @@ export type GameEvent =
   | { type: 'sfx'; name: string; position?: [number, number, number] }
   | { type: 'dialogueOpen'; npcId: string }
   | { type: 'dialogueClose' }
-  | { type: 'toast'; text: string; icon?: string };
+  | { type: 'toast'; text: string; icon?: string }
+  /** Go to another zone through a gate (the wild lands' trail, Etapa 7): game/systems/zone.ts does it. */
+  | { type: 'travel'; to: string };
 
 type Listener = (e: GameEvent) => void;
 const listeners = new Set<Listener>();

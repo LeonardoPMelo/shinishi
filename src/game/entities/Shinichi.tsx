@@ -24,6 +24,17 @@ import { clampToRegions } from '../../data/regions';
 import { useGameStore } from '../../store/gameStore';
 import { ShinichiCat, type AnimState } from './ShinichiCat';
 import { useFromBag } from '../systems/itemEffects';
+import { inWildRiver, inWildWorld, toLocal, WILD_RESPAWN } from '../../data/wild';
+import { PAW } from '../../systems/combat';
+import { heartsMissing } from '../systems/hearts';
+import { useZone } from '../systems/zone';
+
+/** The wild lands' river (Etapa 7): the rope bridge holds only once it is tied. */
+function inWildWater(x: number, z: number) {
+  if (!inWildWorld(x, z)) return false;
+  const l = toLocal(x, z);
+  return inWildRiver(l.x, l.z, !!useGameStore.getState().progress.flags.ponte_consertada);
+}
 
 // Speeds fit a quadruped kitten ~1.3 m tall: the trot/gallop clips keep pace without sliding.
 const WALK_SPEED = 4.2;
@@ -62,6 +73,9 @@ function surfaceAt(x: number, y: number, z: number, hinted?: string): Surface {
 }
 
 export function inRiver(x: number, z: number) {
+  // the far zones (the houses' rooms, the wild lands at x ~500) are not crossed by the village's river
+  // (seen in Etapa 7: the camp sits at the river's z, and the splash sent the cat back to the village)
+  if (x > 150) return false;
   if (inPond(x, z) || inOnsen(x, z) || inStream(x, z)) return true;
   if (Math.abs(z - RIVER.z) > RIVER.halfWidth) return false;
   if (Math.abs(x) < RIVER.bridgeHalfWidth) return false;
@@ -89,6 +103,8 @@ export function Shinichi() {
     idleTime: 0,
     dustTimer: 0,
     splashCooldown: 0,
+    /** When the last splash notice was shown (the notice is spaced out; the splash itself is not). */
+    splashToldAt: -9,
     surface: undefined as string | undefined,
     dashTime: 0,
     airDashed: false,
@@ -197,7 +213,7 @@ export function Shinichi() {
     if (s.grounded) {
       s.airJumps = 0;
       s.airDashed = false;
-      if (!inRiver(pos.x, pos.z) && Math.abs(platformVel.current.x) + Math.abs(platformVel.current.z) < 0.01) {
+      if (!inRiver(pos.x, pos.z) && !inWildWater(pos.x, pos.z) && Math.abs(platformVel.current.x) + Math.abs(platformVel.current.z) < 0.01) {
         lastSafe.current.set(pos.x, pos.y + 0.3, pos.z);
       }
     }
@@ -232,7 +248,7 @@ export function Shinichi() {
     let vy = Math.max(v.y, MAX_FALL);
 
     // ── Jump: buffered presses, coyote time, double jump, variable height.
-    if (consume('jump')) s.bufferedJump = JUMP_BUFFER;
+    if (consume('jump') && t >= abilityState.stuckUntil) s.bufferedJump = JUMP_BUFFER;
     else s.bufferedJump = Math.max(0, s.bufferedJump - delta);
     const abilities = useGameStore.getState().progress.abilities;
     if (s.bufferedJump > 0) {
@@ -293,6 +309,9 @@ export function Shinichi() {
       vy = Math.max(vy, s.grounded ? vy : 0.6); // a little float: an air dash crosses gaps
       if (Math.random() < 0.5) spawnParticles('smoke', [pos.x, pos.y - 0.2, pos.z], 1);
     }
+    // ── A creature's hit pushes the cat back; a snare holds its paw (Etapa 7, the wild lands).
+    if (t < abilityState.knockUntil) vel.current.copy(abilityState.knock);
+    else if (t < abilityState.stuckUntil) vel.current.set(0, 0, 0);
 
     // ── Slopes and stairs: follow the surface instead of sliding or bouncing.
     if (s.grounded && vy <= 0.5 && bounce === 0) {
@@ -376,7 +395,22 @@ export function Shinichi() {
         emit({ type: 'sfx', name: 'shuriken' });
       } else emit({ type: 'sfx', name: 'denied' });
     }
-    // 3: energy potion from the bag (spending and effect: systems/inventory.ts + itemEffects.ts)
+    // F (or the interact button with nothing around, in the wild lands): the paw swipe. Who it reaches is
+    // decided by the creatures (game/world/Enemies.tsx reads lastSwipe).
+    if (consume('attack')) {
+      if (t >= abilityState.attackReadyAt) {
+        abilityState.attackReadyAt = t + PAW.cooldown;
+        abilityState.lastSwipe = { time: t, heading: s.yAngle };
+        emit({ type: 'sfx', name: 'swipe' });
+        const fx = Math.sin(s.yAngle);
+        const fz = Math.cos(s.yAngle);
+        spawnRing([pos.x + fx * 0.8, pos.y, pos.z + fz * 0.8], { color: '#FFFFFF', size: 0.9, life: 0.2, normal: [fx, 0, fz] });
+      }
+    }
+    // 3: energy potion from the bag (spending and effect: systems/inventory.ts + itemEffects.ts). In the wild
+    // lands, with hearts missing and an herb potion in the bag, the same key drinks the herb potion.
+    const wantsHeal = useZone.getState().zone === 'selvagem' && heartsMissing() && (useGameStore.getState().progress.inventory.pocao_cura ?? 0) > 0;
+    if (wantsHeal && consume('pocao')) useFromBag('pocao_cura');
     if (consume('pocao') && !useFromBag('pocao_energia')) {
       emit({ type: 'toast', icon: '🧪', text: 'Sem Poção de Energia na mochila. Baús e desafios às vezes têm uma!' });
     }
@@ -420,11 +454,20 @@ export function Shinichi() {
 
     // ── Friendly river hazard: splash and pop back to the last dry spot.
     s.splashCooldown = Math.max(0, s.splashCooldown - delta);
-    if (inRiver(pos.x, pos.z) && pos.y < 0.85 && s.splashCooldown <= 0 && !s.surface) {
-      s.splashCooldown = 1;
-      emit({ type: 'sfx', name: 'splash' });
+    const wildWater = inWildWater(pos.x, pos.z);
+    if ((inRiver(pos.x, pos.z) || wildWater) && pos.y < 0.85 && s.splashCooldown <= 0 && !s.surface) {
+      // a short guard only: with the old 1 s one, a cat holding forward walked straight across the water
+      // after the first splash (seen in Etapa 7 on the broken rope bridge; the village river had it too)
+      s.splashCooldown = 0.3;
       spawnParticles('splash', [pos.x, 0.2, pos.z], 14);
-      emit({ type: 'toast', icon: '💦', text: inPond(pos.x, pos.z)
+      const tell = t - s.splashToldAt > 1.5;
+      if (tell) {
+        s.splashToldAt = t;
+        emit({ type: 'sfx', name: 'splash' });
+      }
+      if (tell) emit({ type: 'toast', icon: '💦', text: wildWater
+        ? 'SPLASH! A correnteza é forte. Atravesse pela ponte de corda ou pelas pedras, mais ao norte.'
+        : inPond(pos.x, pos.z)
         ? 'SPLASH! As carpas levaram um susto. Atravesse o lago pelas pedras.'
         : inOnsen(pos.x, pos.z)
           ? 'AI, QUENTE! A fonte termal é só para olhar. O Seu Goro avisou!'
@@ -440,7 +483,8 @@ export function Shinichi() {
     // the temple courtyard north of the village (entered through the gate), or else the village and the
     // districts outside its fence (data/regions.ts)
     if (!inTemple(pos.x, pos.z)) {
-      if (pos.z < WORLD_BOUNDS.minZ && inTemple(THREE.MathUtils.clamp(pos.x, TEMPLE.minX, TEMPLE.maxX), Math.max(pos.z, TEMPLE.minZ))) {
+      // (the village only: the wild lands' north, at x ~500, is also "north of the village" by z; seen in Etapa 7)
+      if (pos.x < 150 && pos.z < WORLD_BOUNDS.minZ && inTemple(THREE.MathUtils.clamp(pos.x, TEMPLE.minX, TEMPLE.maxX), Math.max(pos.z, TEMPLE.minZ))) {
         const tx = THREE.MathUtils.clamp(pos.x, TEMPLE.minX, TEMPLE.maxX);
         const tz = Math.max(pos.z, TEMPLE.minZ);
         if (tx !== pos.x || tz !== pos.z) body.setTranslation({ x: tx, y: pos.y, z: tz }, true);
@@ -450,7 +494,9 @@ export function Shinichi() {
       }
     }
     if (pos.y < -5) {
-      body.setTranslation({ x: SPAWN.x, y: SPAWN.y + 1, z: SPAWN.z }, true);
+      // in the wild lands, back to the camp; anywhere else, the plaza
+      const [rx, ry, rz] = inWildWorld(pos.x, pos.z) ? [WILD_RESPAWN[0], WILD_RESPAWN[1] + 0.2, WILD_RESPAWN[2]] : [SPAWN.x, SPAWN.y, SPAWN.z];
+      body.setTranslation({ x: rx, y: ry + 1, z: rz }, true);
       body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
 
