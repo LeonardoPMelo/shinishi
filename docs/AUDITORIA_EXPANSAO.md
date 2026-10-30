@@ -611,3 +611,30 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 
 ### Fechamento do prompt mestre
 As 10 etapas estão implementadas e publicadas. O que resta está na lista de pendências (seção 4): itens que dependem de um aparelho de verdade, de aprovação para baixar arquivos ou de uma decisão do usuário.
+## 14. Interiores aconchegantes (pedido do usuário, 2026-10-30)
+
+### Implementado
+| Parte | O que mudou |
+|---|---|
+| **Luz de casa** | Dentro das casas, a luz do sol de fora fica mais fraca e uma luz quente (a cor própria de cada casa, que existia nos dados mas não era usada) ilumina a sala. A luz extra fica sempre montada, em zero lá fora, para não recompilar materiais ao entrar ou sair |
+| **Luz no chão** | Poças de luz suave sob cada lanterna e luminária, e a claridade das janelas no piso à frente delas (efeito barato, sem luz real a mais) |
+| **Estrutura de madeira** | Colunas nas paredes (cantos e a cada ~2,4 m, sem cobrir janela, quadro ou pergaminho) e um friso perto do teto. Nas paredes internas, um pilar em cada ponta: as passagens parecem portas emolduradas. Tudo abaixa junto com a parede quando ela esconderia o gato |
+| **Lanternas** | Antes flutuavam e pareciam estar no chão. Agora pendem por um fio: de uma viga do telhado nas casas de um cômodo, do teto nos prédios grandes (vigas atravessando o prédio inteiro poluíam a vista; testado e retirado) |
+| **Janelas** | Treliça de shoji |
+| **Almofadas e tapetes** | Almofadas quadradas (zabuton) no lugar dos discos; tapetes com borda. A Mesa Posta continua com 3 mesas e 12 almofadas |
+| **Cantina** | Tapete sob cada mesa, planta e pergaminho no canto livre |
+| **Casa do Relojoeiro** | Continua empoeirada (faz parte da história), mas com relógios de parede parados, caixas de peças e um pergaminho desbotado |
+| **Academia** | Banco e plantas na entrada, pergaminhos nas salas de aula, banco ao lado do circuito |
+| **Sede** | Jardim com caminho de pedras até a Pedra do Pacto e o lago, arbustos e um banco de frente para as carpas; banco no pátio; luminárias no Salão de Audiências; almofadas em volta da mesa do conselho; tapetes no escritório e na biblioteca; plantas na entrada do salão; pergaminhos no escritório e na sala de mapas |
+
+### Problemas encontrados e corrigidos
+| Problema | Correção |
+|---|---|
+| "Caixas de suprimentos" da Sede: o objeto da missão existia, mas não havia caixa nenhuma desenhada (só o marcador no ar) | Pilha de caixas no lugar |
+| "Olhar debaixo da almofada grande": não havia almofada | Almofada grande na cabeceira da mesa do conselho |
+| Cor de luz de cada casa definida e nunca usada | Usada pela luz interna |
+
+### Testes
+- `tests/interiorDecor.test.ts` (16): móveis novos dentro da sala e longe da porta, dos objetos de missão, dos moradores, das passagens e das paredes internas; nada sobre alavancas, circuito, alvos, estante dos livros e porta secreta; colunas sem cobrir nada pendurado; o que se pendura não se sobrepõe; as caixas e a almofada grande junto dos seus objetos; vigas só nas casas de um cômodo; Mesa Posta intacta.
+- `vitest`: 520 passando (32 arquivos). `tsc` ok. Build ok (pacote principal 911 KB, gzip 288 KB).
+- No navegador: os quatro interiores conferidos de perto e de cima, sem erros no console.

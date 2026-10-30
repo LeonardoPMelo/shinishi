@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { Toon, Ink } from '../materials';
 import type { TexName } from '../textures';
@@ -43,5 +44,36 @@ export function Blocker({ size, at }: { size: [number, number, number]; at: [num
     <RigidBody type="fixed" colliders={false} userData={ROOM_BODY}>
       <CuboidCollider args={[size[0] / 2, size[1] / 2, size[2] / 2]} position={at} />
     </RigidBody>
+  );
+}
+
+let poolTex: THREE.CanvasTexture | null = null;
+/** A soft round spot, white in the middle and clear at the edge (drawn once, shared). */
+function poolTexture() {
+  if (poolTex) return poolTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,1)');
+  r.addColorStop(0.45, 'rgba(255,255,255,0.55)');
+  r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r;
+  g.fillRect(0, 0, 64, 64);
+  poolTex = new THREE.CanvasTexture(c);
+  poolTex.colorSpace = THREE.SRGBColorSpace;
+  return poolTex;
+}
+
+/**
+ * Warm light on the floor under a lamp or by a window: a soft spot added on top of the floor. Cheaper than a
+ * real light (no extra cost for every other material on screen) and it reads as the lamp lighting the room.
+ */
+export function LightPool({ at, size, color, opacity = 0.32 }: { at: [number, number]; size: [number, number]; color: string; opacity?: number }) {
+  return (
+    <mesh position={[at[0], 0.035, at[1]]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+      <planeGeometry args={size} />
+      <meshBasicMaterial map={poolTexture()} color={color} transparent opacity={opacity} blending={THREE.AdditiveBlending} depthWrite={false} fog={false} />
+    </mesh>
   );
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Toon, Ink } from '../materials';
 import type { InteriorDef, Prop } from '../../data/interiors';
-import { Box, Solid, Blocker, WOOD, DARK, PAPER, INDIGO, GOLD } from './interiorParts';
+import { Box, Solid, Blocker, LightPool, WOOD, DARK, PAPER, INDIGO, GOLD } from './interiorParts';
 
 /**
  * Furniture of the academy and of Mikage's residence (Etapa 5 da expansão). Same rules as the Etapa 4 rooms:
@@ -390,6 +390,145 @@ export function MorePropView({ p, def }: { p: Prop; def: InteriorDef }) {
               <Toon color="#5E584E" />
             </mesh>
           ))}
+        </group>
+      );
+    // ── decoration (cosy interiors, after Etapa 10) ──
+    case 'pergaminho': {
+      // a hanging scroll: a red sun over brush-painted mountains, on paper in a cloth mount
+      const { at, turn } = onWall(def, p, p.h ?? 1.55, 0.05);
+      return (
+        <group position={at} rotation={[0, turn, 0]}>
+          <Box size={[0.56, 1.2, 0.02]} at={[0, 0, 0]} color={p.color ?? '#4F6B52'} />
+          <mesh position={[0, 0.03, 0.012]}>
+            <planeGeometry args={[0.42, 0.92]} />
+            <Toon color={PAPER} />
+          </mesh>
+          <mesh position={[0.09, 0.24, 0.014]}>
+            <circleGeometry args={[0.065, 16]} />
+            <Toon color="#C0573E" />
+          </mesh>
+          {[[-0.07, -0.12, 0.17], [0.1, -0.17, 0.12]].map(([x, y, r], i) => (
+            <mesh key={i} position={[x, y, 0.015 + i * 0.001]} rotation={[0, 0, Math.PI / 2]}>
+              <circleGeometry args={[r, 3]} />
+              <Toon color={i ? '#6E7A86' : '#3F4650'} />
+            </mesh>
+          ))}
+          {[0.62, -0.62].map((y) => (
+            <mesh key={y} position={[0, y, 0.02]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.022, 0.022, y > 0 ? 0.62 : 0.68, 8]} />
+              <Toon color={DARK} />
+            </mesh>
+          ))}
+        </group>
+      );
+    }
+    case 'relogio_parede': {
+      // a small wall clock; like everything in the watchmaker's house, stopped
+      const { at, turn } = onWall(def, p, p.h ?? 1.8, 0.05);
+      const a = p.at[0] * 2.1;
+      return (
+        <group position={at} rotation={[0, turn, 0]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.2, 0.2, 0.06, 20]} />
+            <Toon color={p.color ?? '#7A5236'} tex="wood" />
+            <Ink thickness={0.012} />
+          </mesh>
+          <mesh position={[0, 0, 0.032]}>
+            <circleGeometry args={[0.155, 24]} />
+            <Toon color="#F4EAD2" />
+          </mesh>
+          {[[a, 0.09, 0.022], [a * 3.3, 0.13, 0.014]].map(([turnTo, len, wd], i) => (
+            <group key={i} position={[0, 0, 0.036 + i * 0.002]} rotation={[0, 0, turnTo]}>
+              <mesh position={[0, len / 2, 0]}>
+                <boxGeometry args={[wd, len, 0.004]} />
+                <Toon color={DARK} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      );
+    }
+    case 'planta': {
+      // a potted plant: glazed pot, round leafy crown
+      return (
+        <group position={pos}>
+          <Blocker size={[0.5, 0.9, 0.5]} at={[0, 0.45, 0]} />
+          <mesh position={[0, 0.2, 0]} castShadow>
+            <cylinderGeometry args={[0.24, 0.18, 0.4, 14]} />
+            <Toon color={p.color ?? '#A65A3A'} />
+            <Ink thickness={0.012} />
+          </mesh>
+          <mesh position={[0, 0.405, 0]}>
+            <cylinderGeometry args={[0.22, 0.22, 0.02, 14]} />
+            <Toon color="#4A3426" />
+          </mesh>
+          {[[0, 0.62, 0, 0.26], [0.14, 0.8, 0.05, 0.18], [-0.13, 0.82, -0.05, 0.17], [0.02, 0.97, -0.02, 0.14]].map(([x, y, z, r], i) => (
+            <mesh key={i} position={[x, y, z]} castShadow>
+              <icosahedronGeometry args={[r, 1]} />
+              <Toon color={i % 2 ? '#6FA05A' : '#5E8C4A'} />
+            </mesh>
+          ))}
+        </group>
+      );
+    }
+    case 'arbusto': {
+      // a clipped round shrub in the garden
+      const s = p.size?.[0] ?? 0.9;
+      return (
+        <group position={pos}>
+          <Blocker size={[s * 0.9, 0.8, s * 0.9]} at={[0, 0.4, 0]} />
+          {[[0, 0.36, 0, 0.5], [0.22, 0.3, 0.12, 0.34], [-0.2, 0.32, -0.1, 0.36]].map(([x, y, z, r], i) => (
+            <mesh key={i} position={[x * s, y * s, z * s]} castShadow>
+              <icosahedronGeometry args={[r * s, 1]} />
+              <Toon color={['#557F45', '#6A9852', '#4C7340'][i]} />
+            </mesh>
+          ))}
+        </group>
+      );
+    }
+    case 'pedra_passo':
+      // a flat stepping stone, flush with the lawn (walked over, no collider)
+      return (
+        <mesh position={[p.at[0], 0.03, p.at[1]]} rotation={[0, rot, 0]} scale={[1, 1, 0.78]} receiveShadow>
+          <cylinderGeometry args={[0.3, 0.32, 0.06, 7]} />
+          <Toon color="#A8A196" tex="stone" />
+        </mesh>
+      );
+    case 'banco':
+      return (
+        <group position={pos} rotation={[0, rot, 0]}>
+          <Blocker size={[1.4, 0.46, 0.42]} at={[0, 0.23, 0]} />
+          <Box size={[1.4, 0.08, 0.42]} at={[0, 0.42, 0]} color="#8A5A36" tex="wood" ink={0.015} />
+          {[-0.56, 0.56].map((x) => (
+            <Box key={x} size={[0.09, 0.38, 0.36]} at={[x, 0.19, 0]} color={DARK} tex="wood" />
+          ))}
+        </group>
+      );
+    case 'caixas':
+      // stacked wooden crates
+      return (
+        <group position={pos} rotation={[0, rot, 0]}>
+          <Blocker size={[1.0, 0.92, 0.6]} at={[0, 0.46, 0]} />
+          <Box size={[0.5, 0.45, 0.5]} at={[-0.24, 0.225, 0]} color="#B98A52" tex="planks" ink={0.015} />
+          <Box size={[0.46, 0.4, 0.46]} at={[0.26, 0.2, 0.03]} color="#A87A45" tex="planks" ink={0.015} />
+          <Box size={[0.42, 0.42, 0.42]} at={[-0.1, 0.66, -0.02]} color="#C49A62" tex="planks" ink={0.015} rot={0.25} />
+        </group>
+      );
+    case 'luminaria':
+      // a standing paper lamp (andon), with its warm light on the floor
+      return (
+        <group position={pos}>
+          <Blocker size={[0.42, 0.9, 0.42]} at={[0, 0.45, 0]} />
+          {[[-0.17, -0.17], [0.17, -0.17], [-0.17, 0.17], [0.17, 0.17]].map(([x, z]) => (
+            <Box key={`${x}${z}`} size={[0.04, 0.9, 0.04]} at={[x, 0.45, z]} color={DARK} />
+          ))}
+          <mesh position={[0, 0.56, 0]}>
+            <boxGeometry args={[0.32, 0.5, 0.32]} />
+            <Toon color="#FFF1D2" emissive="#FFD9A0" emissiveIntensity={0.9} />
+          </mesh>
+          <Box size={[0.38, 0.04, 0.38]} at={[0, 0.84, 0]} color={DARK} />
+          <Box size={[0.38, 0.04, 0.38]} at={[0, 0.3, 0]} color={DARK} />
+          <LightPool at={[0, 0]} size={[2.2, 2.2]} color="#FFC27A" opacity={0.3} />
         </group>
       );
     case 'estatua_guardia':

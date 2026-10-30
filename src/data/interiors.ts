@@ -19,7 +19,9 @@ export type PropKind =
   // Etapa 5: the academy and Mikage's residence (game/world/interiorProps.tsx)
   | 'plataforma' | 'viga' | 'quadro_negro' | 'estandarte' | 'boneco' | 'suporte_bastoes' | 'vaso_bambu'
   | 'pedestal' | 'quadro_pistas' | 'dais' | 'pilar' | 'emblema' | 'biombo' | 'mesa_mapa' | 'mesa_escritorio'
-  | 'lagoa' | 'lanterna_pedra' | 'bonsai' | 'rocha' | 'mesa_conselho' | 'estatua_guardia';
+  | 'lagoa' | 'lanterna_pedra' | 'bonsai' | 'rocha' | 'mesa_conselho' | 'estatua_guardia'
+  // interiores aconchegantes (pós-Etapa 10): decoração
+  | 'pergaminho' | 'relogio_parede' | 'planta' | 'arbusto' | 'pedra_passo' | 'banco' | 'caixas' | 'luminaria';
 
 export interface Prop {
   kind: PropKind;
@@ -30,9 +32,9 @@ export interface Prop {
   /** Wall props: which wall they hang on. */
   wall?: 'n' | 's' | 'e' | 'w';
   color?: string;
-  /** Footprint (x, z) in metres, for props that come in sizes (platforms, beams, rugs, ponds). */
+  /** Footprint (x, z) in metres, for props that come in sizes (platforms, beams, rugs, ponds, cushions, shrubs). */
   size?: [number, number];
-  /** Height of the top (platforms, beams, the dais). */
+  /** Height of the top (platforms, beams, the dais); for wall decorations, the height they hang at. */
   h?: number;
 }
 
@@ -112,6 +114,12 @@ export const INTERIORS: InteriorDef[] = [
       { kind: 'lanterna', at: [2, 0.5] },
       { kind: 'janela', at: [-4.5, 2.0], wall: 'w' },
       { kind: 'janela', at: [4.5, 2.2], wall: 'e' },
+      // cosy: a rug under each table, a plant in the free corner and a scroll over it
+      { kind: 'tapete', at: [-2.4, 0.9], size: [2.3, 2.1], color: '#B5603F' },
+      { kind: 'tapete', at: [0.6, 1.1], size: [2.3, 2.1], color: '#5B6E8C' },
+      { kind: 'tapete', at: [3.0, 2.1], size: [2.3, 2.1], color: '#7A8C5B' },
+      { kind: 'planta', at: [4.0, -2.95] },
+      { kind: 'pergaminho', at: [4.5, -2.3], wall: 'e', color: '#7E3B32' },
     ],
   },
   {
@@ -136,6 +144,12 @@ export const INTERIORS: InteriorDef[] = [
       { kind: 'teia', at: [3.4, 2.9] },
       { kind: 'lanterna', at: [0, 0.2] },
       { kind: 'janela', at: [-3.5, 0.2], wall: 'w' },
+      // the old watchmaker's things: small clocks (all stopped), crates of parts, a faded scroll
+      { kind: 'relogio_parede', at: [-1.3, -3], wall: 'n', h: 1.75 },
+      { kind: 'relogio_parede', at: [1.45, -3], wall: 'n', h: 1.95, color: '#5A3B28' },
+      { kind: 'relogio_parede', at: [2.55, -3], wall: 'n', h: 1.55, color: '#8A5A36' },
+      { kind: 'caixas', at: [2.55, -2.5] },
+      { kind: 'pergaminho', at: [-3.5, -1.55], wall: 'w', color: '#8C8478' },
     ],
   },
   // ── Etapa 5: the Ninja Academy, inside the dojo on the plaza's north-east ──
@@ -202,6 +216,13 @@ export const INTERIORS: InteriorDef[] = [
       { kind: 'lanterna', at: [5, 1] },
       { kind: 'janela', at: [-8.5, 5.2], wall: 'w' },
       { kind: 'janela', at: [8.5, -1.5], wall: 'e' },
+      // cosy: a bench and plants at the entrance, scrolls in the classrooms, a bench to watch the circuit
+      { kind: 'banco', at: [-2.55, 2.0], rot: Math.PI / 2 },
+      { kind: 'planta', at: [-2.45, 5.95] },
+      { kind: 'planta', at: [1.65, 6.0], color: '#3F5277' },
+      { kind: 'pergaminho', at: [-8.5, 0.95], wall: 'w', color: '#3F5277' },
+      { kind: 'pergaminho', at: [-2.1, -6.5], wall: 'n', color: '#4F6B52' },
+      { kind: 'banco', at: [2.25, 5.75] },
     ],
   },
   // ── Etapa 5: the residence and seat of Mikage, behind the great gate at the far (south) end of the Training Forest ──
@@ -258,7 +279,22 @@ export const INTERIORS: InteriorDef[] = [
       { kind: 'bonsai', at: [-4.8, 1.4] },
       { kind: 'rocha', at: [-4.6, 3.8] },
       { kind: 'vaso_bambu', at: [-10.4, 4.6] },
+      // stepping stones from the gate path to the Pact stone and the pond, shrubs, a bench facing the carp
+      { kind: 'pedra_passo', at: [-3.5, 6.6], rot: 0.3 },
+      { kind: 'pedra_passo', at: [-4.2, 6.0], rot: 1.1 },
+      { kind: 'pedra_passo', at: [-4.9, 5.4], rot: 2.0 },
+      { kind: 'pedra_passo', at: [-5.3, 4.6], rot: 0.7 },
+      { kind: 'pedra_passo', at: [-6.1, 4.05], rot: 1.6 },
+      { kind: 'pedra_passo', at: [-6.95, 3.8], rot: 2.6 },
+      { kind: 'arbusto', at: [-10.1, 2.9] },
+      { kind: 'arbusto', at: [-10.3, 6.8], size: [0.8, 0.8] },
+      { kind: 'arbusto', at: [-5.5, 9.2] },
+      { kind: 'arbusto', at: [-8.3, 9.1], size: [1.0, 1.0] },
+      { kind: 'banco', at: [-7.5, 8.0] },
+      { kind: 'planta', at: [-1.9, 0.6] },
+      { kind: 'planta', at: [1.9, 0.6] },
       // training yard
+      { kind: 'banco', at: [4.5, 9.4] },
       { kind: 'boneco', at: [9.6, 8.6] },
       { kind: 'boneco', at: [9.6, 6.4] },
       { kind: 'suporte_bastoes', at: [10.6, 3.0], rot: -Math.PI / 2 },
@@ -270,18 +306,30 @@ export const INTERIORS: InteriorDef[] = [
       { kind: 'pilar', at: [-2.8, -6.6] }, { kind: 'pilar', at: [2.8, -6.6] },
       { kind: 'estandarte', at: [-2.4, -10], wall: 'n' },
       { kind: 'estandarte', at: [2.4, -10], wall: 'n' },
-      // meeting room
+      { kind: 'luminaria', at: [-3.35, -9.35] },
+      { kind: 'luminaria', at: [3.35, -9.35] },
+      // meeting room: cushions round the council table, the big one at its head (a page hides under it), and
+      // the supply crates the council counts (they were only a hint in the air)
       { kind: 'mesa_conselho', at: [-7.5, -2.6] },
+      { kind: 'almofada', at: [-8.5, -1.7] }, { kind: 'almofada', at: [-7.5, -1.7] }, { kind: 'almofada', at: [-6.5, -1.7] },
+      { kind: 'almofada', at: [-8.5, -3.5] }, { kind: 'almofada', at: [-7.5, -3.5] }, { kind: 'almofada', at: [-6.5, -3.5] },
+      { kind: 'almofada', at: [-5.6, -2.6], size: [0.8, 0.8], color: '#3D3552' },
+      { kind: 'caixas', at: [-10.0, -4.3] },
       { kind: 'biombo', at: [-10.3, -1.0], rot: Math.PI / 2 },
       // office
+      { kind: 'tapete', at: [-7.5, -8.0], size: [3.0, 2.4], color: '#5A4A6E' },
       { kind: 'mesa_escritorio', at: [-7.5, -8.6] },
       { kind: 'estante', at: [-10.6, -7.4], rot: Math.PI / 2 },
+      { kind: 'pergaminho', at: [-5.3, -10], wall: 'n', color: '#3D3552' },
+      { kind: 'planta', at: [-4.6, -9.4] },
       // library: low bookcases against the inner wall (tall ones hid the cat in the map room behind it)
       { kind: 'estante', at: [5.2, -4.55], h: 1.2 },
       { kind: 'estante', at: [7.0, -4.55], h: 1.2 },
       { kind: 'estante', at: [10.55, -2.4], rot: -Math.PI / 2 },
+      { kind: 'tapete', at: [7.0, -2.3], size: [2.4, 1.8], color: '#7E3B32' },
       // map room
       { kind: 'mesa_mapa', at: [6.0, -7.6] },
+      { kind: 'pergaminho', at: [7.3, -10], wall: 'n', color: '#4F6B52' },
       // reserved room
       { kind: 'pedestal', at: [9.5, -9.35] },
       { kind: 'estatua_guardia', at: [10.4, -6.0] },
@@ -351,6 +399,70 @@ export function partitionSegments(p: Partition): [number, number, number, number
   }
   if (a1 > start) out.push(alongX ? [start, fixed, a1, fixed] : [fixed, start, fixed, a1]);
   return out;
+}
+
+/** Half widths of the things hung on walls: posts keep clear of them. */
+const WALL_SPAN: Partial<Record<PropKind, number>> = {
+  janela: 0.6, prateleira: 0.9, quadro_receitas: 0.65, quadro_negro: 1.1, quadro_pistas: 0.75, estandarte: 0.45,
+  emblema: 0.6, pergaminho: 0.28, relogio_parede: 0.2,
+};
+
+/** Where along a wall a hung thing sits, and its half width (null if it does not hang on that wall). */
+export function wallSpan(p: Prop, wall: 'n' | 'e' | 'w'): [number, number] | null {
+  const span = WALL_SPAN[p.kind];
+  if (span === undefined || p.wall !== wall) return null;
+  return [wall === 'n' ? p.at[0] : p.at[1], span];
+}
+
+/**
+ * The timber posts of the room's three standing walls (the south one is drawn low for the camera): one at each
+ * corner, and between them about every 2.4 m, skipping any spot behind something hung on the wall or where an
+ * inner wall meets it (that one has its own post). `at` runs along the wall (x on the north one, z on the others).
+ */
+export function wallPosts(def: InteriorDef): { wall: 'n' | 'e' | 'w'; at: number }[] {
+  const { w, d } = def.size;
+  const out: { wall: 'n' | 'e' | 'w'; at: number }[] = [];
+  const ends = (def.partitions ?? []).flatMap((p) => [p.from, p.to]);
+  const walls = [
+    { wall: 'n' as const, from: -w / 2, to: w / 2, first: 0 },
+    // the north corners are the north wall's
+    { wall: 'w' as const, from: -d / 2, to: d / 2, first: 1 },
+    { wall: 'e' as const, from: -d / 2, to: d / 2, first: 1 },
+  ];
+  for (const wl of walls) {
+    const len = wl.to - wl.from;
+    const n = Math.max(1, Math.ceil(len / 2.4));
+    for (let i = wl.first; i <= n; i++) {
+      const at = wl.from + (len * i) / n;
+      const corner = i === 0 || i === n;
+      if (!corner) {
+        const behind = def.props.some((p) => {
+          const s = wallSpan(p, wl.wall);
+          return !!s && Math.abs(s[0] - at) < s[1] + 0.2;
+        });
+        const meets = ends.some(([x, z]) =>
+          wl.wall === 'n' ? Math.abs(z + d / 2) < 0.01 && Math.abs(x - at) < 0.6
+            : Math.abs(x - (wl.wall === 'w' ? -w / 2 : w / 2)) < 0.01 && Math.abs(z - at) < 0.6);
+        if (behind || meets) continue;
+      }
+      out.push({ wall: wl.wall, at });
+    }
+  }
+  return out;
+}
+
+/**
+ * The roof's tie beams, across the room (along x): one over each row of hanging lanterns. Only in one-room
+ * houses: across a big building with inner walls they cut over every room and the circuit, and read as clutter
+ * from above (seen in play); there the lanterns hang from the ceiling by their cords.
+ */
+export function roofBeams(def: InteriorDef): number[] {
+  if (def.partitions?.length) return [];
+  const zs: number[] = [];
+  for (const p of def.props) {
+    if (p.kind === 'lanterna' && !zs.some((z) => Math.abs(z - p.at[1]) < 0.6)) zs.push(p.at[1]);
+  }
+  return zs;
 }
 
 /** The named part of a building at a world point (HUD label), or null. */

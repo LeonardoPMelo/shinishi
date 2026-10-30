@@ -1,16 +1,16 @@
 import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { Toon, Ink } from '../materials';
 import { PaperLantern } from './Buildings';
-import { INTERIORS, insideDoor, outsideDoor, partitionSegments, type InteriorDef, type Prop } from '../../data/interiors';
+import { INTERIORS, INTERIORS_BY_ID, insideDoor, outsideDoor, partitionSegments, wallPosts, roofBeams, type InteriorDef, type Prop } from '../../data/interiors';
 import { useInteractable, type Interactable } from '../systems/interaction';
 import { useZone, enterInterior, exitInterior } from '../systems/zone';
 import { useGameStore } from '../../store/gameStore';
 import { checkCondition } from '../../systems/progression';
 import { emit } from '../../systems/events';
-import { Box, Solid, ROOM_BODY, WOOD, DARK, PAPER } from './interiorParts';
+import { Box, Solid, LightPool, ROOM_BODY, WOOD, DARK, PAPER } from './interiorParts';
 import { MorePropView, FloorPatchView } from './interiorProps';
 import { AcademyActivities } from './AcademyActivities';
 import { wallHides, type WallLine } from './cutaway';
@@ -163,12 +163,24 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
         </group>
       );
     case 'almofada': {
-      const color = CUSHIONS[Math.abs(Math.round(p.at[0] * 3 + p.at[1] * 5)) % CUSHIONS.length];
+      // a square zabuton, plump in the middle, with a tuft
+      const color = p.color ?? CUSHIONS[Math.abs(Math.round(p.at[0] * 3 + p.at[1] * 5)) % CUSHIONS.length];
+      const [sx, sz] = p.size ?? [0.52, 0.52];
       return (
-        <mesh position={[p.at[0], 0.06, p.at[1]]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.27, 0.29, 0.11, 14]} />
-          <Toon color={color} />
-        </mesh>
+        <group position={pos} rotation={[0, rot, 0]}>
+          <mesh position={[0, 0.045, 0]} castShadow receiveShadow>
+            <boxGeometry args={[sx, 0.09, sz]} />
+            <Toon color={color} />
+          </mesh>
+          <mesh position={[0, 0.085, 0]} scale={[sx / 0.5, 0.22, sz / 0.5]}>
+            <sphereGeometry args={[0.23, 12, 6]} />
+            <Toon color={color} />
+          </mesh>
+          <mesh position={[0, 0.137, 0]}>
+            <sphereGeometry args={[0.025, 6, 4]} />
+            <Toon color={DARK} />
+          </mesh>
+        </group>
       );
     }
     case 'barril':
@@ -190,8 +202,22 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
           ))}
         </group>
       );
-    case 'lanterna':
-      return <PaperLantern position={[p.at[0], h - 0.45, p.at[1]]} color={def.id === 'relojoeiro' ? '#E8C27A' : '#E0483A'} />;
+    case 'lanterna': {
+      // hung by a cord from the roof beam over it (roofBeams) or, in the big buildings, from the ceiling; with its
+      // warm light on the floor below
+      const top = def.partitions?.length ? h : h - 0.14;
+      const cord = top - (h - 0.75 + 0.22);
+      return (
+        <group>
+          <PaperLantern position={[p.at[0], h - 0.75, p.at[1]]} color={def.id === 'relojoeiro' ? '#E8C27A' : '#E0483A'} />
+          <mesh position={[p.at[0], top - cord / 2, p.at[1]]}>
+            <cylinderGeometry args={[0.01, 0.01, cord, 4]} />
+            <Toon color={DARK} />
+          </mesh>
+          <LightPool at={p.at} size={[3, 3]} color="#FFB46A" opacity={0.26} />
+        </group>
+      );
+    }
     case 'relogio':
       return (
         <group position={[p.at[0], 0, -d / 2 + 0.32]}>
@@ -238,13 +264,23 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
           </mesh>
         </group>
       );
-    case 'tapete':
+    case 'tapete': {
+      // a rug with a lighter field inside its border
+      const [rx, rz] = p.size ?? [2.6, 1.8];
+      const field = new THREE.Color(p.color ?? '#7E3B32').lerp(new THREE.Color('#F3E3C8'), 0.22).getStyle();
       return (
-        <mesh position={[p.at[0], 0.014, p.at[1]]} receiveShadow>
-          <boxGeometry args={[p.size?.[0] ?? 2.6, 0.02, p.size?.[1] ?? 1.8]} />
-          <Toon color={p.color ?? '#7E3B32'} />
-        </mesh>
+        <group position={[p.at[0], 0, p.at[1]]}>
+          <mesh position={[0, 0.014, 0]} receiveShadow>
+            <boxGeometry args={[rx, 0.02, rz]} />
+            <Toon color={p.color ?? '#7E3B32'} />
+          </mesh>
+          <mesh position={[0, 0.025, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[rx - 0.32, rz - 0.32]} />
+            <Toon color={field} />
+          </mesh>
+        </group>
       );
+    }
     case 'teia': {
       // a cobweb in a top corner: a few threads fanning out from it
       const cx = Math.sign(p.at[0]) * (w / 2 - 0.05);
@@ -273,14 +309,24 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
             : wall === 'n' ? [p.at[0], 1.45, -d / 2 + 0.13]
               : [p.at[0], 1.45, d / 2 - 0.13];
       const turn = wall === 'w' ? -Math.PI / 2 : wall === 'e' ? Math.PI / 2 : wall === 'n' ? Math.PI : 0;
+      // daylight through the paper, on the floor in front of the window
+      const pool: [number, number] = wall === 'w' ? [-w / 2 + 0.85, p.at[1]] : wall === 'e' ? [w / 2 - 0.85, p.at[1]] : [p.at[0], -d / 2 + 0.85];
       return (
-        <group position={at} rotation={[0, turn, 0]}>
-          <Box size={[1.2, 0.9, 0.06]} at={[0, 0, 0]} color={WOOD} tex="wood" />
-          <mesh position={[0, 0, -0.035]}>
-            <planeGeometry args={[1.05, 0.75]} />
-            <Toon color="#FFF6E2" emissive="#FFE7B0" emissiveIntensity={0.55} side={THREE.DoubleSide} />
-          </mesh>
-        </group>
+        <>
+          <LightPool at={pool} size={wall === 'n' ? [1.5, 1.4] : [1.4, 1.5]} color="#FFF0C8" opacity={0.22} />
+          <group position={at} rotation={[0, turn, 0]}>
+            <Box size={[1.2, 0.9, 0.06]} at={[0, 0, 0]} color={WOOD} tex="wood" />
+            <mesh position={[0, 0, -0.035]}>
+              <planeGeometry args={[1.05, 0.75]} />
+              <Toon color="#FFF6E2" emissive="#FFE7B0" emissiveIntensity={0.55} side={THREE.DoubleSide} />
+            </mesh>
+            {/* the shoji's lattice */}
+            {[-0.35, 0, 0.35].map((x) => (
+              <Box key={x} size={[0.03, 0.75, 0.02]} at={[x, 0, -0.045]} color={WOOD} />
+            ))}
+            <Box size={[1.05, 0.03, 0.02]} at={[0, 0, -0.045]} color={WOOD} />
+          </group>
+        </>
       );
     }
   }
@@ -343,8 +389,46 @@ function Partitions({ def, active }: { def: InteriorDef; active: boolean }) {
           <Box size={[p.size[0], wains, p.size[1]]} at={[0, wains / 2, 0]} color={def.wainscot} tex="planks" />
           <Box size={[p.size[0] - 0.01, PARTITION_H - wains, p.size[1] - 0.01]} at={[0, wains + (PARTITION_H - wains) / 2, 0]} color={def.wall} tex="plaster" ink={0.015} />
           <Box size={[p.size[0] + 0.05, 0.08, p.size[1] + 0.05]} at={[0, PARTITION_H + 0.04, 0]} color={DARK} tex="wood" />
+          {/* a timber post at each end: the doorways read as framed */}
+          {[-1, 1].map((s) => (
+            <Box
+              key={s}
+              size={[0.24, PARTITION_H + 0.1, 0.24]}
+              at={p.size[0] > p.size[1] ? [(s * p.size[0]) / 2, (PARTITION_H + 0.1) / 2, 0] : [0, (PARTITION_H + 0.1) / 2, (s * p.size[1]) / 2]}
+              color={DARK}
+              tex="wood"
+            />
+          ))}
         </group>
       ))}
+    </>
+  );
+}
+
+/**
+ * The timber frame of a standing wall (north, west or east): posts (wallPosts) and a rail near the top. Drawn in
+ * the wall's own group, so it drops with the wall when the wall would hide the cat.
+ */
+function WallFrame({ def, side }: { def: InteriorDef; side: 'n' | 'w' | 'e' }) {
+  const { w, d, h } = def.size;
+  const posts = useMemo(() => wallPosts(def).filter((p) => p.wall === side), [def, side]);
+  const rail = h - 0.32;
+  return (
+    <>
+      {posts.map(({ at }) => {
+        if (side === 'n') {
+          const corner = Math.abs(Math.abs(at) - w / 2) < 0.01;
+          const x = corner ? at - Math.sign(at) * 0.08 : at;
+          return <Box key={at} size={corner ? [0.17, h, 0.17] : [0.18, h, 0.12]} at={[x, h / 2, -d / 2 + (corner ? 0.08 : 0.06)]} color={DARK} tex="wood" />;
+        }
+        const sx = side === 'w' ? -1 : 1;
+        const corner = Math.abs(at - d / 2) < 0.01;
+        const z = corner ? at - 0.08 : at;
+        return <Box key={at} size={corner ? [0.17, h, 0.17] : [0.12, h, 0.18]} at={[sx * (w / 2 - (corner ? 0.08 : 0.06)), h / 2, z]} color={DARK} tex="wood" />;
+      })}
+      {side === 'n'
+        ? <Box size={[w, 0.07, 0.05]} at={[0, rail, -d / 2 + 0.025]} color={DARK} tex="wood" />
+        : <Box size={[0.05, 0.07, d]} at={[(side === 'w' ? -1 : 1) * (w / 2 - 0.025), rail, 0]} color={DARK} tex="wood" />}
     </>
   );
 }
@@ -353,6 +437,7 @@ function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
   const { w, d, h } = def.size;
   const t = 0.25;
   const wains = 0.9;
+  const beams = useMemo(() => roofBeams(def), [def]);
   // inner faces of the four walls: wainscot below, plaster above
   const walls: { at: [number, number, number]; size: [number, number, number] }[] = [
     { at: [0, h / 2, -d / 2 - t / 2], size: [w + 2 * t, h, t] },
@@ -393,9 +478,14 @@ function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
             <Box size={[wl.size[0], wains, wl.size[2]]} at={[wl.at[0], wains / 2, wl.at[2]]} color={def.wainscot} tex="planks" />
             <Box size={[wl.size[0] - 0.01, h - wains, wl.size[2] - 0.01]} at={[wl.at[0], wains + (h - wains) / 2, wl.at[2]]} color={def.wall} tex="plaster" ink={0.02} />
             <Box size={[wl.size[0] + 0.04, 0.1, wl.size[2] + 0.04]} at={[wl.at[0], h - 0.05, wl.at[2]]} color={DARK} tex="wood" />
+            <WallFrame def={def} side={i === 0 ? 'n' : i === 2 ? 'w' : 'e'} />
           </group>
         ),
       )}
+      {/* the roof's tie beams, resting on the side walls: the lanterns hang from them */}
+      {beams.map((z) => (
+        <Box key={z} size={[w + 0.1, 0.14, 0.16]} at={[0, h - 0.07, z]} color={DARK} tex="wood" />
+      ))}
       {/* the way out: a lit doormat and two low door posts in the south wall */}
       <group position={[0, 0, d / 2]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -0.45]}>
@@ -451,10 +541,45 @@ function Doors({ def }: { def: InteriorDef }) {
   return null;
 }
 
+/**
+ * Inside, the room is lit like a home: the daylight from outside drops to a softer level and a warm light
+ * (the room's own `light` colour) fills it from above. The extra light is always there, at zero outdoors, so
+ * going in or out never makes the materials rebuild.
+ */
+function InteriorMood({ def }: { def: InteriorDef | undefined }) {
+  const scene = useThree((s) => s.scene);
+  const hemi = useRef<THREE.HemisphereLight>(null);
+  const st = useRef({ k: 0, suns: [] as { l: THREE.DirectionalLight; base: number; set: number }[] });
+  useFrame((_s, dt) => {
+    const s = st.current;
+    if (s.k === 0 && !def) return;
+    if (s.k === 0) {
+      s.suns = [];
+      scene.traverse((o) => {
+        const l = o as THREE.DirectionalLight;
+        if (l.isDirectionalLight) s.suns.push({ l, base: l.intensity, set: l.intensity });
+      });
+    }
+    s.k = THREE.MathUtils.clamp(s.k + (def ? dt : -dt) * 2, 0, 1);
+    for (const sun of s.suns) {
+      // the lighting changed it meanwhile (time of day): that is the new base
+      if (Math.abs(sun.l.intensity - sun.set) > 1e-4) sun.base = sun.l.intensity;
+      sun.set = sun.base * (1 - 0.45 * s.k);
+      sun.l.intensity = sun.set;
+    }
+    if (hemi.current) {
+      if (def) hemi.current.color.set(def.light);
+      hemi.current.intensity = 0.85 * s.k;
+    }
+  });
+  return <hemisphereLight ref={hemi} args={['#FFE2B0', '#4A3326', 0]} />;
+}
+
 export function Interiors() {
   const zone = useZone((s) => s.zone);
   return (
     <>
+      <InteriorMood def={INTERIORS_BY_ID[zone]} />
       {INTERIORS.map((def) => (
         <group key={def.id}>
           <Room def={def} visible={zone === def.id} />
