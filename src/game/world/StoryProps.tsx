@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
+import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { Toon, Ink } from '../materials';
 import { useGameStore } from '../../store/gameStore';
@@ -65,19 +65,18 @@ function SunPedestal() {
   });
   return (
     <>
-      <group position={[p[0], 0, p[2] - 0.7]}>
-        <RigidBody type="fixed" colliders={false} userData={STONE_DATA}>
-          <CylinderCollider args={[0.5, 0.35]} position={[0, 0.5, 0]} />
-        </RigidBody>
-        <mesh position={[0, 0.5, 0]} castShadow>
-          <cylinderGeometry args={[0.3, 0.38, 1.0, 10]} />
-          <Toon color="#B8A88A" tex="stone" />
-          <Ink thickness={0.015} />
+      {/* the sun carved on the sanctuary's back wall, above the altar: dark until the disc is set in */}
+      <group position={[p[0], 0, p[2] - 1.66]}>
+        <mesh position={[0, 1.85, 0]}>
+          <circleGeometry args={[0.3, 24]} />
+          <Toon color={open ? '#E2B84E' : '#6E6250'} emissive={open ? '#E2B84E' : undefined} emissiveIntensity={open ? 0.8 : 0} />
         </mesh>
-        <mesh position={[0, 1.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.24, 20]} />
-          <Toon color={open ? '#E2B84E' : '#6E6250'} emissive={open ? '#E2B84E' : undefined} emissiveIntensity={open ? 0.7 : 0} />
-        </mesh>
+        {Array.from({ length: 8 }, (_, i) => (
+          <mesh key={i} position={[Math.cos((i / 8) * Math.PI * 2) * 0.42, 1.85 + Math.sin((i / 8) * Math.PI * 2) * 0.42, 0]} rotation={[0, 0, (i / 8) * Math.PI * 2]}>
+            <planeGeometry args={[0.16, 0.05]} />
+            <Toon color={open ? '#E2B84E' : '#7E7262'} />
+          </mesh>
+        ))}
       </group>
       {/* the hatch of the granary: a round stone that sinks, and the glow of the baskets below */}
       <group position={[h[0], 0, h[2] - 0.9]}>

@@ -98,7 +98,8 @@ export function Forest() {
       <PineTree position={[17, 0, 30]} scale={1.1} />
       <PineTree position={[-6, 0, 38.6]} />
       <PineTree position={[12.5, 0, 38.6]} scale={1.15} />
-      <PineTree position={[16.5, 0, 36]} />
+      {/* Etapa 10: 2 m toward the fence, off the carved code stone (its crown hung over it) */}
+      <PineTree position={[18.3, 0, 36.6]} />
       <Bamboo position={[-16.6, 0, 33.5]} seed={4} />
       <Bamboo position={[16.6, 0, 26.6]} seed={5} />
       <Bamboo position={[3.5, 0, 38.4]} seed={6} />

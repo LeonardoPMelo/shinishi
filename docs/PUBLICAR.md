@@ -32,11 +32,24 @@ npm run preview
 
 A pasta `dist/` também **não abre com dois cliques**. Ela precisa ser servida por HTTP, como qualquer site.
 
-Para testar como no GitHub Pages, com o jogo numa subpasta (PowerShell):
+Para testar como no GitHub Pages, com o jogo na subpasta `/shinishi/` (PowerShell):
 ```
-$env:BASE_PATH="/shinichi-game/"; npm run build; npx vite preview --base /shinichi-game/
+$env:BASE_PATH="/shinishi/"; npm run build; npm run preview -- --base /shinishi/ --port 4175 --strictPort
 ```
-Depois abra `http://localhost:4173/shinichi-game/`. No Git Bash, use `MSYS_NO_PATHCONV=1 BASE_PATH=/shinichi-game/ npm run build`, porque o Git Bash converte caminhos que começam com `/`.
+Depois abra `http://localhost:4175/shinishi/`. No Git Bash, use `MSYS_NO_PATHCONV=1 BASE_PATH=/shinishi/ npm run build`, porque o Git Bash converte caminhos que começam com `/`. No Claude Code, a configuração `shinichi-pages` em `.claude/launch.json` (na pasta acima do jogo) faz o mesmo preview.
+
+## Roteiro completo: rodar, testar e publicar
+Este é o roteiro usado na Etapa 10. Siga na ordem; se um passo falhar, pare e corrija antes do próximo.
+1. **Testes:** `npm test`, todos passando.
+2. **Compilar:** `npm run build` (checa os tipos antes). Anote o tamanho do pacote principal (hoje ~900 KB, gzip ~285 KB).
+3. **Testar na subpasta**, como acima. Confira:
+   - o menu abre e o console não mostra arquivo faltando;
+   - "Começar" carrega a vila (modelos e sons);
+   - em Configurações, a seção "📲 Instalar" aparece.
+4. **Testar no celular** (ou no modo celular do navegador, em pé e deitado): os botões de toque não cobrem o quadro de missões nem os corações.
+5. **Mudou arquivo de `public/`?** Aumente `VERSION` em `public/sw.js`, para quem já jogou baixar a versão nova.
+6. **Publicar:** commit na `main` e `git push origin main`. **Nunca** envie o ramo `historico-local`.
+7. **Conferir:** em Actions, o fluxo "Publicar no GitHub Pages" termina verde (~1 minuto). Depois abra https://leonardopmelo.github.io/shinishi/. O service worker busca a página na rede primeiro, então a versão nova aparece logo; sem internet, abre a última guardada.
 
 ## Publicar no GitHub Pages
 **Publicado em:** https://leonardopmelo.github.io/shinishi/ (repositório `LeonardoPMelo/shinishi`).

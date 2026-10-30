@@ -388,7 +388,8 @@ export const STELES = [
     text: '"FARO. Quando a primeira filhote se perdeu na mata, a mãe fechou os olhos e seguiu o cheiro do leite de arroz até ela. Respire. Feche os olhos. Siga."' },
   { id: 'estela_miado', name: 'Estela do Miado', at: [CLEARING.x - 2.6, 0, CLEARING.z - 2.6] as Vec3,
     text: '"MIADO. Na noite sem lua, um velho chamou os netos de margem a margem. O som atravessou o rio onde a voz comum se afogava. Chame alto. Chame com o coração."' },
-  { id: 'estela_salto', name: 'Estela do Salto', at: [MIRANTE.x1 - 1.4, MIRANTE.h, MIRANTE.z0 + 1.2] as Vec3,
+  // on the terrace's free corner, clear of the tree, the spyglass and Kuro (measured, Etapa 10)
+  { id: 'estela_salto', name: 'Estela do Salto', at: [MIRANTE.x0 + 1.0, MIRANTE.h, MIRANTE.z1 - 0.6] as Vec3,
     text: '"SALTO. Quando a ponte caiu, os mais leves pularam de pedra em pedra levando cordas para o outro lado. Pule para alcançar, não para fugir."' },
 ];
 
@@ -401,8 +402,9 @@ export const STORY_OBJECTS: WorldObject[] = [
       [{ label: '📖 Entendi', nextNodeId: null }], 'STEP:conselho.registro'),
   },
   {
-    // beside the shrine, past the ends of the gong arc, on ground measured free in play
-    id: 'pedestal_sol', kind: 'examine', position: [SHRINE[0] + 5.2, 0, SHRINE[2] + 1.7], label: 'Encaixar o Disco Solar', name: 'Pedestal do Sol', radius: 1.4,
+    // in the sanctuary, in front of the altar: the sun on the wall behind it takes the disc (Etapa 10: beside the
+    // shrine it stood 1.3 m from the fraction door's lever). The sanctuary is open by then (chapter 4 is done).
+    id: 'pedestal_sol', kind: 'examine', position: [SHRINE[0], 0, SHRINE[2] + 0.5], label: 'Encaixar o Disco Solar', name: 'Pedestal do Sol', radius: 1.4,
     when: { step: 'celeiro.ouvir', notFlag: 'celeiro_aberto' },
     usableWhen: { item: { id: 'disco_solar' } },
     dialogue: say('Pedestal do Sol',

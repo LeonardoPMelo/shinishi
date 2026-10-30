@@ -177,7 +177,8 @@ const mochi: NPCDefinition = {
   id: 'mochi',
   name: 'Vovó Mochi',
   role: 'Moradora mais antiga',
-  position: [7.4, 0, -14.4],
+  // Etapa 10: a step out from under the cherry tree's crown, which hid her from the camera
+  position: [8.6, 0, -15.6],
   look: { species: 'cat', fur: '#E9E4EE', belly: '#FFFFFF', scale: 0.95, wide: 1.15, eyes: 'closed', accessory: 'granny' },
   voice: 'meow',
   offers: [{ mission: 'ponte', when: { done: 'peixes' } }, { mission: 'relogio_parado', when: { done: 'horta' } }],

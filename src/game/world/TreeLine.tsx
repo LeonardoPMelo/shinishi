@@ -4,6 +4,14 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { getGradient, enhanceToon } from '../materials';
 import { getPuffGeometry } from '../foliageGeometry';
 import { WALK_RECTS } from '../../data/regions';
+import { TEMPLE } from '../../systems/temple';
+
+/**
+ * Walkable ground the band must keep clear of: the walk rectangles, plus the temple courtyard (walkable through
+ * its own gate and polygon test, not a walk rectangle; without it the band planted trees all over the temple's
+ * puzzles: seen on a phone in Etapa 10).
+ */
+const KEEP_CLEAR = [...WALK_RECTS, TEMPLE];
 
 /**
  * The middle distance (Etapa 6): a band of forest between the districts' fences and the foot of the hills.
@@ -22,7 +30,7 @@ const GROUND = { minX: -55, maxX: 55, minZ: -39, maxZ: 71 };
 /** Distance from (x, z) to the nearest walkable rectangle (0 inside). */
 export function distanceToWalkable(x: number, z: number) {
   let best = Infinity;
-  for (const r of WALK_RECTS) {
+  for (const r of KEEP_CLEAR) {
     const dx = Math.max(r.minX - x, 0, x - r.maxX);
     const dz = Math.max(r.minZ - z, 0, z - r.maxZ);
     best = Math.min(best, Math.hypot(dx, dz));

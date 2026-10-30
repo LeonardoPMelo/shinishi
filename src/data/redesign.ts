@@ -51,7 +51,7 @@ const CLUES: { id: string; pos: Vec3; label: string; text: string }[] = [
 
 export const REDESIGN_OBJECTS: WorldObject[] = [
   {
-    id: 'sino_pilar', kind: 'examine', position: PILLAR_BELL, label: 'Tocar o sino', name: 'Sino dos pilares', radius: 1.2,
+    id: 'sino_pilar', kind: 'examine', position: PILLAR_BELL, label: 'Tocar o sino', name: 'Sino dos pilares', radius: 1.2, priority: 1,
     usableWhen: { active: 'mei_coragem', step: 'mei_coragem.medir', notStep: 'mei_coragem.pilares' },
     dialogue: say('Sino dos pilares',
       '*(blém!)* Lá de baixo, a Luna arregala os olhos e bate palmas.\n"Você subiu! E cada pulo era igualzinho ao outro!"',

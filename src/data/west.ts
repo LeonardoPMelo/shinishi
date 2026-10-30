@@ -75,7 +75,8 @@ export const WEST_TREES: WestTree[] = [
   { kind: 'maple_green', pos: [-29.8, 0, 12.4], scale: 0.95, seed: 13 },
   { kind: 'sakura', pos: [-33.8, 0, 11.8], scale: 0.85, seed: 42 },
   { kind: 'pine', pos: [-40.0, 0, 3.2], scale: 1.2, seed: 9 },
-  { kind: 'pine', pos: [-40.2, 0, 13.0], seed: 10 },
+  // moved out of the Trilha da Expedição's gate (Etapa 10: it stood between the posts)
+  { kind: 'pine', pos: [-40.3, 0, 15.8], seed: 10 },
   { kind: 'maple', pos: [-39.6, 0, 18.0], scale: 0.85, seed: 14 },
   { kind: 'maple', pos: [-23.6, 0, 18.2], scale: 0.8, seed: 15 },
   { kind: 'maple_green', pos: [-36.0, 0, 3.0], scale: 0.8, seed: 16 },

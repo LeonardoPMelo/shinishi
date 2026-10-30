@@ -91,11 +91,11 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 |---|---|---|
 | 1 | `@types/node` para checar o `vite.config.ts` (precisa instalar pacote) | quando aprovado |
 | 2 | Referências com símbolo de folha no repositório público | decisão do usuário |
-| 3 | Botão "Instalar" da PWA + instruções manuais | 10 (ou antes, se pedido) |
+| 3 | ~~Botão "Instalar" da PWA~~ resolvido na Etapa 10 (Configurações → 📲 Instalar; instruções manuais onde o navegador não oferece). O pedido de instalação real só aparece no Chrome/Edge normais, não no painel de testes | — |
 | 4 | ~~Pipo desliza 27%~~ resolvido na Etapa 3 (0%) | — |
 | 5 | 16 efeitos sonoros sintetizados (a Etapa 9 somou a gota da caverna); a luta usa a música de treino. Os pacotes Kenney baixados antes não estão mais no computador: trocar por gravações CC0 exige baixar de novo (precisa de aprovação) | quando aprovado |
-| 6 | Desempenho: 45 fps com degrau ≤ 2 não atingido. Medição real exige a janela visível (o painel oculto só dá custo de CPU por quadro) | 10 (teste manual) |
-| 7 | Teste com controle físico e celular real | manual |
+| 6 | Desempenho: 45 fps com degrau ≤ 2 não confirmado. Medição real exige a janela visível ou um aparelho de verdade (o painel oculto só dá custo de CPU por quadro) | teste manual |
+| 7 | Teste com controle físico e celular real (a Etapa 10 conferiu o layout de toque em 8 tamanhos de tela simulados; a captura do usuário no celular levou às correções do templo e do quadro de missões) | manual |
 | 8 | ~~Interiores~~ (Etapa 4); ~~Mikage, academia~~ (Etapa 5); ~~lojas~~ (Etapa 6); ~~região selvagem, combate~~ (Etapa 7); ~~narrativa~~ (Etapa 8) | — |
 | 9 | Mais casas com interior (cantina, relojoeiro, Academia e Sede têm) | 6–8, conforme as missões pedirem |
 | 10 | ~~A rota da Expedição muda o caminho~~ resolvido na Etapa 7: a corda conserta a ponte, a capa vence o vento do mirante; a outra se compra no Armazém | — |
@@ -104,7 +104,7 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 13 | ~~Corda Ninja e Capa Corta-Vento sem uso~~ resolvido na Etapa 7 | — |
 | 14 | ~~Registro de missões × conversa~~ resolvido na Etapa 8: o "!", o registro, o mapa e o próximo passo só anunciam uma missão que a conversa realmente oferece | — |
 | 15 | Nas terras selvagens, os bichos voltam a cada visita e pagam moedas de novo (pouco: 3 a 5 por bicho). Depois do pacto (capítulo 7), só restam os espíritos e o javali. Avaliar um limite se a economia pedir | 9 |
-| 16 | Pacote principal: 899 KB (gzip 285 KB). Avaliado na Etapa 9: todo esse código é necessário antes do primeiro quadro, então dividir não reduz o que o jogador baixa; só mudaria o cache entre versões. Mantido | — |
+| 16 | Pacote principal: 901 KB (gzip 286 KB) na Etapa 10. Avaliado na Etapa 9: todo esse código é necessário antes do primeiro quadro, então dividir não reduz o que o jogador baixa; só mudaria o cache entre versões. Mantido | — |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -559,3 +559,55 @@ Seria uma ação sem efeito perceptível, então foi **retirada** (o Prompt Mest
 - **Pendente:**
   - os 16 efeitos sintetizados continuam provisórios: substituir por gravações exige baixar arquivos, o que depende de aprovação;
   - a meta de 45 fps (pendência 6) exige medir com a janela visível ou num aparelho de verdade.
+## 13. Registro da Etapa 10 — Testes finais e publicação (2026-10-30)
+
+### Implementado
+| Parte | O que faz |
+|---|---|
+| **Instalar o jogo** (`ui/InstallApp.tsx`) | Em Configurações → 📲 Instalar. Onde o navegador permite (Chrome, Edge, Android), um botão abre o pedido de instalação de verdade. Onde não permite (iPhone/iPad, Firefox), explica o caminho manual. Já instalado, avisa |
+| **Service worker** | `VERSION` passou a `shinichi-v3`: quem já jogou baixa a versão nova inteira |
+| **Árvores no templo** (relato do usuário, com captura do celular) | O cinturão de árvores evitava só as áreas de caminhar retangulares; o pátio do Templo dos Enigmas tem forma própria e ficou de fora, então nasceram árvores sobre os enigmas. Agora o pátio entra na lista do que o cinturão deixa livre (`KEEP_CLEAR`): nenhuma árvore a menos de 4 m dele. O pinheiro da entrada foi para junto da cerca |
+| **Árvores e objetos no caminho** (revisão do jogo inteiro) | Cerejeira em cima do altar do fundador (jardim secreto); cerejeira na trilha da casa do Kiko, sobre a lanterna 3; pinheiro na trilha leste; pinheiro entre os postes do portão da Trilha da Expedição; pinheiro sobre a pedra do código na floresta; vaso da praça na trilha da cantina. Todos mudaram para lugares livres medidos |
+| **Moradores e objetos de missão escondidos** | Vovó Mochi saiu de baixo da copa da cerejeira (a câmera não a via). A estela do Salto foi para o canto livre do Mirante. O pedestal do Sol, que ficava a 1,3 m da alavanca das frações, agora fica no santuário, diante do altar, com um sol entalhado na parede que acende quando o disco é colocado |
+| **Trilhas** | Duas trilhas da vila atravessavam a cantina e a casa do leste; três trilhas das terras selvagens passavam por dentro de um paredão. Todas redesenhadas e percorridas andando |
+| **Botão de interagir** | Quando dois objetos ficam no mesmo lugar, o de missão tem prioridade (`priority`): a Lanterna da Memória ganha da fonte; o sino dos pilares ganha do baú da floresta |
+| **Celular deitado** (relato do usuário) | Em telas baixas (até 500 px de altura), o quadro "Missões da Vila" fica compacto à esquerda e não passa por baixo dos botões; os botões de toque ficam menores e em grade; os corações sobem para o topo |
+| **Procedimento de publicação** | `docs/PUBLICAR.md` agora traz o roteiro completo e reproduzível: rodar, testar, testar na subpasta como no GitHub Pages, publicar e conferir |
+
+### Arquivos alterados
+- Novos: `src/ui/InstallApp.tsx`, `tests/layout.test.ts`, `docs/expansao/etapa10_templo_livre.jpg`.
+- Mundo: `TreeLine.tsx`, `TempleOfRiddles.tsx`, `Props.tsx`, `Forest.tsx`, `Buildings.tsx`, `Ground.tsx`, `StoryProps.tsx`, `WorldObjects.tsx`.
+- Dados: `west.ts`, `wild.ts`, `npcs2.ts`, `story.ts`, `world.ts`, `world2.ts`, `redesign.ts`.
+- Sistemas e interface: `systems/interaction.ts`, `ui/Panels.tsx`, `ui/styles.css`, `public/sw.js`.
+- Documentos: `docs/PUBLICAR.md`, este arquivo.
+
+### Problemas encontrados e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| Árvores dentro do pátio do templo | Captura do usuário no celular | Pátio incluído no que o cinturão deixa livre; teste impede a volta |
+| Quadro de missões sob os botões de toque | Mesma captura | Layout compacto para telas baixas; verificação de sobreposição em 8 tamanhos |
+| Árvores em trilhas e sobre objetos | Auditoria das posições contra trilhas, objetos e moradores | Árvores movidas; testes de distância |
+| Trilhas atravessando casas e paredões | Caminhada de ponta a ponta com o gato | Trilhas redesenhadas |
+| Objeto comum "roubando" o botão de um de missão | Busca de objetos interativos a menos de 1 m um do outro | Campo `priority` |
+| Botões de toque empilhados em coluna no celular deitado | Verificação de sobreposição | Linha forçada em telas baixas |
+
+### Testes
+- `vitest`: 504 passando (31 arquivos), 9 deles novos em `tests/layout.test.ts`. `tsc` ok. Build ok (pacote principal 901 KB, gzip 286 KB).
+- **Versão de produção na subpasta `/shinishi/`, como no GitHub Pages:**
+  - menu sem recurso quebrado e service worker registrado;
+  - 69 arquivos conferidos um a um (modelos, 35 sons, manifesto, ícones, `sw.js`), todos com resposta 200;
+  - ao começar o jogo, 82 modelos carregaram sem falha.
+- **Layout sem sobreposição** em 375×812, 667×375, 780×360, 812×375, 915×412, 768×1024, 1024×768 e 1280×720, também nas terras selvagens (corações e botão de ataque).
+- **No navegador:** pátio do templo sem árvores (captura `docs/expansao/etapa10_templo_livre.jpg`); as 24 trilhas da vila percorridas de ponta a ponta; trilhas selvagens percorridas até onde o jogo permite (a trilha do vento para no vento, sem a capa, como previsto).
+- Os troncos com colisão foram conferidos contra as trilhas: nenhum no caminho. Ficam de propósito perto de copas o filhote escondido no Mirante, o baú da árvore grande e a pena do Kuro.
+
+### Critérios de aceitação
+- **Atendido:** existe um procedimento reproduzível para rodar, testar e publicar (`docs/PUBLICAR.md`), seguido nesta etapa: testes, build, teste na subpasta, envio e conferência do site publicado.
+- **Pendente (manual):**
+  - medir os 45 fps num aparelho de verdade;
+  - jogar num celular real e com controle físico;
+  - ver o pedido de instalação no Chrome/Edge normais.
+- **Pendente (depende de aprovação):** trocar os 16 efeitos sonoros sintetizados por gravações (exige baixar arquivos).
+
+### Fechamento do prompt mestre
+As 10 etapas estão implementadas e publicadas. O que resta está na lista de pendências (seção 4): itens que dependem de um aparelho de verdade, de aprovação para baixar arquivos ou de uma decisão do usuário.

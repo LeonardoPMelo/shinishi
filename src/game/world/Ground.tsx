@@ -145,8 +145,10 @@ export const PATHS: [number, number][][] = [
   [[0.6, 4.6], [0.4, 9], [0.2, 14], [0, 20.2]],
   [[0, 25.8], [0, 27.2], [-2.4, 28.6]],
   [[0, 27.2], [1.2, 28]],
-  [[-6, -6.4], [-8.4, -11.2], [-10.4, -13.6]],
-  [[6, 10], [9, 13.5], [11.5, 16]],
+  // Etapa 10: these two ran under a house (the cantina; the east house) and led the cat into a wall. They go
+  // around now (walked in play from end to end, tests/layout.test.ts keeps them off the houses)
+  [[-6, -6.4], [-3.8, -7.0], [-3.6, -9.2], [-5.8, -11.6], [-7.4, -12.0], [-9.8, -11.8]],
+  [[6, 10], [9.2, 10.4], [10.2, 13.6], [11.5, 16]],
   // Bairro das Glicínias (east gate)
   ...EAST_PATHS,
   // Bambuzal das Águas Quentes (west gate) and Bosque Antigo (south gate)

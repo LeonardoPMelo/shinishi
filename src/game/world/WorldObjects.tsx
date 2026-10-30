@@ -107,6 +107,7 @@ function Interactive({ obj, exists, usable }: { obj: WorldObject; exists: boolea
     position: pos,
     radius: obj.radius ?? 1.9,
     tagHeight: (HINT_Y[obj.id] ?? 1.2) + 0.3,
+    priority: obj.priority,
     label: () => (state.current.exists && state.current.usable ? obj.label : null),
     onInteract: () => handleInteract(obj),
   }), [obj, pos]);

@@ -10,6 +10,7 @@ import { availableSteps } from '../systems/progression';
 import { WorldMap } from './WorldMap';
 import { CHAPTERS, NEXT_CHAPTER_TEASER, CHAPTER_RECAPS, STORY_EPILOGUE } from '../data/campaign';
 import { IntroStory } from './IntroStory';
+import { InstallApp } from './InstallApp';
 import { ABILITY_INFO } from '../data/abilities';
 import { SKILLS, SKILL_ORDER, skillStars, nextStarAt } from '../data/skills';
 import { ShopPanel, shopTitle } from './ShopPanel';
@@ -377,6 +378,10 @@ export function Settings({ inGame }: { inGame: boolean }) {
           <input type="range" min={30} max={200} value={Math.round(ui.cameraSensitivity * 100)} onChange={(e) => ui.setCameraSensitivity(Number(e.target.value) / 100)} aria-label="Sensibilidade da câmera" />
         </div>
         <p className="setting-note">WASD mover · Shift correr · C (ou Ctrl) agachar em silêncio · Espaço pular · E interagir · F patada (terras selvagens) · Q faro · R miado · G comemorar · I mochila · J missões · K jornada · M mapa · Esc pausa · roda do mouse aproxima</p>
+      </section>
+      <section>
+        <h3>📲 Instalar</h3>
+        <InstallApp />
       </section>
       <section>
         <h3>🐾 Terras Selvagens</h3>

@@ -130,11 +130,13 @@ function scatter(seed: number, n: number, rect: [number, number, number, number]
 /** Trails kept clear of trees (local polylines): camp → bridge → forest → cherry grove; forest → clearing → canyon; stones → ruins → cave. */
 export const WILD_TRAILS: [number, number][][] = [
   [[42, 22], [34, 22], [24, 24], [12, 24], [2, 24], [-6, 22], [-14, 24], [-24, 26], [-36, 26]],
-  [[-6, 22], [-8, 12], [-12, 2], [-16, -6], [-24, -8], [-37, -6], [-37, -24], [-38, -30]],
+  // (Etapa 10: it ran inside the canyon's east wall, which ends at z -6; now it passes south of it)
+  [[-6, 22], [-8, 12], [-12, 2], [-16, -6], [-24, -4.6], [-36.8, -4.6], [-37, -24], [-38, -30]],
   [[24, 24], [18, 10], [14, -2], [9.5, -6], [3.5, -6], [-4, -8], [-12, -6]],
   [[14, -2], [22, -6], [30, -8], [30, -14]],
-  [[22, -6], [26, -16], [26, -23], [26, -30]],
-  [[30, -8], [38, -16], [43.5, -22], [43.5, -26]],
+  // (Etapa 10: these two ran into the ruins' low walls beside the gate; now they go around them)
+  [[22, -6], [22.8, -15.6], [26, -22.4], [26, -30]],
+  [[30, -8], [39.8, -9.4], [40.6, -16], [43.5, -22], [43.5, -26]],
   [[-14, 24], [-20, 32]],
 ];
 

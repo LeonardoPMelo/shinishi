@@ -53,6 +53,8 @@ export interface WorldObject {
   dialogue?: DialogueTree;
   value?: number;
   radius?: number;
+  /** Wins the interact button over everyday objects in the same spot (game/systems/interaction.ts). */
+  priority?: number;
 }
 
 const say = (speaker: string, text: string, onEnter?: string, label = 'Ok'): DialogueTree => ({

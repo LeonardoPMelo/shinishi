@@ -660,7 +660,8 @@ export function Buildings() {
       <StrawHut position={[-13, 0, 9]} rotY={Math.PI / 2 - 0.3} />
 
       <CatStatueFountain />
-      {[Math.PI / 4, Math.PI * 0.89, Math.PI * 1.25].map((angle) => (
+      {/* Etapa 10: the third planter stood on the path to the cantina (at 1.25 pi); now between the paths */}
+      {[Math.PI / 4, Math.PI * 0.89, Math.PI * 1.12].map((angle) => (
         <Planter key={angle} position={[Math.cos(angle) * 5.6, 0, Math.sin(angle) * 5.6]} rotY={-angle + Math.PI / 2} />
       ))}
     </>

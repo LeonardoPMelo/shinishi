@@ -14,6 +14,11 @@ export interface Interactable {
   onInteract: () => void;
   /** Height of the floating "[E] ..." tag above `position` (default 1.5). */
   tagHeight?: number;
+  /**
+   * Wins over a closer target with a lower priority (Etapa 10): a mission object sharing a spot with an
+   * everyday one (the Lanterna da Memória in the fountain) must never lose the button to it.
+   */
+  priority?: number;
 }
 
 const registry = new Map<string, Interactable>();
@@ -44,13 +49,17 @@ export function pickInteractable(
   if (phase !== 'playing') return null;
   let best: { item: Interactable; label: string } | null = null;
   let bestDist = Infinity;
+  let bestPriority = -Infinity;
   for (const item of items) {
     const d = Math.hypot(item.position.x - player.x, item.position.z - player.z);
-    if (d > item.radius || Math.abs(item.position.y - player.y) > 2.2 || d >= bestDist) continue;
+    if (d > item.radius || Math.abs(item.position.y - player.y) > 2.2) continue;
+    const priority = item.priority ?? 0;
+    if (priority < bestPriority || (priority === bestPriority && d >= bestDist)) continue;
     const label = item.label();
     if (!label) continue;
     best = { item, label };
     bestDist = d;
+    bestPriority = priority;
   }
   return best;
 }

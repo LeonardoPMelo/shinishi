@@ -211,7 +211,8 @@ function Decor() {
       {[-12.1, 12.1].map((x, i) => [-35.8, -21.4].map((z, j) => <Bamboo key={`${i}${j}`} position={[x, 0, z]} seed={7 + i * 2 + j} />))}
       <SakuraTree position={[minX + 1.6, 0, minZ + 1.8]} scale={0.8} seed={11} />
       <SakuraTree position={[maxX - 1.6, 0, minZ + 1.8]} scale={0.8} seed={12} />
-      <PineTree position={[2.6, 0, maxZ - 1.4]} scale={0.8} />
+      {/* Etapa 10: by the east fence, out of the view from the gate (it stood between the camera and the court) */}
+      <PineTree position={[8.4, 0, maxZ - 1.6]} scale={0.8} />
       <PineTree position={[11.6, 0, -24.2]} scale={0.7} />
       <PaperLantern position={[-1.6, 2.2, SHRINE[2] + 1.5]} color="#F2A541" />
       <PaperLantern position={[1.6, 2.2, SHRINE[2] + 1.5]} color="#F2A541" />

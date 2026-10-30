@@ -381,11 +381,14 @@ export function Props() {
       <Asset name="sakura_tree" position={[-9.5, 0, 2.5]} fitWidth={3.60} fallback={<SakuraTree position={[-9.5, 0, 2.5]} seed={3} />} />
       <Asset name="sakura_tree" position={[5.5, 0, 6.5]} fitWidth={3.60} fallback={<SakuraTree position={[5.5, 0, 6.5]} seed={4} scale={0.9} />} />
       <Asset name="sakura_tree" position={[-6.5, 0, 12.5]} fitWidth={3.60} fallback={<SakuraTree position={[-6.5, 0, 12.5]} seed={5} scale={1.15} />} />
-      <Asset name="sakura_tree" position={[-16, 0, -15.5]} fitWidth={3.60} fallback={<SakuraTree position={[-16, 0, -15.5]} seed={7} scale={1.2} />} />
-      <Asset name="sakura_tree" position={[10.5, 0, 15]} fitWidth={3.60} fallback={<SakuraTree position={[10.5, 0, 15]} seed={8} />} />
+      {/* Etapa 10: this one moved off the founder's altar in the secret garden (its crown hid it), and the next
+          one off the path to Kiko's house, where it stood on the trail and over the festival lantern 3 */}
+      <Asset name="sakura_tree" position={[-15, 0, -17]} fitWidth={3.60} fallback={<SakuraTree position={[-15, 0, -17]} seed={7} scale={1.2} />} />
+      <Asset name="sakura_tree" position={[8.5, 0, 16.5]} fitWidth={3.60} fallback={<SakuraTree position={[8.5, 0, 16.5]} seed={8} />} />
 
       <PineTree position={[-16.5, 0, 4]} scale={1.1} />
-      <PineTree position={[16.5, 0, 2]} />
+      {/* Etapa 10: 2 m back from the east gate's path */}
+      <PineTree position={[16.5, 0, 4]} />
       <PineTree position={[-12, 0, 15.5]} scale={1.2} />
       <PineTree position={[1.5, 0, 16.5]} />
       <PineTree position={[16, 0, 12]} scale={0.9} />

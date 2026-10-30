@@ -1240,6 +1240,35 @@ kbd {
 .touch-btn.pocao { right: 134px; bottom: 120px; }
 .touch-btn.emote { right: 10px; bottom: 220px; }
 .touch-btn.attack { right: 72px; bottom: 228px; background: #8C2E2E; }
+/* Etapa 10: a phone held sideways is short. The two highest buttons climbed under the HUD's button row:
+   they move left of the E button instead (measured: nothing else is there) */
+@media (max-height: 460px) {
+  /* compact: the small buttons in two rows of three above E and jump, the rest left of E (measured at 780 x 360) */
+  body.touch-ui .touch-btn.small { width: 46px; height: 46px; font-size: 1.2rem; }
+  body.touch-ui .touch-btn.faro { right: 10px; bottom: 90px; }
+  body.touch-ui .touch-btn.miado { right: 62px; bottom: 90px; }
+  body.touch-ui .touch-btn.pocao { right: 114px; bottom: 90px; }
+  body.touch-ui .touch-btn.shuriken { right: 10px; bottom: 142px; }
+  body.touch-ui .touch-btn.dash { right: 62px; bottom: 142px; }
+  body.touch-ui .touch-btn.crouch { right: 114px; bottom: 142px; }
+  body.touch-ui .touch-btn.emote { right: 196px; bottom: 26px; }
+  body.touch-ui .touch-btn.attack { right: 196px; bottom: 82px; }
+}
+/* A phone held sideways (user report, Etapa 10): the mission card sat in the right column, under the action
+   buttons. On short touch screens it goes to the left, under the name, and shows only what to do now: the open
+   steps (done ones and the "to discover" line hide). Tap it for the full log. */
+@media (max-height: 500px) {
+  body.touch-ui .hud-mission.hud-glass { position: fixed; left: 14px; right: auto; top: 96px; width: min(250px, 32vw); max-height: calc(100vh - 96px - 176px); overflow: hidden; padding: 6px 10px; }
+  body.touch-ui .hud-mission .mission-title { font-size: 0.92rem; margin-bottom: 3px; }
+  body.touch-ui .hud-mission .mission-checklist li.done,
+  body.touch-ui .hud-mission .mission-checklist li.more { display: none; }
+  body.touch-ui .hud-mission .mission-checklist li { font-size: 0.74rem; }
+  body.touch-ui .hud-mission .objective-how { display: none; }
+  /* a short screen keeps the HUD buttons and the coins in a row at the top (a column ran down over the touch buttons) */
+  body.touch-ui .hud-buttons, body.touch-ui .hud-currency { flex-direction: row; }
+  /* the hearts go up to the free top centre (the card now takes the left side) */
+  body.touch-ui .hearts-bar.hud-glass { top: 10px; bottom: auto; left: 50%; transform: translateX(-50%); }
+}
 body.touch-ui .minimap { display: none; }
 body.touch-ui .ability-bar { display: none; }
 body.touch-ui .interact-prompt { bottom: 190px; }

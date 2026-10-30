@@ -176,6 +176,8 @@ export const WORLD_OBJECTS_2: WorldObject[] = [
     kind: 'examine',
     position: [0, 0, 1.7],
     label: 'Acender a Lanterna da Memória',
+    // same spot as the fountain: the mission wins the button (Etapa 10)
+    priority: 1,
     name: 'Lanterna da Memória',
     radius: 2.4,
     usableWhen: { active: 'lanternas_apagadas', step: 'lanternas_apagadas.kuro' },
