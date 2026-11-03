@@ -10,6 +10,7 @@ import { ECONOMY_ITEMS } from './shops';
 import { WILD_ITEMS } from './wild';
 import { STORY_ITEMS } from './story';
 import { PRECINCT_ITEMS } from './precinct';
+import { WILD2_ITEMS } from './wild2';
 
 const list: Item[] = [
   { id: 'receita', name: 'Receita do Bolinho Supremo', icon: '📜', description: 'A receita secreta da Chef Hana. Está um pouco amassada e cheira a peixe.' },
@@ -29,7 +30,7 @@ const list: Item[] = [
   { id: 'faixa_dourada', name: 'Faixa Ninja Dourada', icon: '🟨', description: 'Para quem trouxe a luz de volta à vila. Pode usar com orgulho.', band: '#D9A520' },
 ];
 
-list.push(...CHAPTER3_ITEMS, ...TEMPLE_ITEMS, ...SHOP_ITEMS, ...REDESIGN_ITEMS, ...INTERIOR_ITEMS, ...ACADEMY_ITEMS, ...SEDE_ITEMS, ...ECONOMY_ITEMS, ...WILD_ITEMS, ...STORY_ITEMS, ...PRECINCT_ITEMS);
+list.push(...CHAPTER3_ITEMS, ...TEMPLE_ITEMS, ...SHOP_ITEMS, ...REDESIGN_ITEMS, ...INTERIOR_ITEMS, ...ACADEMY_ITEMS, ...SEDE_ITEMS, ...ECONOMY_ITEMS, ...WILD_ITEMS, ...STORY_ITEMS, ...PRECINCT_ITEMS, ...WILD2_ITEMS);
 
 // every band is worn in the 'faixa' slot (the color paints Shinichi's headband)
 for (const item of list) {

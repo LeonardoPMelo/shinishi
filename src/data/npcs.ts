@@ -14,6 +14,7 @@ import { WILD_NPCS } from './wild';
 import { STORY_NPCS, STORY_ROUTES, STORY_REACTIONS } from './story';
 import { PRECINCT_NPCS } from './precinct';
 import { CLEARING_NPCS } from './clearing';
+import { WILD2_ROUTES } from './wild2';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const bye = (label = 'Até mais!'): DialogueOption => ({ label, nextNodeId: null });
@@ -850,4 +851,12 @@ for (const npc of NPC_DEFINITIONS) {
     npc.offers = [...(npc.offers ?? []), ...ext.offerMeta];
   }
   if (STORY_REACTIONS[npc.id]) npc.reactions = STORY_REACTIONS[npc.id];
+}
+// As Terras Selvagens, segunda parte (data/wild2.ts): the camp's new missions, the same way
+for (const npc of NPC_DEFINITIONS) {
+  const ext = WILD2_ROUTES[npc.id];
+  if (!ext) continue;
+  npc.routes.unshift(...ext.offers);
+  npc.routes.unshift(...ext.active);
+  npc.offers = [...(npc.offers ?? []), ...ext.offerMeta];
 }

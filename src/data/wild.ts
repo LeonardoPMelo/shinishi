@@ -67,7 +67,10 @@ export const WILD_WALLS: WildWall[] = [
   // north cliff, with a recess behind the waterfall (x 8.6..11.8)
   { x0: -48, x1: 8.6, z0: -43, z1: -38.6, h: 8, kind: 'cliff' },
   { x0: 8.6, x1: 11.8, z0: -43, z1: -40.6, h: 8, kind: 'cliff' },
-  { x0: 11.8, x1: 48, z0: -43, z1: -38.6, h: 8, kind: 'cliff' },
+  // (split around the chamber of the singing crystals, x 24.8..27.2, behind a slab: data/wild2.ts CHAMBER)
+  { x0: 11.8, x1: 24.8, z0: -43, z1: -38.6, h: 8, kind: 'cliff' },
+  { x0: 24.8, x1: 27.2, z0: -43, z1: -40.6, h: 8, kind: 'cliff' },
+  { x0: 27.2, x1: 48, z0: -43, z1: -38.6, h: 8, kind: 'cliff' },
   // the canyon: a corridor x -40..-34 from the clearing (z -3) up to the outpost (z -25)
   { x0: -48, x1: -40, z0: -25, z1: -3, h: 4.5, kind: 'cliff' },
   { x0: -34, x1: -26, z0: -25, z1: -6, h: 4.5, kind: 'cliff' },
@@ -103,7 +106,7 @@ export const WILD_AREAS: WildArea[] = [
   { id: 'cachoeira', name: 'Cachoeira do Véu', rect: [2, -41, 14, -30] },
   { id: 'posto', name: 'Posto Avançado do Hissui', rect: [-48, -40, -26, -25] },
   { id: 'desfiladeiro', name: 'Desfiladeiro das Pedras', rect: [-40, -25, -34, -3] },
-  { id: 'clareira', name: 'Clareira dos Bandidos', rect: [-26, -24, -4, -2] },
+  { id: 'clareira', name: 'Acampamento dos Espinhos', rect: [-26, -24, -4, -2] },
   { id: 'cerejeiras', name: 'Bosque das Cerejeiras', rect: [-48, 8, -28, 38] },
   { id: 'abandonado', name: 'Acampamento Abandonado', rect: [-28, 28, -14, 38] },
   { id: 'rio', name: 'Rio Corredeira', rect: [3, -30, 10, 38] },
@@ -119,7 +122,7 @@ export function wildAreaAt(x: number, z: number): string | null {
 // ── Trees and props (decoration with colliders, drawn by WildRegion.tsx) ─────
 
 /** Seeded scatter, so the forest is the same every visit and the tests can check it. */
-function scatter(seed: number, n: number, rect: [number, number, number, number], minGap: number, avoid: (x: number, z: number) => boolean) {
+export function scatter(seed: number, n: number, rect: [number, number, number, number], minGap: number, avoid: (x: number, z: number) => boolean) {
   let s = seed;
   const rnd = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
   const out: [number, number][] = [];
@@ -165,7 +168,7 @@ const inRect = (x: number, z: number, r: { x0: number; x1: number; z0: number; z
 export const inWall = (x: number, z: number, pad = 0) => WILD_WALLS.some((wl) => inRect(x, z, wl, pad));
 
 /** Places that must stay open (camp, clearings, the river and its banks, the ruins). */
-function keepOpen(x: number, z: number) {
+export function keepOpen(x: number, z: number) {
   if (distToTrail(x, z) < 2.4) return true;
   if (x > 2 && x < 11) return true; // river and banks
   if (inWall(x, z, 1.2)) return true;
@@ -202,7 +205,17 @@ export const TRAP = { trigger: 0.65, disarm: 1.5, stuck: 1.0 };
 /** Hissui's band (the hedgehogs and the foxes): after the pact (chapter 7) they help the expedition instead. */
 export const HISSUI_BAND: Condition = { notFlag: 'hissui_aliado' };
 
-export interface EnemySpawn { id: string; kind: EnemyKind; at: [number, number]; r: number; heading?: number; when?: Condition }
+export interface EnemySpawn {
+  id: string; kind: EnemyKind; at: [number, number]; r: number; heading?: number; when?: Condition;
+  /** Its round (local points, walked in order), instead of wandering around home. */
+  route?: [number, number][];
+  /** Napping by the fire until a noise or a close cat wakes it. */
+  rest?: boolean;
+  /** Stays at its post (a lookout): turns and throws, never walks off. */
+  post?: boolean;
+  /** Drawn this high (standing on a lookout); the fight itself is on the ground plane. */
+  y?: number;
+}
 export const ENEMY_SPAWNS: EnemySpawn[] = [
   // the bandits' clearing
   { id: 'ourico_1', kind: 'ourico', at: [-16, -10], r: 4, when: HISSUI_BAND },
@@ -389,7 +402,7 @@ export const YUKI_CAMP: NPCDefinition = {
         options: [{ label: '📜 Entregar as ordens', nextNodeId: null, action: 'STEP:posto.voltar' }],
       },
     } },
-    { when: { active: 'posto' }, tree: say('Conselheira Yuki', 'O desfiladeiro começa a oeste da Clareira dos Bandidos. Cuidado com as armadilhas: com o Faro, elas brilham.') },
+    { when: { active: 'posto' }, tree: say('Conselheira Yuki', 'O desfiladeiro começa a oeste do Acampamento dos Espinhos. Cuidado com as armadilhas: com o Faro, elas brilham.') },
     { when: { done: 'posto' }, tree: say('Conselheira Yuki', 'O Hissui quer o Disco Solar. Seja o que for que esse disco abre, ele não pode chegar primeiro.') },
     { tree: say('Conselheira Yuki', 'O acampamento é seguro. Lá fora, ande com calma e olhos abertos.') },
   ],
@@ -497,7 +510,7 @@ export const MOMO: NPCDefinition = {
     { when: { notStarted: 'filhote', done: 'ervas' }, tree: {
       start: {
         id: 'start', speaker: 'Doutora Momo', mood: 'sad',
-        text: 'Um filhote de coelho ficou preso num arbusto de espinhos na Clareira dos Bandidos.\nO problema são os ouriços que rondam por lá. Ele está com tanto medo...',
+        text: 'Um filhote de coelho ficou preso num arbusto de espinhos na clareira do Acampamento dos Espinhos.\nO problema são os ouriços que rondam por lá. Ele está com tanto medo...',
         options: [
           { label: '🐇 Eu solto ele', nextNodeId: null, action: 'START:filhote;STEP:filhote.ouvir' },
           { label: 'Depois', nextNodeId: null },
@@ -672,7 +685,7 @@ export const WILD_MISSIONS: Mission[] = [
     description: 'Um filhote de coelho está preso num arbusto de espinhos, e os ouriços bandidos rondam a clareira.',
     steps: [
       { id: 'ouvir', description: 'Ouça a Doutora Momo', target: { npc: 'momo' } },
-      { id: 'soltar', description: 'Afaste os ouriços e solte o filhote (Clareira dos Bandidos)', after: ['ouvir'], target: { position: w(KIT_BUSH.at[0], KIT_BUSH.at[1]) } },
+      { id: 'soltar', description: 'Afaste os ouriços e solte o filhote (Acampamento dos Espinhos)', after: ['ouvir'], target: { position: w(KIT_BUSH.at[0], KIT_BUSH.at[1]) } },
       { id: 'voltar', description: 'Conte à Doutora Momo', after: ['soltar'], target: { npc: 'momo' } },
     ],
     rewards: { xp: 60, coins: 20, badges: ['Protetor dos Bichos'] },

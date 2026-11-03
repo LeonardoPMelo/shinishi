@@ -48,7 +48,7 @@ export const LEVELS: Record<CombatLevel, { name: string; hearts: number; invuln:
 
 // ── Creatures ────────────────────────────────────────────────────────────────
 
-export type EnemyKind = 'ourico' | 'raposa' | 'espirito' | 'javali';
+export type EnemyKind = 'ourico' | 'raposa' | 'espirito' | 'javali' | 'texugo' | 'doninha' | 'arqueira' | 'chefe';
 
 export type EnemyMode =
   | 'patrol' | 'sleep' | 'alert' | 'chase' | 'windup' | 'attack' | 'stunned'
@@ -82,6 +82,8 @@ export interface EnemySpec {
   spirit?: boolean;
   /** Sleeps until something wakes it. */
   sleeper?: boolean;
+  /** Below half its health it gets faster and quicker to attack, by this much (the camp leader). */
+  enrage?: number;
   reward: { coins: number; item?: string };
 }
 
@@ -105,6 +107,31 @@ export const ENEMIES: Record<EnemyKind, EnemySpec> = {
     name: 'Javali Rochoso', hp: 6, walk: 0, run: 3.0, sight: 6, fov: Math.cos(0.9), hear: 3.5, leash: 9,
     reach: 6, windup: 1.0, attack: { kind: 'charge', speed: 9, time: 0.8 }, dizzy: 2.4, cooldown: 0.8, damage: 2,
     armored: true, sleeper: true, reward: { coins: 15 },
+  },
+  // ── the Chefe Espinho's gang (after Etapa 10): each one asks for a different answer ──
+  // heavy: a shield in front, so only the dizzy moment after its short charge counts
+  texugo: {
+    name: 'Texugo Guardião', hp: 4, walk: 0.8, run: 2.2, sight: 7, fov: Math.cos(1.0), hear: 3, leash: 10,
+    reach: 3.0, windup: 0.9, attack: { kind: 'charge', speed: 6.5, time: 0.5 }, dizzy: 2.0, cooldown: 1.0, damage: 1,
+    armored: true, reward: { coins: 6 },
+  },
+  // fast: a short warning and a lunge, then a moment off balance
+  doninha: {
+    name: 'Doninha Ninja', hp: 2, walk: 1.8, run: 4.4, sight: 8, fov: Math.cos(1.2), hear: 3.2, leash: 15,
+    reach: 3.6, windup: 0.45, attack: { kind: 'charge', speed: 10, time: 0.35 }, dizzy: 0.9, cooldown: 1.2, damage: 1,
+    reward: { coins: 5 },
+  },
+  // from afar: sees far, keeps away, throws; slow to chase (it stays by its lookout)
+  arqueira: {
+    name: 'Raposa Arqueira', hp: 2, walk: 0.6, run: 1.8, sight: 12, fov: Math.cos(0.9), hear: 2.5, leash: 8,
+    reach: 11, windup: 0.8, attack: { kind: 'throw', keepAway: 6 }, dizzy: 0, cooldown: 2.2, damage: 1,
+    reward: { coins: 6 },
+  },
+  // the leader: big, armoured like the hedgehogs, and angrier past half its health (still one heart a hit)
+  chefe: {
+    name: 'Chefe Espinho', hp: 8, walk: 1.0, run: 2.8, sight: 8, fov: Math.cos(1.2), hear: 4, leash: 12,
+    reach: 5, windup: 0.9, attack: { kind: 'charge', speed: 9, time: 0.7 }, dizzy: 2.2, cooldown: 0.7, damage: 1,
+    armored: true, enrage: 1.3, reward: { coins: 30 },
   },
 };
 
@@ -133,15 +160,41 @@ export interface Enemy {
   flash: number;
   /** Pause between patrol walks. */
   rest: number;
+  /** A round to walk (patrol points in order) instead of wandering around home. */
+  route?: { x: number; z: number }[];
+  routeAt: number;
+  /** Rests (asleep by the fire) when idle, instead of patrolling. */
+  restful?: boolean;
+  /** Keeps to its post (a lookout): turns and throws, never walks. */
+  post?: boolean;
 }
 
-export function makeEnemy(id: string, kind: EnemyKind, x: number, z: number, r = 4, heading = 0): Enemy {
-  return {
-    id, kind, x, z, heading, home: { x, z, r },
-    mode: ENEMIES[kind].sleeper ? 'sleep' : 'patrol',
-    timer: 0, hp: ENEMIES[kind].hp, goal: null, lost: 0, dir: { x: 0, z: 1 }, struck: false, cooldown: 0, flash: 0, rest: 0,
-  };
+/** How it spends its time when nothing is happening (data/wild.ts spawns). */
+export interface EnemyRoutine {
+  route?: [number, number][];
+  /** Asleep by the fire: only a noise or a cat too close wakes it. */
+  rest?: boolean;
 }
+
+export function makeEnemy(id: string, kind: EnemyKind, x: number, z: number, r = 4, heading = 0, routine: { route?: { x: number; z: number }[]; rest?: boolean; post?: boolean } = {}): Enemy {
+  const e: Enemy = {
+    id, kind, x, z, heading, home: { x, z, r },
+    mode: 'patrol',
+    timer: 0, hp: ENEMIES[kind].hp, goal: null, lost: 0, dir: { x: 0, z: 1 }, struck: false, cooldown: 0, flash: 0, rest: 0,
+    route: routine.route, routeAt: 0, restful: routine.rest, post: routine.post,
+  };
+  e.mode = idleMode(e);
+  return e;
+}
+
+/** What it does when nothing is happening: sleeping (the boar, the ones resting by the fire) or patrolling. */
+export const idleMode = (e: Enemy): EnemyMode => (ENEMIES[e.kind].sleeper || e.restful ? 'sleep' : 'patrol');
+
+/** Faster and quicker past half its health, for the ones that get angry (1 for everyone else). */
+export const rage = (e: Enemy) => {
+  const spec = ENEMIES[e.kind];
+  return spec.enrage && e.hp <= spec.hp / 2 ? spec.enrage : 1;
+};
 
 /** Back home with full health, as if nothing happened (entering the region, or after the cat faints). */
 export function resetEnemy(e: Enemy, keepDefeated = false) {
@@ -149,8 +202,9 @@ export function resetEnemy(e: Enemy, keepDefeated = false) {
   const spec = ENEMIES[e.kind];
   e.x = e.home.x;
   e.z = e.home.z;
-  e.mode = spec.sleeper ? 'sleep' : 'patrol';
+  e.mode = idleMode(e);
   e.timer = 0;
+  e.routeAt = 0;
   e.hp = spec.hp;
   e.goal = null;
   e.lost = 0;
@@ -192,12 +246,33 @@ export function notices(e: Enemy, cat: CombatCat, env: CombatEnv, level: CombatL
 export const NOISE = { reach: 8, seconds: 4 };
 
 export function hearNoise(e: Enemy, x: number, z: number) {
-  if (e.mode !== 'patrol' && e.mode !== 'alert' && e.mode !== 'retreat' && e.mode !== 'distracted') return false;
+  const napping = e.mode === 'sleep' && !ENEMIES[e.kind].sleeper;
+  if (e.mode !== 'patrol' && e.mode !== 'alert' && e.mode !== 'retreat' && e.mode !== 'distracted' && !napping) return false;
   if (Math.hypot(x - e.x, z - e.z) > NOISE.reach) return false;
   e.mode = 'distracted';
   e.goal = { x, z };
   e.timer = NOISE.seconds;
   return true;
+}
+
+/**
+ * Working together: when one of a band spots the cat and gives the alarm, the others close by who are not busy
+ * (patrolling, resting by the fire, looking around) come to see where the cat was. The boar sleeps through it.
+ */
+export const RALLY = { reach: 10, seconds: 4 };
+
+export function rallyAllies(from: Enemy, all: Enemy[], x: number, z: number) {
+  let called = 0;
+  for (const e of all) {
+    if (e === from || !isActive(e) || ENEMIES[e.kind].sleeper || ENEMIES[e.kind].spirit) continue;
+    if (e.mode !== 'patrol' && e.mode !== 'sleep' && e.mode !== 'distracted' && e.mode !== 'retreat') continue;
+    if (Math.hypot(e.x - from.x, e.z - from.z) > RALLY.reach) continue;
+    e.mode = 'distracted';
+    e.goal = { x, z };
+    e.timer = RALLY.seconds;
+    called++;
+  }
+  return called;
 }
 
 // ── One step of a creature's mind ────────────────────────────────────────────
@@ -278,14 +353,20 @@ export function enemyStep(e: Enemy, dt: number, cat: CombatCat, env: CombatEnv, 
         out.push({ type: 'alert' });
         break;
       }
-      if (e.rest > 0) {
+      if (e.rest > 0 || e.post) {
         e.rest -= dt;
         break;
       }
       if (!e.goal) {
-        const a = rng() * Math.PI * 2;
-        const r = Math.sqrt(rng()) * e.home.r;
-        e.goal = { x: e.home.x + Math.cos(a) * r, z: e.home.z + Math.sin(a) * r };
+        if (e.route?.length) {
+          // a round: the next point, in order
+          e.goal = { ...e.route[e.routeAt % e.route.length] };
+          e.routeAt = (e.routeAt + 1) % e.route.length;
+        } else {
+          const a = rng() * Math.PI * 2;
+          const r = Math.sqrt(rng()) * e.home.r;
+          e.goal = { x: e.home.x + Math.cos(a) * r, z: e.home.z + Math.sin(a) * r };
+        }
       }
       if (!walk(e, e.goal.x, e.goal.z, spec.walk, dt, env) || Math.hypot(e.goal.x - e.x, e.goal.z - e.z) < 0.2) {
         e.goal = null;
@@ -302,7 +383,7 @@ export function enemyStep(e: Enemy, dt: number, cat: CombatCat, env: CombatEnv, 
           e.mode = 'chase';
           e.lost = 0;
         } else {
-          e.mode = spec.sleeper ? 'sleep' : 'patrol';
+          e.mode = idleMode(e);
           e.goal = null;
         }
       }
@@ -324,6 +405,7 @@ export function enemyStep(e: Enemy, dt: number, cat: CombatCat, env: CombatEnv, 
       break;
 
     case 'chase': {
+      const angry = rage(e);
       e.lost = sees ? 0 : e.lost + dt;
       if (e.lost > 2.5 || tooFarFromHome(e) || !cat.active) {
         e.mode = 'retreat';
@@ -331,8 +413,9 @@ export function enemyStep(e: Enemy, dt: number, cat: CombatCat, env: CombatEnv, 
         break;
       }
       if (spec.attack.kind === 'throw') {
-        // keeps its distance: backs off when the cat comes close, throws from afar
-        if (d < spec.attack.keepAway) {
+        // keeps its distance: backs off when the cat comes close, throws from afar (one on a lookout stays put)
+        if (e.post) turnTo(e, cat.x, cat.z);
+        else if (d < spec.attack.keepAway) {
           const ax = e.x - (cat.x - e.x);
           const az = e.z - (cat.z - e.z);
           walk(e, ax, az, spec.run * lv.speed, dt, env);
@@ -342,9 +425,9 @@ export function enemyStep(e: Enemy, dt: number, cat: CombatCat, env: CombatEnv, 
         if (d <= spec.reach && e.cooldown <= 0 && sees) startWindup(e, cat, spec.windup * lv.windup, out);
         break;
       }
-      if (d > spec.reach * 0.75 || e.cooldown > 0) walk(e, cat.x, cat.z, spec.run * lv.speed, dt, env);
+      if (d > spec.reach * 0.75 || e.cooldown > 0) walk(e, cat.x, cat.z, spec.run * lv.speed * angry, dt, env);
       else turnTo(e, cat.x, cat.z);
-      if (d <= spec.reach && e.cooldown <= 0 && sees) startWindup(e, cat, spec.windup * lv.windup, out);
+      if (d <= spec.reach && e.cooldown <= 0 && sees) startWindup(e, cat, (spec.windup * lv.windup) / angry, out);
       break;
     }
 
@@ -370,7 +453,7 @@ export function enemyStep(e: Enemy, dt: number, cat: CombatCat, env: CombatEnv, 
       // the charge: straight ahead, fast, along the direction fixed when the windup ended
       if (spec.attack.kind !== 'charge') break;
       e.timer -= dt;
-      const step = spec.attack.speed * lv.speed * dt;
+      const step = spec.attack.speed * lv.speed * rage(e) * dt;
       const nx = e.x + e.dir.x * step;
       const nz = e.z + e.dir.z * step;
       const blocked = !env.ground(nx, nz) || !env.free(e.x, e.z, nx, nz);
@@ -418,7 +501,7 @@ export function enemyStep(e: Enemy, dt: number, cat: CombatCat, env: CombatEnv, 
           e.z = e.home.z;
         }
         e.hp = spec.hp;
-        e.mode = spec.sleeper ? 'sleep' : 'patrol';
+        e.mode = idleMode(e);
         e.goal = null;
       }
       break;

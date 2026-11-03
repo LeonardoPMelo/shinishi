@@ -14,6 +14,7 @@ import { WILD_OBJECTS } from './wild';
 import { STORY_OBJECTS } from './story';
 import { PRECINCT_OBJECTS } from './precinct';
 import { CLEARING_OBJECTS } from './clearing';
+import { WILD2_OBJECTS } from './wild2';
 
 export type WorldObjectKind =
   | 'pickup_herb'
@@ -352,7 +353,7 @@ export const WORLD_OBJECTS: WorldObject[] = [
   },
 ];
 
-WORLD_OBJECTS.push(...WORLD_OBJECTS_2, ...CHAPTER3_OBJECTS, ...TEMPLE_OBJECTS, ...EAST_OBJECTS, ...WEST_OBJECTS, ...SOUTH_OBJECTS, ...REDESIGN_OBJECTS, ...INTERIOR_OBJECTS, ...ACADEMY_OBJECTS, ...SEDE_OBJECTS, ...SHOP_OBJECTS, ...WILD_OBJECTS, ...STORY_OBJECTS, ...PRECINCT_OBJECTS, ...CLEARING_OBJECTS);
+WORLD_OBJECTS.push(...WORLD_OBJECTS_2, ...CHAPTER3_OBJECTS, ...TEMPLE_OBJECTS, ...EAST_OBJECTS, ...WEST_OBJECTS, ...SOUTH_OBJECTS, ...REDESIGN_OBJECTS, ...INTERIOR_OBJECTS, ...ACADEMY_OBJECTS, ...SEDE_OBJECTS, ...SHOP_OBJECTS, ...WILD_OBJECTS, ...STORY_OBJECTS, ...PRECINCT_OBJECTS, ...CLEARING_OBJECTS, ...WILD2_OBJECTS);
 
 export const OBJECTS_BY_ID: Record<string, WorldObject> = Object.fromEntries(WORLD_OBJECTS.map((o) => [o.id, o]));
 

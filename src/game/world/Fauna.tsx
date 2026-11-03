@@ -59,7 +59,7 @@ const WARRENS = [
 
 /** Meadows the butterflies stay around (the old flower spots, plus the districts). */
 // (the Templo de Mikage's garden and the Clareira dos Cervos' gate were added after Etapa 10)
-const MEADOWS: [number, number][] = [[33.6, -15.6], [22.6, -16.0], [-12.6, 61.0], [3.9, 3.9], [-5.3, 1.9], [-3.9, -3.9], [-15, -15.5], [-14, -13.5], [6, 10], [-8, 12], [-3, 30], [8, 28], [MEADOW.x, MEADOW.z], [24, 12], [-26, 2], [w(18, 28)[0], w(18, 28)[2]], [w(22, 12)[0], w(22, 12)[2]], [w(-38, 30)[0], w(-38, 30)[2]]];
+const MEADOWS: [number, number][] = [[33.6, -15.6], [22.6, -16.0], [-12.6, 61.0], [3.9, 3.9], [-5.3, 1.9], [-3.9, -3.9], [-15, -15.5], [-14, -13.5], [6, 10], [-8, 12], [-3, 30], [8, 28], [MEADOW.x, MEADOW.z], [24, 12], [-26, 2], [w(18, 28)[0], w(18, 28)[2]], [w(22, 12)[0], w(22, 12)[2]], [w(-38, 30)[0], w(-38, 30)[2]], [w(-38, 20)[0], w(-38, 20)[2]], [w(-14, 30)[0], w(-14, 30)[2]], [w(41, 4)[0], w(41, 4)[2]], [w(16, 30)[0], w(16, 30)[2]]];
 const BUTTERFLY_COLORS = ['#FFD54A', '#F49AB8', '#7FD3FF', '#FFFFFF', '#C79BFF', '#FF9F5A'];
 const FUR = ['#B79A7E', '#9C8A7A', '#E9E3DA', '#C9B091', '#7F7268'];
 const FEATHERS = ['#8A6A4E', '#6E7FA0', '#9A7D5A', '#A4683F', '#77706A'];

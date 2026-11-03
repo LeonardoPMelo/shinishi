@@ -7,8 +7,11 @@ import { Toon, Ink, getGradient } from '../materials';
 import { PineTree, SakuraTree, MapleTree } from './Props';
 import { Rock } from './Rock';
 import { TerraceBox, StepBlock } from './districtParts';
-import { useGrassTexture } from './Ground';
 import { StaticMerge } from '../StaticMerge';
+import { WildTerrain, Mountains, CliffRock, Undergrowth, WoodsDetail, RiverBanks } from './WildScenery';
+import { WildCamps, WildCampsLife } from './WildCamps';
+import { WildCave, WildCaveLife } from './WildCave';
+import { WildFauna } from './WildFauna';
 import { useSpot, useIconTexture } from '../systems/training';
 import { useGameStore } from '../../store/gameStore';
 import { emit } from '../../systems/events';
@@ -50,14 +53,8 @@ const useVisit = create<{ herbs: number[]; sprung: number[]; reset: () => void }
 
 // ── Ground, trails, water ─────────────────────────────────────────────────────
 
+/** The physics floor and the region's edges (the ground itself is drawn by WildScenery's terrain). */
 function WildGround() {
-  const grass = useGrassTexture();
-  const mat = useMemo(() => {
-    const t = grass.clone();
-    t.needsUpdate = true;
-    t.repeat.set(26, 22);
-    return new THREE.MeshToonMaterial({ map: t, gradientMap: getGradient(), color: '#E8F2D8' });
-  }, [grass]);
   const w0 = WILD.maxX - WILD.minX + 24;
   const d0 = WILD.maxZ - WILD.minZ + 24;
   const cx = (WILD.minX + WILD.maxX) / 2;
@@ -69,9 +66,6 @@ function WildGround() {
       <CuboidCollider args={[0.4, 4, d0 / 2]} position={[WILD.minX - 0.6, 3, cz]} />
       <CuboidCollider args={[0.4, 4, d0 / 2]} position={[WILD.maxX + 0.6, 3, cz]} />
       <CuboidCollider args={[w0 / 2, 4, 0.4]} position={[cx, 3, WILD.maxZ + 0.6]} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0, cz]} receiveShadow material={mat}>
-        <planeGeometry args={[w0, d0]} />
-      </mesh>
     </RigidBody>
   );
 }
@@ -329,6 +323,8 @@ function Wall({ wl }: { wl: WildWall }) {
       </RigidBody>
     );
   }
+  // drawn as stacked, weathered rock (WildScenery.tsx); the collider wraps it, as before
+  if (wl.kind === 'cliff') return <CliffRock wl={wl} />;
   // the collider also wraps the boulders on top (1.4 m more): the camera keeps out of colliders, and a boulder
   // with nothing around it hid the cat at the cave's mouth (Etapa 9). Nobody jumps a 4.5 m cliff anyway.
   const ch = wl.h + 1.4;
@@ -526,25 +522,6 @@ const BORDER: [number, number][] = (() => {
   return out;
 })();
 
-function Clearing() {
-  return (
-    <group>
-      {[[-19, -6], [-10, -8], [-14, -18]].map(([x, z], i) => (
-        <RigidBody key={i} type="fixed" colliders={false} position={[x, 0, z]}>
-          <CylinderCollider args={[0.25, 0.45]} position={[0, 0.25, 0]} />
-          <mesh position={[0, 0.25, 0]} castShadow>
-            <cylinderGeometry args={[0.42, 0.5, 0.5, 9]} />
-            <Toon color="#8C6A4A" tex="bark" />
-          </mesh>
-        </RigidBody>
-      ))}
-      <Banner x={-22} z={-9} icon="🐾" cloth="#8C2E2E" />
-      <Banner x={-9} z={-13} icon="🐾" cloth="#8C2E2E" rot={Math.PI} />
-      <Rock variant={2} position={[-24, 0.5, -16]} scale={[1.3, 0.9, 1.1]} color="#8E877C" contact={false} />
-    </group>
-  );
-}
-
 function Outpost() {
   return (
     <group>
@@ -604,28 +581,6 @@ function AbandonedCamp() {
         <boxGeometry args={[0.3, 0.22, 0.04]} />
         <Toon color="#B5492E" />
       </mesh>
-    </group>
-  );
-}
-
-function Cave() {
-  const { x0, x1, z0, z1 } = CAVE;
-  const spikes = useMemo(() => [[19.5, -25.5, 1.0], [33, -26, 1.3], [26, -37.5, 1.6], [24, -33, 0.8], [29.5, -29.5, 0.9], [32.6, -33, 1.1]], []);
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, 0.02, (z0 + z1) / 2]} receiveShadow>
-        <planeGeometry args={[x1 - x0, z1 - z0]} />
-        <Toon color="#3E424C" />
-      </mesh>
-      {spikes.map(([x, z, h], i) => (
-        <RigidBody key={i} type="fixed" colliders={false} position={[x, 0, z]}>
-          <CylinderCollider args={[h / 2, 0.32]} position={[0, h / 2, 0]} />
-          <mesh position={[0, h / 2, 0]} castShadow>
-            <coneGeometry args={[0.38, h, 7]} />
-            <Toon color="#6E6A78" tex="stone" />
-          </mesh>
-        </RigidBody>
-      ))}
     </group>
   );
 }
@@ -1218,14 +1173,22 @@ export function WildRegion() {
           <Forest />
           {WILD_WALLS.map((wl, i) => <Wall key={i} wl={wl} />)}
           <Camp />
-          <Clearing />
           <Outpost />
           <AbandonedCamp />
-          <Cave />
           <Ruins />
           <Lookout />
+          <WoodsDetail />
+          <WildCamps />
+          <WildCave />
         </StaticMerge>
         <WildGround />
+        <WildTerrain />
+        <Mountains />
+        <Undergrowth />
+        <RiverBanks />
+        <WildCampsLife />
+        <WildCaveLife />
+        <WildFauna />
         <River />
         <Waterfall />
         <RopeBridge />

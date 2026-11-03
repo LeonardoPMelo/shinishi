@@ -12,6 +12,7 @@ import { SEDE_CODE_ACTIONS } from '../data/mikage';
 import { WILD_CODE_ACTIONS } from '../data/wild';
 import { PRECINCT_CODE_ACTIONS } from '../data/precinct';
 import { CLEARING_CODE_ACTIONS } from '../data/clearing';
+import { WILD2_CODE_ACTIONS } from '../data/wild2';
 import { SHOPS, SHOPS_BY_ID } from '../data/shops';
 import { parseActions } from './progression';
 
@@ -144,6 +145,7 @@ export function validateData(): DataReport {
   for (const [k, a] of Object.entries(WILD_CODE_ACTIONS)) act(a, `selvagem ${k}`);
   for (const [k, a] of Object.entries(PRECINCT_CODE_ACTIONS)) act(a, `templo de Mikage ${k}`);
   for (const [k, a] of Object.entries(CLEARING_CODE_ACTIONS)) act(a, `clareira ${k}`);
+  for (const [k, a] of Object.entries(WILD2_CODE_ACTIONS)) act(a, `selvagem 2 ${k}`);
 
   // NPCs
   const npcIds = new Set<string>();

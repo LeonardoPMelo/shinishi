@@ -105,7 +105,8 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 14 | ~~Registro de missões × conversa~~ resolvido na Etapa 8: o "!", o registro, o mapa e o próximo passo só anunciam uma missão que a conversa realmente oferece | — |
 | 15 | Nas terras selvagens, os bichos voltam a cada visita e pagam moedas de novo (pouco: 3 a 5 por bicho). Depois do pacto (capítulo 7), só restam os espíritos e o javali. Avaliar um limite se a economia pedir | 9 |
 | 17 | Templo de Mikage (seção 15): refazer os modelos dos NPCs antigos, conversas entre NPCs e missões novas nas Terras Selvagens ficaram para depois | decisão do usuário |
-| 16 | Pacote principal: 982 KB (gzip 309 KB) depois do Templo de Mikage (901 KB na Etapa 10). Avaliado na Etapa 9: todo esse código é necessário antes do primeiro quadro, então dividir não reduz o que o jogador baixa; só mudaria o cache entre versões. Mantido | — |
+| 18 | Terras Selvagens (seção 16): aumentar a área, criar mais cavernas, testar o combate num aparelho e gravar sons próprios ficaram para depois | próxima rodada |
+| 16 | Pacote principal: 1.038 KB (gzip 325 KB) depois das Terras Selvagens (982 KB após o Templo de Mikage; 901 KB na Etapa 10). Avaliado na Etapa 9: todo esse código é necessário antes do primeiro quadro, então dividir não reduz o que o jogador baixa; só mudaria o cache entre versões. Mantido | — |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -688,3 +689,67 @@ As 10 etapas estão implementadas e publicadas. O que resta está na lista de pe
 - **Reflexos de verdade na água:** não foram feitos (estilo cartoon); a água é animada.
 - **Minijogo novo:** não foi feito; as novidades são o enigma das lanternas e a dedução do sino.
 - **Desempenho no celular real** não foi medido. O complexo é estático e mesclado como o resto da vila.
+## 16. Reconstrução das Terras Selvagens (pedido do usuário, 2026-11-03)
+
+### Auditoria (antes)
+- **Visual:**
+  - um retângulo plano de cerca de 96 × 78 m com chão de cor única;
+  - o rio era uma faixa reta e cinza, os paredões eram caixas lisas e a borda era uma fileira de árvores iguais;
+  - a caverna era um chão roxo com bolhas de névoa;
+  - o posto do Hissui tinha uma fogueira, duas barracas e dois estandartes;
+  - a "Clareira dos Bandidos" tinha três tocos e dois estandartes.
+- **O que já era bom e foi mantido:**
+  - o combate (estados de ronda, alerta, perseguição, aviso antes do ataque, tontura e recuo, tudo testado à parte);
+  - as missões e os dados;
+  - a ponte de corda, o javali, as armadilhas, as ruínas e o vento do mirante;
+  - a ligação com a Clareira dos Cervos.
+- **Variedade:** 4 tipos de inimigo; só o javali tinha rotina própria (dormir).
+
+### Implementado
+| Parte | O que mudou |
+|---|---|
+| **Terreno** (`world/WildScenery.tsx`) | Chão colorido por bioma: mata escura, campina clara, bosque das cerejeiras, areia nas margens, terra batida nos acampamentos, rocha no desfiladeiro e na caverna, musgo nas ruínas. Fora da área andável, o chão sobe em colinas: a região termina em encostas, não numa linha |
+| **Montanhas** | Uma cordilheira em volta, com rocha e neve nos picos mais altos (uma malha só) |
+| **Paredões** | Rocha empilhada em três camadas, com musgo no topo, no lugar das caixas. A colisão continua a mesma |
+| **Vegetação** | Samambaias, arbustos, flores, cogumelos e capim em instâncias (uma chamada de desenho por tipo). Troncos caídos com colisão, tocos, quatro árvores antigas como marcos, mata fechada nas bordas, juncos nas margens, pedras com espuma no rio |
+| **Fauna** (`world/WildFauna.tsx`, `systems/wildlife.ts`) | Manada de cervos com filhotes na campina: pastam, andam e fogem do gato (agachado, ele chega mais perto). Peixes pulando no rio, esquilos que sobem nas árvores antigas e mais borboletas |
+| **Inimigos novos** (`systems/combat.ts`) | **Texugo Guardião:** escudo, só leva dano quando tonto. **Doninha Ninja:** rápida, avisa pouco antes de atacar. **Raposa Arqueira:** fica na torre e atira de longe. **Chefe Espinho:** grande, com espinhos, mais rápido depois de perder metade da força |
+| **Comportamento** | Rondas com pontos em ordem. Bandidos dormindo perto da fogueira, que acordam com barulho. Vigias que não saem do posto. Alarme: quem vê o gato chama os do bando que estão perto |
+| **Acampamento dos Espinhos** (`world/WildCamps.tsx`) | Barracas, torre de vigia com escada, fogueira com troncos e fumaça, cercas de estacas, estandartes, carrinho e pilha de objetos roubados, três jaulas com bichos. Depois que o chefe é vencido, o fogo apaga e o bando some |
+| **Fortim do Hissui** | Duas torres (uma com arqueira), suporte de armas, bonecos de treino e mais barracas. A entrada pelo desfiladeiro continua sendo um caminho furtivo, como o capítulo 7 exige |
+| **Caverna da Névoa** (`world/WildCave.tsx`) | Paredões de rocha, estalagmites, aglomerados de cristais que iluminam o chão, lago subterrâneo, névoa. **Minijogo dos Cristais Cantores:** a pedra do eco toca uma melodia, o jogador repete tocando os cristais, em três rodadas (3, 4 e 5 notas). Ao final, a laje da câmara secreta na rocha norte desce |
+| **Missões novas** (`data/wild2.ts`) | **Os Animais Sumidos** (Momo): seguir 3 rastros e abrir 3 jaulas sem ser pego (com um bandido perseguindo por perto, a jaula não abre); os bichos resgatados aparecem no acampamento. **O Chefe Espinho** (Yuki): luta contra o chefe; ao vencer, o acampamento fica abandonado. **Os Cristais Cantores** (Bento): o minijogo e o Coração da Névoa |
+| **Som** | Fogueira e vozes no Acampamento dos Espinhos (enquanto o bando está lá), golpes de treino no Fortim, cristais tilintando na caverna. Usa os efeitos que o jogo já tem |
+
+### Problemas encontrados e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| Barracas em "V" | Captura | Inclinação das lonas invertida |
+| A arqueira "via" de dentro da própria torre | Revisão: a torre era um bloco sólido e o raio de visão saía de dentro dele | A torre só é sólida nas pernas e na plataforma |
+| A ronda da doninha atravessaria uma jaula | Revisão das medidas | Ronda redesenhada |
+| Peças novas do Fortim em cima das antigas | Revisão das medidas | Reposicionadas |
+| O texugo no portão do desfiladeiro bloquearia o caminho furtivo do capítulo 7 | Revisão | Levado para dentro do Fortim, de costas para o desfiladeiro |
+| Chão da caverna parecendo tijolinho | Captura | Cor lisa |
+| Pedras do rio parecendo cogumelos | Captura | Pedras chatas com um anel fino de espuma |
+
+### Testes
+- `vitest`: 563 passando (34 arquivos).
+  - `tests/wild2.test.ts` é novo (16 testes): as classes de inimigo, a ronda em ordem, o descanso, a arqueira que não sai do posto, o alarme, o chefe enfurecido, as melodias, a câmara, os cervos fugindo e voltando, onde cada inimigo e jaula fica, e quem oferece cada missão.
+  - Contagens atualizadas: 58 missões, 11 no capítulo 6.
+- `tsc` ok. Build ok: pacote principal 1.038 KB (gzip 325 KB).
+- **No navegador:**
+  - acampamento, caverna, campina e rio vistos de perto;
+  - o alarme do bando funcionando (os outros vieram, com aviso);
+  - Os Animais Sumidos: rastros contaram 3/3, as três jaulas abriram e a etapa avançou;
+  - Cristais Cantores: a pedra tocou a melodia 1, os três toques certos passaram para a melodia 2;
+  - o Chefe Espinho aparece só com a missão ativa (21 inimigos no total);
+  - desmaio e volta ao acampamento funcionando.
+
+### O que ficou de fora ou só em parte (sem inventar)
+- **A região não ficou maior em área.** Ficou mais densa e mais bonita. Uma expansão de área (uma segunda caverna, uma vila fortificada maior) fica para outra rodada.
+- **Uma caverna só.** A Caverna da Névoa foi refeita; outras cavernas não foram criadas.
+- **Movimento do Shinichi:** não houve revisão completa de física e câmera. Corrigi o que apareceu nos testes; nenhum outro defeito novo de movimento foi encontrado.
+- **Combate de verdade:** não deu para testar a luta direito com o painel de testes oculto (os quadros andam aos saltos). Precisa de uma partida em janela visível ou num aparelho.
+- **Sons e música:** nenhuma gravação nova (exige baixar arquivos com sua aprovação). Música de caverna e de suspense não existem; os sons novos reaproveitam os efeitos que já havia.
+- **Reflexos reais na água e ciclo dia/noite** não foram feitos.
+- **Desempenho no celular** não foi medido. O pacote cresceu 56 KB; a vegetação é instanciada e o cenário estático é mesclado.

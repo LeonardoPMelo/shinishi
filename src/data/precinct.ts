@@ -396,7 +396,7 @@ export const PRECINCT_OBJECTS: WorldObject[] = [
     // the tower's one only from its top (a small radius in its middle: the ground around the tower is farther)
     id: j.id, kind: 'examine', position: j.at, label: 'Pegar a Pata de Jade', name: 'Pata de Jade', radius: j.id === 'jade_torre' ? 0.6 : j.id === 'jade_ponte' ? 1.0 : 1.3,
     when: { active: 'patas_de_jade', notFlag: j.id },
-    actions: `FLAG:${j.id};GIVE:pata_jade;COUNT:jade;SFX:pickup`,
+    actions: `FLAG:${j.id};GIVE:pata_jade;COUNT:jade;SFX:item`,
   })),
 ];
 

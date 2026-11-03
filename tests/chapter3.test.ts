@@ -55,8 +55,8 @@ describe('capítulo 3: respostas', () => {
 });
 
 describe('capítulo 3: missões', () => {
-  it('a campanha tem 55 missões (31 + 2 dos interiores + 5 da Academia e da Sede + 1 das lojas + 7 das Terras Selvagens + 5 do capítulo 7 + 3 do Templo de Mikage + 1 da Clareira dos Cervos), 7 delas no capítulo 3 (e 1 no 4); as dos bairros novos ficam no cap. 2', () => {
-    expect(MISSION_ORDER).toHaveLength(55);
+  it('a campanha tem 55 missões (31 + 2 dos interiores + 5 da Academia e da Sede + 1 das lojas + 7 das Terras Selvagens + 5 do capítulo 7 + 3 do Templo de Mikage + 1 da Clareira dos Cervos + 3 das Terras Selvagens, parte 2), 7 delas no capítulo 3 (e 1 no 4); as dos bairros novos ficam no cap. 2', () => {
+    expect(MISSION_ORDER).toHaveLength(58);
     expect(MISSIONS.coelhos.chapter).toBe(2);
     expect(MISSION_ORDER.filter((id) => MISSIONS[id].chapter === 5)).toEqual(['academia', 'audiencia', 'documentos', 'expedicao', 'pergaminho', 'sino_misterioso', 'lanternas_guardias', 'patas_de_jade']);
     for (const id of ['glicinias', 'aguas', 'arvore']) expect(MISSIONS[id].chapter).toBe(2);

@@ -1,6 +1,13 @@
 import { audio } from './engine';
 import { playSfx } from './sfx';
 import { CAMPFIRE, WILD_RIVER, w } from '../data/wild';
+import { ESPINHO_FIRE, SINGING } from '../data/wild2';
+import { useGameStore } from '../store/gameStore';
+
+/** The Espinho band's fire, the Fortim's training dummies and the singing crystals (after Etapa 10). */
+const ESPINHO_FIRE_AT = w(ESPINHO_FIRE.x, ESPINHO_FIRE.z, 1);
+const FORT_DUMMIES = w(-34, -28, 1);
+const CRYSTALS_AT = SINGING.map((s) => w(s.x, s.z, 1.2));
 
 /** PROVISIONAL synthesized ambience. Positional where it helps the player find things. */
 
@@ -132,6 +139,14 @@ class Ambience {
     // the cave drips; the camp fire crackles
     if (cave && this.due('drip', t, 1.2, 3.5)) playSfx('drip', { position: around(6, 2.5) });
     if (c.zone === 'selvagem' && near(CAMPFIRE.at, 9) && this.due('fire', t, 1.5, 3.5)) playSfx('sizzle', { position: CAMPFIRE.at });
+    // the Espinho band's camp, while the band is there: its fire, and voices around it; the Fortim's practice
+    if (c.zone === 'selvagem' && !useGameStore.getState().progress.flags.espinho_vencido && near(ESPINHO_FIRE_AT, 16)) {
+      if (this.due('fire2', t, 1.5, 3.5)) playSfx('sizzle', { position: ESPINHO_FIRE_AT });
+      if (this.due('band', t, 4, 9)) playSfx(Math.random() > 0.5 ? 'voice_chitter' : 'voice_grunt', { position: around(5) });
+    }
+    if (c.zone === 'selvagem' && near(FORT_DUMMIES, 14) && this.due('fort', t, 3, 7)) playSfx('thwack', { position: FORT_DUMMIES });
+    // the crystals hum now and then (one of the four)
+    if (cave && this.due('crystal', t, 5, 11)) playSfx('chime', { position: CRYSTALS_AT[Math.floor(Math.random() * CRYSTALS_AT.length)] });
 
     if (!indoors && !cave && this.due('bird', t, c.inForest ? 1.8 : 3, c.inForest ? 5 : 8)) {
       const a = Math.random() * Math.PI * 2;

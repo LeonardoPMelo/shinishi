@@ -4,10 +4,11 @@ import { useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
 import { getGradient, Ink, Toon } from '../materials';
 import {
-  ENEMIES, calmEnemy, enemyStep, hearNoise, hitEnemy, isActive, makeEnemy, pawTargets, resetEnemy, stepPinecones, throwPinecone,
-  type CombatCat, type CombatEnv, type Enemy, type HitResult,
+  ENEMIES, calmEnemy, enemyStep, hearNoise, hitEnemy, isActive, makeEnemy, pawTargets, rallyAllies, resetEnemy, stepPinecones, throwPinecone,
+  type CombatCat, type CombatEnv, type Enemy, type EnemyKind, type HitResult, type Pinecone,
 } from '../../systems/combat';
-import { ENEMY_SPAWNS, WILD, WILD_CODE_ACTIONS, inWall, inWildRiver, toLocal, w } from '../../data/wild';
+import { ENEMY_SPAWNS, WILD, WILD_CODE_ACTIONS, inWall, inWildRiver, toLocal, w, type EnemySpawn } from '../../data/wild';
+import { WILD2_SPAWNS, WILD2_CODE_ACTIONS } from '../../data/wild2';
 import { checkCondition } from '../../systems/progression';
 import { useGameStore } from '../../store/gameStore';
 import { useUiSettings } from '../../store/uiSettings';
@@ -45,11 +46,20 @@ function seeded(seed: number) {
 /** Where the calmed boar lies, out of the way (2 m to the side of its post). */
 export const BOAR_ASIDE = 2.0;
 
+/** Every creature of the region: the first ones (data/wild.ts) and the Espinho band's (data/wild2.ts). */
+const ALL_SPAWNS: EnemySpawn[] = [...ENEMY_SPAWNS, ...WILD2_SPAWNS];
+/** Drawn standing on a lookout (the fight itself is on the ground plane). */
+const ELEVATION: Record<string, number> = Object.fromEntries(ALL_SPAWNS.filter((s) => s.y).map((s) => [s.id, s.y!]));
+const toWorldPoint = ([x, z]: [number, number]) => {
+  const p = w(x, z);
+  return { x: p[0], z: p[2] };
+};
+
 function spawnAll(): Enemy[] {
   const progress = useGameStore.getState().progress;
-  const list = ENEMY_SPAWNS.filter((s) => checkCondition(s.when, progress)).map((s) => {
+  const list = ALL_SPAWNS.filter((s) => checkCondition(s.when, progress)).map((s) => {
     const [x, , z] = w(s.at[0], s.at[1]);
-    return makeEnemy(s.id, s.kind, x, z, s.r, s.heading ?? 0);
+    return makeEnemy(s.id, s.kind, x, z, s.r, s.heading ?? 0, { route: s.route?.map(toWorldPoint), rest: s.rest, post: s.post });
   });
   // the calmed boar stays, asleep and happy by the canyon wall (beaten, it has moved away for good)
   if (progress.flags.javali_calmo && !progress.flags.javali_vencido) {
@@ -222,17 +232,185 @@ function Boar({ skin }: { skin: THREE.Material }) {
   );
 }
 
+/** The badger guard: stocky, black and white face, a little helmet and a round wooden shield held in front. */
+function Badger({ skin }: { skin: THREE.Material }) {
+  return (
+    <group>
+      <mesh position={[0, 0.5, 0]} scale={[1.15, 0.85, 1.3]} material={skin} castShadow>
+        <sphereGeometry args={[0.42, 14, 12]} />
+      </mesh>
+      <mesh position={[0, 0.62, 0.5]} scale={[1, 0.9, 1.1]} castShadow>
+        <sphereGeometry args={[0.25, 12, 10]} />
+        <Toon color="#F2EFE8" />
+      </mesh>
+      {[-0.11, 0.11].map((x) => (
+        <mesh key={x} position={[x, 0.66, 0.6]} scale={[0.35, 1, 1]}>
+          <sphereGeometry args={[0.17, 8, 6]} />
+          <Toon color="#2A2A30" />
+        </mesh>
+      ))}
+      {[-0.08, 0.08].map((x) => (
+        <mesh key={`e${x}`} position={[x, 0.68, 0.74]}>
+          <sphereGeometry args={[0.025, 6, 5]} />
+          <meshBasicMaterial color="#F2E27A" />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.58, 0.76]}>
+        <sphereGeometry args={[0.04, 6, 5]} />
+        <meshBasicMaterial color="#1E1A1A" />
+      </mesh>
+      {/* helmet */}
+      <mesh position={[0, 0.82, 0.45]} scale={[1, 0.6, 1]}>
+        <sphereGeometry args={[0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <Toon color="#7A6A4E" />
+        <Ink thickness={0.01} />
+      </mesh>
+      {/* the shield */}
+      <group position={[0.22, 0.5, 0.62]} rotation={[0, 0.25, 0]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.3, 0.3, 0.06, 16]} />
+          <Toon color="#8C5A36" tex="planks" />
+          <Ink thickness={0.012} />
+        </mesh>
+        <mesh position={[0, 0, 0.035]}>
+          <circleGeometry args={[0.1, 12]} />
+          <Toon color="#B8A07A" />
+        </mesh>
+      </group>
+      {[[-0.28, 0.32], [0.28, 0.32], [-0.28, -0.35], [0.28, -0.35]].map(([x, z], i) => (
+        <group key={`${x}${z}`} position={[x, 0.28, z]} userData={LEG[TROT[i]]}>
+          <mesh position={[0, -0.14, 0]}>
+            <cylinderGeometry args={[0.08, 0.07, 0.28, 7]} />
+            <Toon color="#2A2A30" />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/** The ninja weasel: long and low, a black mask and a red scarf flying behind. */
+function Weasel({ skin }: { skin: THREE.Material }) {
+  return (
+    <group>
+      <mesh position={[0, 0.34, 0]} rotation={[Math.PI / 2, 0, 0]} material={skin} castShadow>
+        <capsuleGeometry args={[0.13, 0.62, 4, 10]} />
+      </mesh>
+      <mesh position={[0, 0.3, 0.12]} rotation={[Math.PI / 2, 0, 0]}>
+        <capsuleGeometry args={[0.1, 0.4, 4, 8]} />
+        <Toon color="#F2E2C2" />
+      </mesh>
+      <mesh position={[0, 0.48, 0.5]} material={skin} castShadow>
+        <sphereGeometry args={[0.15, 12, 10]} />
+      </mesh>
+      <mesh position={[0, 0.5, 0.6]}>
+        <boxGeometry args={[0.3, 0.06, 0.12]} />
+        <Toon color="#1E1A22" />
+      </mesh>
+      {[-0.06, 0.06].map((x) => (
+        <mesh key={x} position={[x, 0.51, 0.665]}>
+          <sphereGeometry args={[0.022, 6, 5]} />
+          <meshBasicMaterial color="#FFFFFF" />
+        </mesh>
+      ))}
+      {[-0.08, 0.08].map((x) => (
+        <mesh key={`o${x}`} position={[x, 0.62, 0.46]}>
+          <sphereGeometry args={[0.045, 8, 6]} />
+          <Toon color="#7A4E2E" />
+        </mesh>
+      ))}
+      {/* the red scarf, and its two tails */}
+      <mesh position={[0, 0.42, 0.38]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.12, 0.035, 6, 14]} />
+        <Toon color="#C8302C" />
+      </mesh>
+      {[-0.05, 0.05].map((x, i) => (
+        <mesh key={`s${x}`} position={[x, 0.46, 0.08]} rotation={[0.25 + i * 0.15, 0, 0]}>
+          <boxGeometry args={[0.06, 0.02, 0.5]} />
+          <Toon color="#C8302C" />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.36, -0.52]} rotation={[1.2, 0, 0]}>
+        <capsuleGeometry args={[0.06, 0.34, 4, 6]} />
+        <Toon color="#5E3A22" />
+      </mesh>
+      {[[-0.09, 0.22], [0.09, 0.22], [-0.09, -0.24], [0.09, -0.24]].map(([x, z], i) => (
+        <group key={`${x}${z}`} position={[x, 0.2, z]} userData={LEG[TROT[i]]}>
+          <mesh position={[0, -0.1, 0]}>
+            <cylinderGeometry args={[0.035, 0.03, 0.2, 6]} />
+            <Toon color="#5E3A22" />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/** The fox archer: a grey fox with a bow and a quiver of pinecones. */
+function FoxArcher({ skin }: { skin: THREE.Material }) {
+  return (
+    <group>
+      <Fox skin={skin} />
+      <group position={[0.24, 0.6, 0.25]}>
+        <mesh rotation={[0, Math.PI / 2, 0]}>
+          <torusGeometry args={[0.3, 0.02, 5, 16, Math.PI * 1.1]} />
+          <Toon color="#7A5236" />
+        </mesh>
+        <mesh>
+          <cylinderGeometry args={[0.006, 0.006, 0.6, 4]} />
+          <Toon color="#EDE6D6" />
+        </mesh>
+      </group>
+      <mesh position={[-0.12, 0.62, -0.18]} rotation={[0.35, 0, 0.2]}>
+        <cylinderGeometry args={[0.07, 0.06, 0.38, 8]} />
+        <Toon color="#5A3B28" />
+      </mesh>
+      <mesh position={[-0.14, 0.86, -0.25]}>
+        <coneGeometry args={[0.06, 0.12, 7]} />
+        <Toon color="#7A5236" />
+      </mesh>
+    </group>
+  );
+}
+
+/** The Chefe Espinho: a big hedgehog with golden-tipped spines, a red cape and a crown of spines. */
+function Chief({ skin }: { skin: THREE.Material }) {
+  return (
+    <group>
+      <group scale={1.6}>
+        <Hedgehog skin={skin} />
+      </group>
+      <mesh position={[0, 0.72, -0.25]} rotation={[0.35, 0, 0]}>
+        <coneGeometry args={[0.62, 0.9, 10, 1, true]} />
+        <Toon color="#8C2E2E" side={THREE.DoubleSide} />
+      </mesh>
+      {Array.from({ length: 5 }, (_, i) => (
+        <mesh key={i} position={[(i - 2) * 0.1, 1.08, 0.36 - Math.abs(i - 2) * 0.04]}>
+          <coneGeometry args={[0.04, 0.2, 5]} />
+          <Toon color="#D9A520" emissive="#D9A520" emissiveIntensity={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 /** Leg tags: the two diagonals swing in opposite phase (constants: inline userData objects reset on render). */
 const LEG = [{ leg: 1 }, { leg: -1 }];
 /** Legs listed front-left, front-right, back-left, back-right: a trot moves the diagonals together. */
 const TROT = [0, 1, 1, 0];
 
-const LOOK = {
-  ourico: { color: '#8C6A4E', scale: 1 },
-  raposa: { color: '#D9733A', scale: 1 },
-  espirito: { color: '#CFE6F5', scale: 1 },
-  javali: { color: '#7A6656', scale: 1 },
-} as const;
+const LOOK: Record<EnemyKind, { color: string }> = {
+  ourico: { color: '#8C6A4E' },
+  raposa: { color: '#D9733A' },
+  espirito: { color: '#CFE6F5' },
+  javali: { color: '#7A6656' },
+  texugo: { color: '#6E6A70' },
+  doninha: { color: '#9A6238' },
+  arqueira: { color: '#9AA0A8' },
+  chefe: { color: '#5E4434' },
+};
+/** Height of the health bar over each kind, and where the mark sits over its head. */
+const TOP: Record<EnemyKind, number> = { ourico: 1.0, raposa: 1.3, espirito: 1.7, javali: 1.7, texugo: 1.25, doninha: 0.95, arqueira: 1.3, chefe: 1.75 };
 
 /** The marks over the head. */
 type Mark = 'alert' | 'search' | 'dizzy' | 'sleep' | 'calm' | null;
@@ -268,7 +446,7 @@ function Creature({ e, register }: { e: Enemy; register: (id: string, g: Creatur
   useEffect(() => {
     if (root.current && body.current && marks.current && bar.current) register(e.id, { root: root.current, body: body.current, marks: marks.current, bar: bar.current, skin });
   }, [e.id, register, skin]);
-  const top = e.kind === 'javali' ? 1.7 : e.kind === 'espirito' ? 1.7 : e.kind === 'raposa' ? 1.3 : 1.0;
+  const top = TOP[e.kind];
   return (
     <group ref={root} userData={{ dynamic: true }}>
       <group ref={body}>
@@ -276,6 +454,10 @@ function Creature({ e, register }: { e: Enemy; register: (id: string, g: Creatur
         {e.kind === 'raposa' && <Fox skin={skin} />}
         {e.kind === 'espirito' && <Spirit skin={skin} />}
         {e.kind === 'javali' && <Boar skin={skin} />}
+        {e.kind === 'texugo' && <Badger skin={skin} />}
+        {e.kind === 'doninha' && <Weasel skin={skin} />}
+        {e.kind === 'arqueira' && <FoxArcher skin={skin} />}
+        {e.kind === 'chefe' && <Chief skin={skin} />}
       </group>
       <group ref={marks} position={[0, top + 0.25, 0]}>
         {(Object.keys(tex) as (keyof typeof tex)[]).map((k) => (
@@ -299,7 +481,11 @@ interface CreatureRefs { root: THREE.Group; body: THREE.Group; marks: THREE.Grou
 const RESULT_TIPS: Partial<Record<HitResult, (e: Enemy) => string>> = {
   blocked: (e) => e.kind === 'javali'
     ? 'A pele de pedra do javali aguenta tudo... espere ele bater nas pedras e ficar tonto!'
-    : 'Ai! Espinhos em pé. Espere o ouriço investir e ficar tonto (💫), aí sim.',
+    : e.kind === 'texugo'
+      ? 'Toc! O escudo do texugo segura tudo. Deixe ele investir e errar: tonto (💫), ele baixa o escudo.'
+      : e.kind === 'chefe'
+        ? 'Os espinhos do Chefe estão em pé! Espere a investida dele errar (💫). Contra uma barraca ou pedra, ele fica tonto mais tempo.'
+        : 'Ai! Espinhos em pé. Espere o ouriço investir e ficar tonto (💫), aí sim.',
   unseen: () => 'O golpe atravessou a névoa. Ligue o Faro (Q) para ver o espírito de verdade.',
 };
 
@@ -311,6 +497,8 @@ export function Enemies() {
   const register = useMemo(() => (id: string, g: CreatureRefs) => refs.current.set(id, g), []);
   const cones = useRef<THREE.Group>(null);
   const seen = useRef({ swipe: -1, noise: -1, tips: new Set<string>() });
+  /** How high each pinecone in flight was thrown from (an archer on a lookout). */
+  const coneFrom = useRef(new Map<Pinecone, number>());
   const rng = useMemo(() => seeded(4242), []);
 
   const env = useMemo<CombatEnv>(() => {
@@ -345,7 +533,7 @@ export function Enemies() {
   useEffect(() => useGameStore.subscribe((s, prev) => {
     if (s.progress === prev.progress || combatWorld.enemies.length === 0) return;
     const stay = combatWorld.enemies.filter((e) => {
-      const spawn = ENEMY_SPAWNS.find((x) => x.id === e.id);
+      const spawn = ALL_SPAWNS.find((x) => x.id === e.id);
       return !isActive(e) || !spawn || checkCondition(spawn.when, s.progress);
     });
     if (stay.length === combatWorld.enemies.length) return;
@@ -372,10 +560,10 @@ export function Enemies() {
       return registerTarget({
         id: `bicho_${e.id}`,
         get position() {
-          position.set(e.x, e.kind === 'espirito' ? 0.9 : e.kind === 'javali' ? 0.7 : 0.45, e.z);
+          position.set(e.x, (e.kind === 'espirito' ? 0.9 : e.kind === 'javali' || e.kind === 'chefe' ? 0.7 : 0.45) + (ELEVATION[e.id] ?? 0), e.z);
           return isActive(e) ? position : position.set(e.x, -50, e.z);
         },
-        radius: e.kind === 'javali' ? 0.9 : 0.55,
+        radius: e.kind === 'javali' || e.kind === 'chefe' ? 0.9 : 0.55,
         onHit: () => strike(e, 'shuriken'),
       });
     });
@@ -414,6 +602,11 @@ export function Enemies() {
     if (e.kind === 'javali') {
       run(WILD_CODE_ACTIONS.javali_vencido);
       toast('🐗', 'O Javali Rochoso bufou, sacudiu a poeira e foi dormir em outro lugar. O desfiladeiro está livre!');
+      return;
+    }
+    if (e.kind === 'chefe') {
+      run(`COINS:${spec.reward.coins};${WILD2_CODE_ACTIONS.chefe}`);
+      toast('🦔', `O Chefe Espinho largou a coroa, gritou "isso não acabou!"... e fugiu com o bando todo. +${spec.reward.coins} moedas`);
       return;
     }
     run(`COINS:${spec.reward.coins};${WILD_CODE_ACTIONS.bicho}${spec.reward.item ? `;GIVE:${spec.reward.item}` : ''}`);
@@ -465,7 +658,7 @@ export function Enemies() {
         for (const ev of enemyStep(e, dt, cat, env, rng, level)) {
           if (ev.type === 'hitCat') hurtPlayer(ev.damage, ev.fromX, ev.fromZ);
           else if (ev.type === 'throw') {
-            throwPinecone(combatWorld.pinecones, ev.x, ev.z, ev.dx, ev.dz);
+            coneFrom.current.set(throwPinecone(combatWorld.pinecones, ev.x, ev.z, ev.dx, ev.dz), ELEVATION[e.id] ?? 0);
             emit({ type: 'sfx', name: 'shuriken' });
           } else if (ev.type === 'bonk') {
             emit({ type: 'sfx', name: 'thwack' });
@@ -473,7 +666,18 @@ export function Enemies() {
           } else if (ev.type === 'wake') {
             emit({ type: 'sfx', name: 'voice_grunt' });
             if (e.kind === 'javali') toast('🐗', 'O Javali Rochoso acordou! Saia da frente da investida... ou fuja para longe dele.');
-          } else if (ev.type === 'alert' && e.kind !== 'espirito') emit({ type: 'sfx', name: 'voice_chitter' });
+          } else if (ev.type === 'alert' && e.kind !== 'espirito') {
+            emit({ type: 'sfx', name: 'voice_chitter' });
+            // the alarm: the band close by comes to look (working together)
+            if (rallyAllies(e, list, cat.x, cat.z) > 0 && !seen.current.tips.has('rally')) {
+              seen.current.tips.add('rally');
+              toast('📣', 'Deram o alarme! Os outros do bando vêm olhar onde você estava. Esconda-se agachado ou saia de perto.');
+            }
+            if (e.kind === 'chefe' && !seen.current.tips.has('chefe')) {
+              seen.current.tips.add('chefe');
+              toast('🦔', 'O Chefe Espinho te viu! Ele avisa (brilho vermelho) antes de investir: saia da frente e acerte quando ele ficar tonto.');
+            }
+          }
         }
       }
       const hit = stepPinecones(combatWorld.pinecones, dt, cat, env);
@@ -500,7 +704,7 @@ export function Enemies() {
       g.last = { x: e.x, z: e.z };
       const swing = Math.min(1, moved / 2.5) * 0.6 * Math.sin(t * (6 + moved * 2));
       for (const leg of g.legs) leg.rotation.x = swing * leg.userData.leg;
-      g.root.position.set(e.x, 0, e.z);
+      g.root.position.set(e.x, ELEVATION[e.id] ?? 0, e.z);
       g.root.rotation.y = e.heading;
       const spec = ENEMIES[e.kind];
       // giving up: shrinks into the puff of smoke
@@ -521,7 +725,7 @@ export function Enemies() {
       // the mark over the head
       const m = markOf(e);
       for (const c of g.marks.children) c.visible = c.name === m && (e.kind !== 'espirito' || faro || m === 'alert');
-      g.marks.position.y = (e.kind === 'javali' || e.kind === 'espirito' ? 1.95 : e.kind === 'raposa' ? 1.55 : 1.25) + 0.06 * Math.sin(t * 4);
+      g.marks.position.y = TOP[e.kind] + 0.25 + 0.06 * Math.sin(t * 4);
       // health, once hurt
       g.bar.visible = isActive(e) && e.hp < spec.hp && (e.kind !== 'espirito' || faro);
       g.bar.scale.x = e.hp / spec.hp;
@@ -534,7 +738,8 @@ export function Enemies() {
       if (!mesh) return;
       mesh.visible = p.alive;
       if (p.alive) {
-        mesh.position.set(p.x, 0.6 + Math.sin((p.age / 1.6) * Math.PI) * 0.8, p.z);
+        const from = coneFrom.current.get(p) ?? 0;
+        mesh.position.set(p.x, 0.6 + from * Math.max(0, 1 - p.age / 0.8) + Math.sin((p.age / 1.6) * Math.PI) * 0.8, p.z);
         mesh.rotation.x += dt * 12;
       }
     });
