@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { getGradient, windTime } from '../materials';
-import { buildCharacterMaterials as buildMaterials, inkMaterial, OUTLINED, mergeRigidParts } from './characterMaterials';
+import { buildCharacterMaterials as buildMaterials, inkMaterial, OUTLINED, foldCharacter } from './characterMaterials';
 import { measureGait, gaitFor, stretchStride } from './gait';
 import { useGameStore } from '../../store/gameStore';
 import { useEffectiveQuality } from '../../store/uiSettings';
@@ -40,7 +40,8 @@ const URL = asset('assets/characters/shinichi.glb');
 /** Bump when prepare() changes, so a hot reload does not reuse a scene prepared the old way. */
 // 4: rigid parts fused per bone and material (Etapa 1)
 // 5: measured gait, additive crouch (Etapa 5); 6: the additive crouch on a cloned clip
-const RIG_VERSION = 6;
+// 7: rigid parts folded into skinned meshes, one per material (foldCharacter)
+const RIG_VERSION = 7;
 const SCALE = 1.25;
 const FEET_Y = -0.66;
 /** Fur shells: count per quality and strand length (model units). */
@@ -172,8 +173,11 @@ export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
   }, [gltf]);
 
   function prepare(root: THREE.Group) {
-    // the pupils are scaled one by one (they dilate), so they keep their own nodes
-    mergeRigidParts(root, (n) => n.startsWith('pupil'));
+    // The rigid parts (head, ears, paws, scarf, satchel...) become skinned to the bone that carries them, one
+    // mesh per material: 16 parts + 14 ink hulls + their shadows were ~45 of his 66 draw calls. The body keeps
+    // its own mesh (the fur shells and the thicker ink follow it) and the pupils their nodes (they dilate).
+    const pupil = (o: THREE.Object3D | null) => !!o && o.name.startsWith('pupil');
+    foldCharacter(root, [], (m) => m.name === 'body' || pupil(m) || pupil(m.parent));
     const mats = buildMaterials();
     const furLift = FUR_LENGTH * 0.6;
     const ink = { skinned: inkMaterial(0.008 + furLift), rigid: inkMaterial(0.008) };
@@ -195,6 +199,8 @@ export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
         const sk = mesh as THREE.SkinnedMesh;
         const s = new THREE.SkinnedMesh(sk.geometry, mesh.name === 'body' ? ink.skinned : ink.rigid);
         s.bind(sk.skeleton, sk.bindMatrix);
+        // the folded parts' arrays are gone once on the GPU: three must not compute these bounds again
+        if (sk.boundingSphere) s.boundingSphere = sk.boundingSphere.clone();
         line = s;
       } else {
         line = new THREE.Mesh(mesh.geometry, ink.rigid);

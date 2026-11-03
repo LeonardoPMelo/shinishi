@@ -8,7 +8,7 @@
  *    4-byte partial answer once got stored as a whole model and broke the game on GitHub Pages (v1).
  * Bump VERSION to drop every old cache.
  */
-const VERSION = 'shinichi-v7'; // v7: auditoria geral (caminhos, rondas, rota dos caixotes)
+const VERSION = 'shinichi-v8'; // v8: otimização (fusão do cenário, partes do Shinichi)
 const SHELL = ['./', './index.html', './manifest.webmanifest', './paw.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

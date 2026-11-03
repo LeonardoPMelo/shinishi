@@ -5,6 +5,9 @@
  *   await __bench.run()            → table: GPU ms (timer query), triangles, draw calls per spot
  *   await __bench.fps(4000)        → real frame times (needs the Browser pane visible)
  *   __bench.scene()                → meshes, materials, geometries, textures, programs, JS heap
+ *   __bench.calls()                → draw calls and triangles per spot (sync, exact); WILD_SPOTS after __wild()
+ *   __bench.cpu()                  → main-thread ms per frame per spot (sync)
+ *   await __bench.settle()         → waits for the models to finish loading (compare like with like)
  *
  * Quality is pinned to the full auto rung (level 0) while measuring and restored after.
  */
@@ -206,7 +209,90 @@ async function snap(name: string) {
   return name;
 }
 
+/**
+ * Draw calls and triangles only, synchronously (no GPU timer: exact and repeatable even with the pane hidden).
+ * The village spots plus the temple of Mikage, the clearing and the wild lands (`__wild()` first for those).
+ */
+export const CALL_SPOTS: [string, number, number, number][] = [
+  ...SPOTS,
+  ['mikage', 27.6, -22, 0],
+  ['clareira', -9, 58, Math.PI],
+];
+export const WILD_SPOTS: [string, number, number, number][] = [
+  ['floresta_selvagem', 480, 15, 0],
+  ['espinhos', 484, -8, 0],
+  ['caverna', 526, -30, 0],
+  ['acampamento', 534, 22, Math.PI / 2],
+];
+function calls(spots = CALL_SPOTS) {
+  const ui = useUiSettings.getState();
+  const prevLevel = ui.autoLevel;
+  ui.setAutoLevel(0);
+  const rows: Record<string, { triK: number; calls: number }> = {};
+  for (const [name, x, z, theta] of spots) {
+    placeSync(x, z);
+    cameraAngle.theta = theta;
+    cameraAngle.phi = 0.38;
+    cameraAngle.distance = 7;
+    syncAdv(40);
+    rows[name] = drawStats();
+  }
+  useUiSettings.getState().setAutoLevel(prevLevel);
+  return rows;
+}
+
+/**
+ * Main-thread time of a frame (ms, median of 60): the scene graph walk, culling, uniforms and the WebGL calls
+ * three.js issues. This is what grows with draw calls; it runs synchronously, so it works with the pane hidden.
+ */
+function cpu(spots = CALL_SPOTS) {
+  const ui = useUiSettings.getState();
+  const prevLevel = ui.autoLevel;
+  ui.setAutoLevel(0);
+  const rows: Record<string, number> = {};
+  for (const [name, x, z, theta] of spots) {
+    placeSync(x, z);
+    cameraAngle.theta = theta;
+    cameraAngle.phi = 0.38;
+    cameraAngle.distance = 7;
+    syncAdv(40);
+    const t: number[] = [];
+    for (let i = 0; i < 60; i++) {
+      const t0 = performance.now();
+      syncAdv(1);
+      t.push(performance.now() - t0);
+    }
+    t.sort((p, q) => p - q);
+    rows[name] = +t[30].toFixed(2);
+  }
+  useUiSettings.getState().setAutoLevel(prevLevel);
+  return rows;
+}
+
+/**
+ * Waits until the models stop arriving (the scene's mesh count holds still for three checks 2 s apart):
+ * the GLBs load after the fallbacks are drawn, and a count taken before that compares different scenes.
+ */
+async function settle(maxS = 90) {
+  const count = () => {
+    let n = 0;
+    r3f().scene.traverse(() => n++);
+    return n;
+  };
+  let last = -1;
+  let same = 0;
+  for (let t = 0; t < maxS && same < 3; t += 2) {
+    syncAdv(2);
+    await new Promise((r) => setTimeout(r, 2000));
+    const n = count();
+    same = n === last ? same + 1 : 0;
+    last = n;
+  }
+  return last;
+}
+
 (window as unknown as Record<string, unknown>).__bench = {
-  run, start, fps, scene, gpuMs, SPOTS, progress, shots, snap,
+  settle,
+  run, start, fps, scene, gpuMs, SPOTS, progress, shots, snap, calls, cpu, CALL_SPOTS, WILD_SPOTS,
   get last() { return state.last; },
 };

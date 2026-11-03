@@ -847,3 +847,84 @@ Um quadro, incluindo o mapa de sombras:
    - Tripo para gerar modelos 3D;
    - Mixamo para animações.
    Cada download precisa da sua aprovação, com nome, origem e tamanho.
+
+## 19. Prompt mestre — Fase 2: otimização (2026-11-03)
+
+### Medição inicial (qualidade máxima, este computador: GPU integrada)
+- **No mercado:**
+  - 705 a 720 chamadas de desenho e 2,4 milhões de triângulos por quadro (contando o mapa de sombras);
+  - cerca de 23 a 40 ms de GPU por quadro.
+- **Na cena inteira:** 4.089 malhas.
+- **Tempo do processador por quadro:** cerca de 25 ms (17 a 20 ms desenhando a cena, 3 ms de física, 4 ms de lógica do jogo).
+
+### Onde está o custo
+**Chamadas de desenho no mercado:**
+
+| Parte | Chamadas |
+|---|---|
+| Cenário fundido | 251 |
+| Personagens | 162 (66 delas só do Shinichi: pelo, contorno e cada parte rígida separada, cada uma também na sombra) |
+| Objetos soltos | cerca de 150 |
+| Vegetação instanciada | 71 |
+
+**GPU no mercado, medida com e sem cada parte, alternando:**
+
+| Parte | GPU por quadro |
+|---|---|
+| Cenário fundido, incluindo o chão | cerca de 7 ms |
+| Vegetação instanciada | cerca de 5 ms |
+| Pós-processamento, MSAA e o restante | 4 a 5 ms |
+| Personagens | cerca de 3,7 ms |
+| Objetos transparentes | cerca de 1,7 ms |
+| Sombras | cerca de 1,5 ms |
+| Pelo do Shinichi | praticamente nada |
+
+### O que mudou
+1. **Fusão do cenário (`StaticMerge.tsx`):**
+   - **Antes:** peças que fazem sombra e peças que não fazem iam para malhas separadas, embora a malha visível nunca faça sombra (a sombra vem da cópia só de profundidade). Isso dobrava as chamadas de muitas células.
+   - **Agora:** a malha é uma só, e só as peças que fazem sombra entram na cópia de sombra.
+2. **Tamanho da célula de fusão (22 m → 32 m):** medido nos 14 lugares do teste (`__bench.calls()`).
+
+   | Célula | Chamadas | Triângulos |
+   |---|---|---|
+   | 22 m | 5.658 | 21,4 milhões |
+   | 32 m | 5.243 | 18,1 milhões |
+   | 44 m | 4.974 | 21,9 milhões |
+
+   Com 44 m, uma esquina à vista desenha a célula inteira.
+3. **Shinichi (`ShinichiCat.tsx`, `foldCharacter`):**
+   - **O que mudou:** as partes rígidas (cabeça, orelhas, patas, cachecol, bolsa…) viraram malhas com esqueleto, uma por material, a mesma técnica já usada nos moradores. O corpo, que carrega o pelo, e as pupilas, que dilatam, continuam separados.
+   - **Resultado:** 48 → 27 malhas. Conferido de perto, parado e correndo: tudo no lugar.
+4. **Erro corrigido no caminho:** os contornos das partes novas não tinham limites calculados. O three.js tentava calculá-los a partir de uma geometria cujos dados já tinham sido liberados da memória, e lançava erro ao desenhar. Agora os limites são copiados da malha original.
+
+### Resultado: o que dá para afirmar
+- **Contagens exatas (o mundo inteiro, antes → depois):**
+
+  | O quê | Antes | Depois |
+  |---|---|---|
+  | Malhas fundidas do cenário | 687 | 495 (−28%) |
+  | Cópias de sombra | 61 | 52 |
+  | Malhas na cena | 4.089 | 3.867 |
+  | Malhas do Shinichi | 48 | 27 (−44%) |
+
+  Cada malha à vista é pelo menos uma chamada de desenho.
+- **Por lugar, a mesma página medida 3 vezes:** variação de ±3%. Entre recarregamentos de página, os números por lugar variam até ±20% (moradores andando, cortes por distância que dependem do caminho). Por isso as contagens exatas acima são a comparação confiável.
+- **Tempo de quadro:** **não melhorou de forma mensurável neste computador.**
+  - **Processador:** repetido nas mesmas condições, deu 19 a 27 ms por quadro antes e depois. Uma primeira medição "antes" de 26 a 43 ms era ruído do aquecimento da página.
+  - **Gargalo:** nesta GPU integrada, na qualidade máxima, o limite é a GPU (pixels e vegetação).
+    - Nos degraus mais baixos da qualidade automática, o tempo cai para cerca de 24 ms, um piso que já é do processador.
+    - Desse piso, 4,6 a 5,5 ms são o three.js recalculando a posição de 9.400 objetos por quadro.
+    - Congelar só o cenário estático economizaria cerca de 0,9 ms; não entrou, porque teria risco para objetos que aparecem depois.
+
+### Ferramentas novas de medição (só no modo de desenvolvimento)
+- `__bench.calls()`: chamadas de desenho e triângulos por lugar, incluindo o templo de Mikage, a clareira e, depois de `__wild()`, as terras selvagens (`WILD_SPOTS`).
+- `__bench.cpu()`: tempo do processador por quadro, por lugar.
+- `await __bench.settle()`: espera os modelos terminarem de carregar antes de medir.
+
+### Próximos alvos de desempenho, pelo que a medição mostrou
+1. **Vegetação instanciada** (cerca de 5 ms de GPU no mercado): tufos de capim em dupla face e muitos grupos pequenos. Caminhos possíveis: densidade menor por distância, menos grupos.
+2. **Chão e cenário fundido** (cerca de 7 ms): sombreamento do chão e malhas grandes.
+3. **Recalcular posições** (cerca de 5 ms de processador): congelar o que é estático, com cuidado com o que entra na cena depois.
+
+### Outros
+Arquivos que a edição anterior tinha passado de CRLF para LF voltaram ao original. Só mudou o fim de linha, não o conteúdo.

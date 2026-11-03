@@ -142,17 +142,20 @@ function proxyMaterial(side: THREE.Side, shadowSide: THREE.Side | null) {
 
 interface Bucket {
   material: THREE.Material;
-  cast: boolean;
   receive: boolean;
   geos: THREE.BufferGeometry[];
+  /** Which of `geos` cast a shadow (they go into the cell's shadow proxy too). */
+  casts: boolean[];
 }
 
 /**
- * chunk: world-space cell size for splitting big areas (0 = one cell).
+ * chunk: world-space cell size for splitting big areas (0 = one cell). 32 m measured best (draw calls and
+ * triangles summed over 14 spots, `__bench.calls()`): 22 m was 5658 calls / 21.4 M triangles, 32 m 5243 / 18.1 M,
+ * 44 m 4974 / 21.9 M (fewer calls, but whole cells drawn for a corner in view).
  * castAll: treat every mesh as a shadow caster, so small models (characters) end up
  * in fewer buckets instead of being split by their castShadow flags.
  */
-export function StaticMerge({ children, chunk = 22, castAll = false }: { children: ReactNode; chunk?: number; castAll?: boolean }) {
+export function StaticMerge({ children, chunk = 32, castAll = false }: { children: ReactNode; chunk?: number; castAll?: boolean }) {
   const root = useRef<THREE.Group>(null);
 
   useLayoutEffect(() => {
@@ -173,15 +176,18 @@ export function StaticMerge({ children, chunk = 22, castAll = false }: { childre
         const cell = chunk > 0 ? `${Math.floor(center.x / chunk)},${Math.floor(center.z / chunk)}` : '0';
         const base = bucketKey(material);
         const cast = (castAll && bakeable(material) && material.type !== 'MeshBasicMaterial') || mesh.castShadow;
-        const key = `${base}|${cast}|${mesh.receiveShadow}|${cell}`;
+        // (not split by casting: the merged mesh never casts itself, its casters go into the shadow proxy.
+        // Splitting by it doubled the draw calls of many cells)
+        const key = `${base}|${mesh.receiveShadow}|${cell}`;
         const vc = bakeable(material);
         let bucket = buckets.get(key);
         if (!bucket) {
-          bucket = { material: vc ? sharedVertexColorMaterial(base, material) : material, cast, receive: mesh.receiveShadow, geos: [] };
+          bucket = { material: vc ? sharedVertexColorMaterial(base, material) : material, receive: mesh.receiveShadow, geos: [], casts: [] };
           buckets.set(key, bucket);
         }
         const keepVC = !!(material as THREE.Material & { vertexColors?: boolean }).vertexColors && !!mesh.geometry.attributes.color;
         bucket.geos.push(normalize(mesh.geometry, inverse.clone().multiply(mesh.matrixWorld), vc ? material.color! : null, (material.userData.worldUV as number) || 0, keepVC));
+        bucket.casts.push(cast);
         if (mesh.parent) removed.push({ obj: mesh, parent: mesh.parent });
         // solid things standing on the ground darken it where they touch (Etapa 3: baked contact, no SSAO)
         if (cast && !material.transparent) addMeshContact(mesh);
@@ -196,11 +202,11 @@ export function StaticMerge({ children, chunk = 22, castAll = false }: { childre
     // material bucket (~185 in the plaza) for the same depth image.
     const proxies = new Map<string, { side: THREE.Side; shadowSide: THREE.Side | null; geos: THREE.BufferGeometry[] }>();
     for (const [key, b] of buckets) {
-      if (!b.cast) continue;
+      if (!b.casts.some(Boolean)) continue;
       const cell = key.slice(key.lastIndexOf('|') + 1);
       const pk = `${cell}|${b.material.side}|${b.material.shadowSide}`;
       const p = proxies.get(pk) ?? { side: b.material.side, shadowSide: b.material.shadowSide, geos: [] };
-      for (const g of b.geos) {
+      for (const g of b.geos.filter((_g, i) => b.casts[i])) {
         const pg = new THREE.BufferGeometry();
         pg.setAttribute('position', g.attributes.position);
         pg.setIndex(g.index);

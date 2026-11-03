@@ -114,77 +114,6 @@ export function applyCharacterMaterials(root: THREE.Object3D, mats: Record<strin
   return lines;
 }
 
-/**
- * Fuses the rigid (non-skinned, non-morphing) parts of a character that ride the same bone and share a
- * material, e.g. both ears, both pupils, the pieces of a hat (Etapa 1). On the integrated GPU each part
- * was its own draw call, plus its ink hull and its shadow: the characters were ~400 of the ~850 draws
- * in the plaza. Positions are widened to floats first (the GLBs are quantized, and the dequantize scale
- * sits in each node's matrix). Returns how many meshes were removed.
- */
-export function mergeRigidParts(root: THREE.Object3D, keepApart: (name: string) => boolean = () => false) {
-  root.updateMatrixWorld(true);
-  // parts are grouped by the bone that carries them (the nearest bone ancestor) and by material
-  const owner = (o: THREE.Object3D) => {
-    let a = o.parent;
-    while (a && !(a as THREE.Bone).isBone && a !== root) a = a.parent;
-    return a ?? root;
-  };
-  const groups = new Map<string, { bone: THREE.Object3D; list: THREE.Mesh[] }>();
-  root.traverse((o) => {
-    const m = o as THREE.Mesh;
-    if (!m.isMesh || (m as THREE.SkinnedMesh).isSkinnedMesh || !m.parent || Array.isArray(m.material)) return;
-    if (Object.keys(m.geometry.morphAttributes).length) return;
-    // parts animated on their own (Shinichi's pupils dilate) stay separate
-    if (keepApart(m.name) || (m.parent && keepApart(m.parent.name))) return;
-    const bone = owner(m);
-    const key = `${bone.uuid}|${(m.material as THREE.Material).name}`;
-    const e = groups.get(key) ?? { bone, list: [] };
-    e.list.push(m);
-    groups.set(key, e);
-  });
-  let removed = 0;
-  const toBone = new THREE.Matrix4();
-  for (const { bone, list } of groups.values()) {
-    if (list.length < 2) continue;
-    const boneInv = bone.matrixWorld.clone().invert();
-    const parts = list.map((m) => {
-      toBone.multiplyMatrices(boneInv, m.matrixWorld);
-      const g = new THREE.BufferGeometry();
-      for (const name of ['position', 'normal', 'color'] as const) {
-        const src = m.geometry.getAttribute(name);
-        if (!src) continue;
-        const size = src.itemSize;
-        const f = new Float32Array(src.count * size);
-        for (let i = 0; i < src.count; i++) {
-          f[i * size] = src.getX(i);
-          if (size > 1) f[i * size + 1] = src.getY(i);
-          if (size > 2) f[i * size + 2] = src.getZ(i);
-          if (size > 3) f[i * size + 3] = src.getW(i);
-        }
-        g.setAttribute(name, new THREE.BufferAttribute(f, size));
-      }
-      if (m.geometry.index) g.setIndex(Array.from(m.geometry.index.array as ArrayLike<number>));
-      g.applyMatrix4(toBone);
-      return g;
-    });
-    // every part must carry the same attributes to be merged
-    const sig = (g: THREE.BufferGeometry) => Object.keys(g.attributes).sort().join() + (g.index ? '|i' : '');
-    if (parts.some((g) => sig(g) !== sig(parts[0]))) continue;
-    const merged = mergeGeometries(parts, false);
-    parts.forEach((g) => g.dispose());
-    if (!merged) continue;
-    const first = list[0];
-    const mesh = new THREE.Mesh(merged, first.material);
-    mesh.name = `${first.name}_fundido`;
-    mesh.castShadow = list.some((m) => m.castShadow);
-    mesh.receiveShadow = list.some((m) => m.receiveShadow);
-    bone.add(mesh);
-    for (const m of list) m.removeFromParent();
-    removed += list.length - 1;
-  }
-  return removed;
-}
-
 function dropArray(this: THREE.BufferAttribute) {
   (this as unknown as { array: ArrayLike<number> | null }).array = null;
 }
@@ -222,9 +151,10 @@ function widened(src: THREE.BufferGeometry) {
  * was ~20 draw calls (each part, its ink hull, its shadow); now it is one per material plus the morphing
  * face parts, which stay separate. Run before the materials and ink hulls are applied, on the rest pose.
  * The light LOD survives: each merged mesh gets a full and a light geometry (the light one uses the
- * simplified copy of the parts that have one). Returns the new LOD pairs.
+ * simplified copy of the parts that have one). Returns the new LOD pairs. `keepApart`: meshes left as they are
+ * (Shinichi's furred body and his dilating pupils).
  */
-export function foldCharacter(root: THREE.Object3D, lod: LodPair[]): LodPair[] {
+export function foldCharacter(root: THREE.Object3D, lod: LodPair[], keepApart: (m: THREE.Mesh) => boolean = () => false): LodPair[] {
   root.updateMatrixWorld(true);
   const meshes: THREE.Mesh[] = [];
   root.traverse((o) => {
@@ -275,7 +205,7 @@ export function foldCharacter(root: THREE.Object3D, lod: LodPair[]): LodPair[] {
 
   const groups = new Map<string, THREE.Mesh[]>();
   for (const m of meshes) {
-    if (Array.isArray(m.material) || Object.keys(m.geometry.morphAttributes).length) continue;
+    if (Array.isArray(m.material) || Object.keys(m.geometry.morphAttributes).length || keepApart(m)) continue;
     const key = (m.material as THREE.Material).name;
     groups.set(key, [...(groups.get(key) ?? []), m]);
   }
