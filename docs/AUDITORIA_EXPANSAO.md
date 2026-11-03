@@ -928,3 +928,43 @@ Um quadro, incluindo o mapa de sombras:
 
 ### Outros
 Arquivos que a edição anterior tinha passado de CRLF para LF voltaram ao original. Só mudou o fim de linha, não o conteúdo.
+
+## 20. Prompt mestre — Fase 2b: vegetação por distância (2026-11-03)
+
+### O que acontecia
+- **Vila:** o capim, o capim alto e as flores eram desenhados até a beira do mapa. Já estavam divididos em células de 30 m com corte pelo campo de visão, mas sem limite de distância (o corte por distância existente ignora malhas instanciadas). Um tufo tem poucos pixels depois de ~30 m, e a neblina começa em 42 m.
+- **Terras Selvagens, pior:** samambaias, flores, cogumelos, tufos e juncos eram **uma malha por tipo para a região inteira** (96 × 96 m), então eram desenhados inteiros em todo quadro, inclusive atrás da câmera.
+
+### O que mudou (`src/game/vegetation.ts`)
+- **No shader:** cada planta encolhe até a raiz entre 30 e 40 m da câmera. Não há "estalo": ela some aos poucos, antes da neblina. As distâncias seguem o degrau da qualidade automática, como os outros cortes por distância.
+- **Células:** cada célula inteira além da distância deixa de ser desenhada (`VegetationCull`, algumas células por quadro).
+- **Terras Selvagens:** as plantas pequenas foram divididas em células de 24 m.
+- **Fora disso:** as moitas e as pedras ficam como estavam, porque desenham a beira dos caminhos ao longe.
+- **Divisão em células:** saiu de `Foliage.tsx` e virou `chunkInstanced` no módulo novo, usado pela vila e pelas terras selvagens.
+
+### Medição
+- **Correção da ferramenta:** a contagem de um quadro só variava ±0,7 milhão de triângulos, porque o mapa de sombras é redesenhado a cada dois quadros. Agora `__bench.calls()` faz a média de dois quadros.
+- **Lugares onde as duas medições "antes" concordaram** (com `__vegOff = true`, só no modo de desenvolvimento, todas as plantas voltam a ser desenhadas):
+
+  | Lugar | Triângulos antes | Triângulos depois | Redução |
+  |---|---|---|---|
+  | Praça | 2,04 milhões | 1,66 milhão | −19% |
+  | Floresta da vila | 1,43 milhão | 1,04 milhão | −27% |
+  | Bosque Antigo | 1,09 milhão | 0,77 milhão | −30% |
+  | Clareira | 0,87 milhão | 0,63 milhão | −28% |
+  | Caverna | 0,62 milhão | 0,55 milhão | −12% |
+
+  Nos outros lugares, moradores e bichos andando mudam a amostra de uma medição para outra.
+- **GPU:** **não deu para medir o ganho neste computador.** A mesma cena, medida quatro vezes seguidas, deu 17, 73, 93 e 80 ms. A GPU integrada reduz o próprio ritmo com o uso contínuo, e o painel escondido piora isso.
+- **Aparência:** conferida com capturas lado a lado, com e sem o corte, na vila e na campina das terras selvagens. O capim e as flores à vista ficam iguais.
+
+### Chão
+- **O shader do chão já é cuidadoso:** pedrinhas só de perto, detalhe de terra só onde há terra.
+- **O único corte possível** seria pular o ruído da borda no gramado liso. Ele mudaria as manchas escuras do gramado, e o ganho não pôde ser medido, então ficou como está.
+
+### Testes
+`tests/vegetation.test.ts` (4 testes):
+- as células guardam todas as plantas, cada uma uma vez, com a cor;
+- só capim e flores entram no corte por distância;
+- o encolhimento entra depois do shader que o material já tinha, e o programa ganha outra chave;
+- as distâncias terminam antes da neblina.

@@ -57,10 +57,13 @@ async function gpuMs(frames = 16) {
 
 function drawStats() {
   const R = r3f();
+  // two frames, averaged: the shadow map is redrawn every other frame (ShadowBudget), so a single frame
+  // counted ±0.7 M triangles depending on which one it was
   R.gl.info.autoReset = false;
   R.gl.info.reset();
   R.advance(performance.now());
-  const out = { triK: Math.round(R.gl.info.render.triangles / 1000), calls: R.gl.info.render.calls };
+  R.advance(performance.now() + 16);
+  const out = { triK: Math.round(R.gl.info.render.triangles / 2000), calls: Math.round(R.gl.info.render.calls / 2) };
   R.gl.info.autoReset = true;
   return out;
 }

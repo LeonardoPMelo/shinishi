@@ -15,6 +15,7 @@ type Spot = { x: number; z: number; r: number; tall?: boolean; lush?: number };
 import { useEffectiveQuality } from '../../store/uiSettings';
 import { rockGeometry } from '../rockGeometry';
 import { addGroundContact } from '../groundContact';
+import { addDistanceFade, chunkInstanced } from '../vegetation';
 
 /**
  * Instanced grass tufts and wild flowers that sway in the wind.
@@ -267,48 +268,8 @@ function swayMaterial(opts: { side?: THREE.Side; strength: number }) {
       );
   };
   m.customProgramCacheKey = () => `sway-${opts.strength}`;
-  return m;
-}
-
-/**
- * Splits one big InstancedMesh into spatial cells (same geometry and material), each with its own
- * bounding sphere and frustum culling on (Etapa 1). As a single mesh the whole field was drawn every
- * frame, including everything behind the camera: ~3.5 ms of an integrated GPU in the plaza.
- */
-function chunkInstanced(src: THREE.InstancedMesh, cell = 30): THREE.Group {
-  const group = new THREE.Group();
-  const m = new THREE.Matrix4();
-  const p = new THREE.Vector3();
-  const c = new THREE.Color();
-  const cells = new Map<string, number[]>();
-  for (let i = 0; i < src.count; i++) {
-    src.getMatrixAt(i, m);
-    p.setFromMatrixPosition(m);
-    const key = `${Math.floor(p.x / cell)},${Math.floor(p.z / cell)}`;
-    const list = cells.get(key) ?? [];
-    list.push(i);
-    cells.set(key, list);
-  }
-  for (const list of cells.values()) {
-    const part = new THREE.InstancedMesh(src.geometry, src.material, list.length);
-    list.forEach((idx, k) => {
-      src.getMatrixAt(idx, m);
-      part.setMatrixAt(k, m);
-      if (src.instanceColor) {
-        src.getColorAt(idx, c);
-        part.setColorAt(k, c);
-      }
-    });
-    part.computeBoundingSphere();
-    // room for the wind sway and the blade tips
-    if (part.boundingSphere) part.boundingSphere.radius += 1;
-    part.castShadow = src.castShadow;
-    part.receiveShadow = src.receiveShadow;
-    part.userData.dynamic = true;
-    group.add(part);
-  }
-  group.userData.dynamic = true;
-  return group;
+  // grass and flowers shrink away past ~30 m (vegetation.ts)
+  return addDistanceFade(m);
 }
 
 const FLOWER_COLORS = ['#FFFFFF', '#FFD1E3', '#F7A8C8', '#FFE58A', '#BFD8FF', '#D9B8FF', '#FF9F80'];
@@ -534,10 +495,12 @@ export function Foliage() {
   }, [grass, flowers]);
 
   const cells = useMemo(() => {
-    const meshes: THREE.InstancedMesh[] = [];
-    for (const m of [grass, tallGrass, flowers, rocks]) if (m) meshes.push(m);
-    bushes?.children.forEach((b) => meshes.push(b as THREE.InstancedMesh));
-    return meshes.map((mesh) => chunkInstanced(mesh));
+    // grass and flowers are cut past the fade distance; bushes and stones stay (they shape the verges far off)
+    const out: THREE.Group[] = [];
+    for (const m of [grass, tallGrass, flowers]) if (m) out.push(chunkInstanced(m));
+    if (rocks) out.push(chunkInstanced(rocks, 30, false));
+    bushes?.children.forEach((b) => out.push(chunkInstanced(b as THREE.InstancedMesh, 30, false)));
+    return out;
   }, [grass, tallGrass, flowers, bushes, rocks]);
 
   return (

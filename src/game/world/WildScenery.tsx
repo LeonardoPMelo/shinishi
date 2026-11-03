@@ -7,6 +7,7 @@ import { Rock } from './Rock';
 import { PineTree, MapleTree, SakuraTree } from './Props';
 import { useGrassTexture } from './Ground';
 import { getPuffGeometry } from '../foliageGeometry';
+import { addDistanceFade, chunkInstanced } from '../vegetation';
 import { WILD, WILD_RIVER, WILD_WALLS, CAVE, OUTPOST, CANYON, distToTrail, inWall, keepOpen, scatter, type WildWall } from '../../data/wild';
 import { ESPINHO_CAMP } from '../../data/wild2';
 
@@ -255,13 +256,18 @@ const CHERRY: [number, number, number, number][] = [[-48, 8, -28, 38]];
 const MEADOWS: [number, number, number, number][] = [[10, -1, 27, 38], [11, -20, 22, -1], [40, -2, 48, 12]];
 const EVERYWHERE: [number, number, number, number][] = [[WILD.minX, WILD.minZ, WILD.maxX, WILD.maxZ]];
 
-/** One instanced mesh of a small plant: its shape, its colours, where it grows. */
-function Instanced({ geometry, items, colors, y = 0, scale = 1, wind = false }: {
-  geometry: THREE.BufferGeometry; items: { x: number; z: number; s: number; rot: number; tone: number }[]; colors: string[]; y?: number; scale?: number; wind?: boolean;
+/**
+ * One instanced mesh of a small plant: its shape, its colours, where it grows. `fade`: split into cells that
+ * shrink away and stop drawing past ~30–40 m (vegetation.ts); as one mesh over the whole region, every fern
+ * and flower was drawn on every frame, behind the camera too.
+ */
+function Instanced({ geometry, items, colors, y = 0, scale = 1, wind = false, fade = false }: {
+  geometry: THREE.BufferGeometry; items: { x: number; z: number; s: number; rot: number; tone: number }[]; colors: string[]; y?: number; scale?: number; wind?: boolean; fade?: boolean;
 }) {
   const mesh = useMemo(() => {
     const mat = new THREE.MeshToonMaterial({ gradientMap: getGradient() });
     enhanceToon(mat, wind);
+    if (fade) addDistanceFade(mat);
     const m = new THREE.InstancedMesh(geometry, mat, items.length);
     const o = new THREE.Object3D();
     const c = new THREE.Color();
@@ -278,11 +284,12 @@ function Instanced({ geometry, items, colors, y = 0, scale = 1, wind = false }: 
     m.receiveShadow = true;
     m.userData.dynamic = true;
     return m;
-  }, [geometry, items, colors, y, scale, wind]);
+  }, [geometry, items, colors, y, scale, wind, fade]);
+  const object = useMemo(() => (fade ? chunkInstanced(mesh, 24) : mesh), [mesh, fade]);
   useEffect(() => () => {
     (mesh.material as THREE.Material).dispose();
   }, [mesh]);
-  return <primitive object={mesh} />;
+  return <primitive object={object} />;
 }
 
 /** A fern: a ring of long, drooping fronds. */
@@ -359,11 +366,11 @@ export function Undergrowth() {
   useEffect(() => () => Object.values(shapes).forEach((g) => g.dispose()), [shapes]);
   return (
     <group>
-      <Instanced geometry={shapes.fern} items={sets.ferns} colors={['#4E8A3E', '#5E9A46', '#3F7A36']} scale={1.1} wind />
+      <Instanced geometry={shapes.fern} items={sets.ferns} colors={['#4E8A3E', '#5E9A46', '#3F7A36']} scale={1.1} wind fade />
       <Instanced geometry={shapes.bush} items={sets.bushes} colors={['#4F7F3C', '#5E8F48', '#6A9A4E', '#4A7238']} scale={1.3} wind />
-      <Instanced geometry={shapes.flower} items={sets.flowers} colors={['#FFD54A', '#F49AB8', '#FFFFFF', '#C79BFF', '#FF8A5A', '#7FD3FF']} />
-      <Instanced geometry={shapes.mushroom} items={sets.mushrooms} colors={['#D9483A', '#E8C27A', '#B07A4A', '#F2E6D8']} />
-      <Instanced geometry={shapes.tuft} items={sets.tufts} colors={['#6E9E48', '#7FAE52', '#5E8E40', '#93B860']} wind />
+      <Instanced geometry={shapes.flower} items={sets.flowers} colors={['#FFD54A', '#F49AB8', '#FFFFFF', '#C79BFF', '#FF8A5A', '#7FD3FF']} fade />
+      <Instanced geometry={shapes.mushroom} items={sets.mushrooms} colors={['#D9483A', '#E8C27A', '#B07A4A', '#F2E6D8']} fade />
+      <Instanced geometry={shapes.tuft} items={sets.tufts} colors={['#6E9E48', '#7FAE52', '#5E8E40', '#93B860']} wind fade />
     </group>
   );
 }
@@ -482,7 +489,7 @@ export function RiverBanks() {
   }, []);
   return (
     <group>
-      <Instanced geometry={reed} items={reeds} colors={['#7FA24E', '#8FB25A', '#6E9244']} wind />
+      <Instanced geometry={reed} items={reeds} colors={['#7FA24E', '#8FB25A', '#6E9244']} wind fade />
       {midRocks.map((p, i) => (
         <group key={i}>
           <Rock variant={i % 5} kind="flat" position={[p.x, 0.05, p.z]} scale={[0.55, 0.16, 0.5]} color="#7E776C" contact={false} />

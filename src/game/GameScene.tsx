@@ -39,6 +39,7 @@ import { FirstSteps } from './systems/FirstSteps';
 import { DemoTour } from './systems/tour';
 import { PostFX, AutoQuality } from './Effects';
 import { WindClock, FoliageFade, ShadowBudget, SmallCull } from './materials';
+import { VegetationCull } from './vegetation';
 import { Particles } from './systems/particles';
 import { VfxRings } from './systems/vfx';
 import { useRenderProfile } from '../store/uiSettings';
@@ -195,6 +196,7 @@ function Scene() {
       <FoliageFade />
       <ShadowBudget />
       <SmallCull />
+      <VegetationCull />
       <AutoQuality />
       {profile.postfx && <PostFX bloom={profile.bloom} msaa={profile.msaa} scale={profile.scale} tint={light.grade} exposure={light.exposure} saturation={light.saturation} />}
 
