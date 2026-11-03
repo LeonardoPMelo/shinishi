@@ -29,7 +29,9 @@ import { LivingWorld } from './world/LivingWorld';
 import { Fauna } from './world/Fauna';
 import { TreeLine } from './world/TreeLine';
 import { Interiors } from './world/Interiors';
-import { WildRegion, TrailGateVillage } from './world/WildRegion';
+import { WildRegion } from './world/WildRegion';
+import { MikagePrecinct, PrecinctLife } from './world/MikagePrecinct';
+import { ExitTrail, ExitTrailLife } from './world/ExitTrail';
 import { Enemies } from './world/Enemies';
 import { StoryPropsOutdoor, StoryPropsSede } from './world/StoryProps';
 import { useZone } from './systems/zone';
@@ -216,10 +218,13 @@ function Scene() {
           <MiranteTerrace />
           <MiranteStairs />
           <MushroomsAndTreehouse />
+          <MikagePrecinct />
+          <ExitTrail />
         </StaticMerge>
         <Foliage />
         <PlayThings />
-        <TrailGateVillage />
+        <PrecinctLife />
+        <ExitTrailLife />
         <StoryPropsOutdoor />
         </group>
         <StoryPropsSede />

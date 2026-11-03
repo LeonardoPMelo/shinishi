@@ -247,7 +247,7 @@ export const SUMI: NPCDefinition = {
       },
       faixa: {
         id: 'faixa', speaker: 'Professora Sumi', mood: 'happy',
-        text: 'Esta é a Faixa Índigo da Academia, e o Haru vai te ensinar o Passo Leve: agachado, você anda mais rápido e em silêncio.\nE tem mais: o Mikage, o líder da vila, pediu para conhecer você. A Sede fica no fim da Floresta do Treinamento, ao sul, depois do riacho.',
+        text: 'Esta é a Faixa Índigo da Academia, e o Haru vai te ensinar o Passo Leve: agachado, você anda mais rápido e em silêncio.\nE tem mais: o Mikage, o líder da vila, pediu para conhecer você. A residência dele fica no Templo de Mikage: siga a rua das glicínias para o norte, no Bairro das Glicínias, até o grande portão.',
         options: [{ label: '🐾 Obrigado, professora!', nextNodeId: null, action: 'STEP:academia.formatura' }],
       },
     } },
@@ -269,7 +269,7 @@ export const SUMI: NPCDefinition = {
       },
     } },
     { when: { notStarted: 'academia' }, tree: say('Professora Sumi', 'As matrículas abrem quando o Templo dos Enigmas for desvendado: a Tsubaki diz que é a melhor aula de lógica da vila.\nEnquanto isso, pode experimentar o circuito e o corredor à vontade!') },
-    { when: { active: 'audiencia' }, tree: say('Professora Sumi', 'O Mikage espera por você! O portão da Sede fica no fim da Floresta do Treinamento, ao sul: atravesse a ponte do riacho e siga reto.') },
+    { when: { active: 'audiencia' }, tree: say('Professora Sumi', 'O Mikage espera por você! Vá ao Bairro das Glicínias (portão leste da vila) e siga a rua coberta de glicínias para o norte: o grande portão é o do Templo de Mikage. A residência fica no alto da escadaria.') },
     { tree: say('Professora Sumi', 'O quadro tem um desafio extra, se você quiser. E as alavancas voltam ao lugar sozinhas: pode jogar de novo quando quiser.') },
   ],
 };

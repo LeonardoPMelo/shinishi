@@ -4,7 +4,7 @@ import type { OrderPuzzle } from '../systems/orderPuzzle';
 import type { EnemyKind } from '../systems/combat';
 
 /**
- * As Terras Selvagens (Etapa 7 da expansão): the region past the Trilha da Expedição, west of the village.
+ * As Terras Selvagens (Etapa 7 da expansão): the region past the Trilha da Expedição, beyond the Clareira dos Cervos.
  * Like the houses you walk into, it is its own zone far from the village map (x around 500), reached through a
  * gate in the Bambuzal's west fence; the village is not drawn while the cat is there.
  *
@@ -30,7 +30,12 @@ export const inWildWorld = (x: number, z: number) => x >= WILD_RECT.minX - 4 && 
 // ── Getting there ────────────────────────────────────────────────────────────
 
 /** The gate in the village (Bambuzal's west fence, between the bathhouse and the fisherman's hut). */
-export const TRAIL_GATE = { at: [-40.0, 0, 12.0] as Vec3, out: [-38.6, 0, 12.0] as Vec3, heading: Math.PI / 2 };
+/**
+ * The gate out of the village, in the Clareira dos Cervos (data/clearing.ts): where the trail starts, and where
+ * the cat comes back (inside the fence, facing north, into the clearing). It was in the Bambuzal's west fence
+ * until the review after Etapa 10.
+ */
+export const TRAIL_GATE = { at: [-9.0, 0, 64.0] as Vec3, out: [-9.0, 0, 62.2] as Vec3, heading: Math.PI };
 /** The way back, on the camp's east edge, and where the cat arrives (facing west, into the region). */
 export const WILD_GATE = { at: w(45.6, 22), arrive: w(42.4, 22), heading: -Math.PI / 2 };
 /** Where a fainted cat wakes up: by the campfire. */
@@ -514,14 +519,14 @@ export const YUKI_TRAIL_ROUTES = [
   { when: { notStarted: 'trilha', done: 'expedicao' } as Condition, tree: {
     start: {
       id: 'start', speaker: 'Conselheira Yuki', mood: 'happy' as const,
-      text: 'A expedição partiu! Montamos o acampamento nas terras selvagens.\nA Trilha da Expedição sai do Bambuzal, no portão da cerca oeste, entre a casa de banho e a cabana do pescador. Te espero lá do outro lado.',
+      text: 'A expedição partiu! Montamos o acampamento nas terras selvagens.\nA Trilha da Expedição sai da Clareira dos Cervos, no fim do Bosque Antigo, pelo portão da cerca sul. A Batedora Kaze está lá. Te espero do outro lado.',
       options: [
         { label: '🏕️ Estou indo!', nextNodeId: null, action: 'START:trilha;STEP:trilha.ouvir' },
         { label: 'Depois', nextNodeId: null },
       ],
     },
   } },
-  { when: { active: 'trilha', notStep: 'trilha.portao' } as Condition, tree: say('Conselheira Yuki', 'O portão da trilha fica no Bambuzal, na cerca oeste, entre a casa de banho e a cabana do pescador.') },
+  { when: { active: 'trilha', notStep: 'trilha.portao' } as Condition, tree: say('Conselheira Yuki', 'O portão da trilha fica na Clareira dos Cervos: atravesse o Bosque Antigo (portão sul da vila) até o fim. Depois do portão, é só seguir a trilha.') },
 ];
 
 // ── Objects ──────────────────────────────────────────────────────────────────
@@ -535,7 +540,7 @@ export const WILD_OBJECTS: WorldObject[] = [
   {
     id: 'portao_trilha_fechado', kind: 'examine', position: TRAIL_GATE.at, label: 'Olhar o portão da trilha', name: 'Trilha da Expedição', radius: 1.8,
     when: { notStep: 'trilha.ouvir' },
-    dialogue: say('Trilha da Expedição', 'Um portão de troncos, trancado com corda. Uma placa: "Trilha da Expedição. Só com autorização da Sede."\nSó os batedores da Conselheira Yuki passam por aqui.'),
+    dialogue: say('Trilha da Expedição', 'O portão de saída da vila, de pedra e troncos, trancado com uma corda. Uma placa: "Trilha da Expedição. Só com autorização da Sede."\nA Batedora Kaze cuida dele.'),
   },
   {
     id: 'trilha_volta', kind: 'examine', position: WILD_GATE.at, label: 'Voltar para a vila', name: 'Trilha da Expedição', radius: 1.8,
@@ -628,10 +633,10 @@ export const WILD_OBJECTS: WorldObject[] = [
 export const WILD_MISSIONS: Mission[] = [
   {
     id: 'trilha', chapter: 6, title: 'A Expedição Parte', category: 'principal', giver: 'yuki',
-    description: 'A expedição montou acampamento nas terras selvagens. A Trilha da Expedição sai do Bambuzal, pela cerca oeste.',
+    description: 'A expedição montou acampamento nas terras selvagens. A Trilha da Expedição sai da Clareira dos Cervos, no fim do Bosque Antigo.',
     steps: [
       { id: 'ouvir', description: 'Fale com a Conselheira Yuki na Sede', target: { npc: 'yuki' } },
-      { id: 'portao', description: 'Atravesse o portão da Trilha da Expedição (cerca oeste do Bambuzal)', target: { object: 'portao_trilha' } },
+      { id: 'portao', description: 'Siga pela Trilha da Expedição (portão da Clareira dos Cervos, no fim do Bosque Antigo)', target: { object: 'portao_trilha' } },
       { id: 'acampamento', description: 'Encontre a Yuki no acampamento', target: { npc: 'yuki_campo' } },
     ],
     rewards: { xp: 50, coins: 15 },

@@ -37,11 +37,16 @@ export const ASSETS = {
   mikage: { folder: 'characters', collider: 'none', description: 'Líder da vila: gato prateado alto, juba branca, barba, manto índigo e dourado, cajado com sino' },
   sumi: { folder: 'characters', collider: 'none', description: 'Diretora da Academia: gata frajola, manto verde, óculos, prancheta e flor' },
   haru: { folder: 'characters', collider: 'none', description: 'Professor de movimento: gato cor de areia, quimono branco, faixa preta, bandana e faixas nos braços' },
-  toshi: { folder: 'characters', collider: 'none', description: 'Guarda do portão da Sede: tigrado escuro, armadura, bandana e naginata de madeira' },
+  toshi: { folder: 'characters', collider: 'none', description: 'Guarda da residência do Mikage: tigrado escuro, armadura, bandana e naginata de madeira' },
   yuki: { folder: 'characters', collider: 'none', description: 'Estrategista: gata branca, manto azul-aço, cachecol longo e prancheta' },
   // Terras Selvagens (Etapa 7 da expansão)
   bento: { folder: 'characters', collider: 'none', description: 'Cartógrafo da expedição: tanuki de chapéu de palha, gi verde-oliva, mochila e prancheta de mapas' },
   momo: { folder: 'characters', collider: 'none', description: 'Herbalista da expedição: gata creme, manto verde, avental, flor e bolsa de ervas' },
+  // O Templo de Mikage e a Clareira dos Cervos (tools/blender/build_villager.py)
+  ren: { folder: 'characters', collider: 'none', description: 'Guarda do portão do Templo de Mikage: gato prateado, gi azul-marinho com dourado, armadura e lança' },
+  bunko: { folder: 'characters', collider: 'none', description: 'Arquivista do templo: tanuki idoso, manto marrom com dourado, sobrancelhas, barba e óculos' },
+  tama: { folder: 'characters', collider: 'none', description: 'Gatinha do templo: tigrada creme, quimono curto azul-céu e uma flor de glicínia' },
+  kaze: { folder: 'characters', collider: 'none', description: 'Batedora da expedição na saída da vila: tigrada ruiva, gi verde de campo, bandana, bolsa e faixas nos braços' },
   fumi: { folder: 'characters', collider: 'none', description: 'Bibliotecário: tanuki de manto ameixa, óculos e bolsa de livros' },
   liria: { folder: 'characters', collider: 'none', description: 'Inventora cuidadosa: lenço, óculos, avental e prancheta' },
   kaito: { folder: 'characters', collider: 'none', description: 'Parkour: pelagem de pontas escuras, cachecol longo e faixas' },

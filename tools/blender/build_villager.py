@@ -215,6 +215,28 @@ CAST = {
         outfit='robe', robe='#4F8A5A', trim='#F2E6D8', obi='#7A5236', hem=0.06, flare=0.05,
         apron='#F4F1E4', apron_top=0.42, pockets='#9CC27A', patches='#B07A4A', extras=['hair_flower', 'satchel'], style='behind',
     ),
+    # O Templo de Mikage e a Clareira dos Cervos (after Etapa 10)
+    'ren': dict(  # the temple gate's guard: silver-grey, navy gi with gold trim (the temple's colours), lamellar armour, spear
+        fur='#8C8C94', light='#E6E3DE', ear='#5C5C66', iris='#4FA3E0', width=1.08,
+        outfit='gi', robe='#2E3A5C', trim='#D9A520', obi='#2E2A2E', pants='#232B45',
+        stripes='#6E6E78', extras=['armor', 'hachimaki', 'spear'], style='attention',
+    ),
+    'bunko': dict(  # the old archivist: grey-muzzled tanuki, brown robe with gold trim, bushy brows, beard and round glasses
+        species='tanuki', fur='#9C8E7E', light='#ECE3D4', ear='#4E4034', iris='#5A3E2A', width=1.12,
+        outfit='robe', robe='#7A5236', trim='#D9A520', obi='#4E4034', hem=0.04, flare=0.06,
+        mask='#4E4034', belly=True, tail='bushy', tail_rings='#4E4034', ears='round', whiskers=False,
+        extras=['brows', 'beard', 'glasses'], style='hands_belly',
+    ),
+    'tama': dict(  # the temple kitten: cream tabby, sky-blue short kimono, a wisteria flower; drawn with a big kid head
+        fur='#F2D2A8', light='#FFF6EA', ear='#D9A066', iris='#2BB3A8', width=0.9,
+        outfit='robe', robe='#7FC8E8', trim='#FFFFFF', obi='#E8789A', hem=0.15, flare=0.03,
+        stripes='#D9A066', extras=['hair_flower'], style='bouncy',
+    ),
+    'kaze': dict(  # the expedition's scout at the village exit: russet tabby, moss-green field gi, headband, satchel, arm wraps
+        fur='#B5653A', light='#F2DCC4', ear='#8A4526', iris='#E0B13A', width=0.98,
+        outfit='gi', robe='#4F6B52', trim='#C9A26A', obi='#3B2A20', pants='#5E4A36',
+        stripes='#8A4526', sharp=True, extras=['hachimaki', 'satchel', 'wraps'], style='ready',
+    ),
 }
 
 # ── Anatomy (biped chibi, ~1.1 m to the ear tips) ───────────────────────────────

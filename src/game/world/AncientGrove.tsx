@@ -10,6 +10,7 @@ import { StoneLantern } from './Props';
 import { usePondMaterial } from './EastDistrict';
 import { FenceLine, DistrictGate } from './districtParts';
 import { DistanceCull } from '../DistanceCull';
+import { CLEARING_DEER, EXIT_GATE } from '../../data/clearing';
 import {
   SOUTH_FENCE, SOUTH_GATE, STREAM, LOG_BRIDGE, STREAM_STONES, ANCIENT, MEADOW, LEDGES, GROVE_TORII, cedarSpots, southFree,
 } from '../../data/south';
@@ -440,11 +441,8 @@ function FairyRing() {
 /** A small family of sika deer: they graze (head down), look up, and graze again. */
 function Deer() {
   const group = useRef<THREE.Group>(null);
-  const herd = useMemo(() => [
-    { x: MEADOW.x - 1.0, z: MEADOW.z + 0.6, rot: 0.6, s: 1, phase: 0 },
-    { x: MEADOW.x + 1.2, z: MEADOW.z + 1.2, rot: 2.4, s: 0.92, phase: 1.7 },
-    { x: MEADOW.x + 0.2, z: MEADOW.z - 1.1, rot: -1.0, s: 0.6, phase: 3.1 },
-  ], []);
+  // the meadow herd and the family by the gate (the scout's counting question uses the same list)
+  const herd = CLEARING_DEER;
   useFrame(() => {
     group.current?.children.forEach((d, i) => {
       const h = herd[i];
@@ -554,7 +552,9 @@ export function AncientGrove() {
       <ForestTint />
       <FenceLine a={[SOUTH_FENCE.minX, 39.8]} b={[SOUTH_FENCE.minX, SOUTH_FENCE.maxZ]} />
       <FenceLine a={[SOUTH_FENCE.maxX, 39.8]} b={[SOUTH_FENCE.maxX, SOUTH_FENCE.maxZ]} />
-      <FenceLine a={[SOUTH_FENCE.minX, SOUTH_FENCE.maxZ]} b={[SOUTH_FENCE.maxX, SOUTH_FENCE.maxZ]} />
+      {/* the south fence, open where the gate out of the village stands (game/world/ExitTrail.tsx) */}
+      <FenceLine a={[SOUTH_FENCE.minX, SOUTH_FENCE.maxZ]} b={[EXIT_GATE.x - EXIT_GATE.halfWidth - 1.15, SOUTH_FENCE.maxZ]} />
+      <FenceLine a={[EXIT_GATE.x + EXIT_GATE.halfWidth + 1.15, SOUTH_FENCE.maxZ]} b={[SOUTH_FENCE.maxX, SOUTH_FENCE.maxZ]} />
       <DistrictGate x={SOUTH_GATE.x} z={SOUTH_GATE.z} halfWidth={SOUTH_GATE.halfWidth} roof="#3F6B4A" lantern="#E8B33A" alongX />
       <Cedars />
       <ForestFloor />
@@ -565,7 +565,7 @@ export function AncientGrove() {
       <Ledges />
       <StoneLantern position={[-0.6, 0, 44.6]} />
       <StoneLantern position={[3.6, 0, 45.2]} />
-      <DistanceCull center={[MEADOW.x, 0, MEADOW.z]} far={26}>
+      <DistanceCull center={[MEADOW.x, 0, MEADOW.z + 2]} far={28}>
         <Deer />
         <Sparkles count={40} scale={[14, 2.5, 10]} position={[MEADOW.x + 3, 1.2, MEADOW.z - 2]} size={3} speed={0.3} color="#F6F0A0" opacity={0.7} />
       </DistanceCull>

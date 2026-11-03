@@ -104,7 +104,8 @@ Por inspeção: busca no código por interior, combate, inimigo e vida, sem impl
 | 13 | ~~Corda Ninja e Capa Corta-Vento sem uso~~ resolvido na Etapa 7 | — |
 | 14 | ~~Registro de missões × conversa~~ resolvido na Etapa 8: o "!", o registro, o mapa e o próximo passo só anunciam uma missão que a conversa realmente oferece | — |
 | 15 | Nas terras selvagens, os bichos voltam a cada visita e pagam moedas de novo (pouco: 3 a 5 por bicho). Depois do pacto (capítulo 7), só restam os espíritos e o javali. Avaliar um limite se a economia pedir | 9 |
-| 16 | Pacote principal: 901 KB (gzip 286 KB) na Etapa 10. Avaliado na Etapa 9: todo esse código é necessário antes do primeiro quadro, então dividir não reduz o que o jogador baixa; só mudaria o cache entre versões. Mantido | — |
+| 17 | Templo de Mikage (seção 15): refazer os modelos dos NPCs antigos, conversas entre NPCs e missões novas nas Terras Selvagens ficaram para depois | decisão do usuário |
+| 16 | Pacote principal: 982 KB (gzip 309 KB) depois do Templo de Mikage (901 KB na Etapa 10). Avaliado na Etapa 9: todo esse código é necessário antes do primeiro quadro, então dividir não reduz o que o jogador baixa; só mudaria o cache entre versões. Mantido | — |
 
 ## 5. Registro da Etapa 2 — Arquitetura e sistemas centrais (2026-10-29)
 
@@ -638,3 +639,52 @@ As 10 etapas estão implementadas e publicadas. O que resta está na lista de pe
 - `tests/interiorDecor.test.ts` (16): móveis novos dentro da sala e longe da porta, dos objetos de missão, dos moradores, das passagens e das paredes internas; nada sobre alavancas, circuito, alvos, estante dos livros e porta secreta; colunas sem cobrir nada pendurado; o que se pendura não se sobrepõe; as caixas e a almofada grande junto dos seus objetos; vigas só nas casas de um cômodo; Mesa Posta intacta.
 - `vitest`: 520 passando (32 arquivos). `tsc` ok. Build ok (pacote principal 911 KB, gzip 288 KB).
 - No navegador: os quatro interiores conferidos de perto e de cima, sem erros no console.
+
+## 15. Templo de Mikage e reorganização dos acessos (pedido do usuário, 2026-11-03)
+
+### Auditoria da região antes da mudança
+- O "Templo de Mikage" era só um portão solto no fim do Bosque Antigo (Clareira dos Cervos), encostado na cerca sul, com o Guarda Toshi ao lado. Por fora não havia complexo nenhum: só o interior da Sede.
+- A saída para as Terras Selvagens ficava no Bambuzal, na cerca oeste, longe da clareira que tem cara de "fim da vila".
+- Dois objetos de missão da Sede não apareciam na tela (corrigido na etapa anterior, seção 14).
+
+### Implementado
+| Parte | O que mudou |
+|---|---|
+| **Geografia** | O complexo de Mikage agora fica ao norte do Bairro das Glicínias: a rua coberta de glicínias segue reta até o grande portão. A Clareira dos Cervos virou a saída da vila para as Terras Selvagens. O portão antigo da clareira e o portão da trilha no Bambuzal foram removidos. A cerca norte das Glicínias virou a muralha do templo |
+| **Recinto do templo** (`data/precinct.ts`, `world/MikagePrecinct.tsx`) | Muralhas de reboco com telhas azul-marinho. Grande portão de dois telhados com colunas vermelhas, placa e pata dourada, e dois gatos guardiões de pedra (um com a bola do mundo, outra com um filhote). Pátio com caminho de pedra, cascalho, quatro lanternas de pedra, fonte de purificação coberta, posto do guarda e quadro de avisos. Lago de carpas com ponte vermelha em arco, bambuzal, cerejeiras, bordo, pinheiros e hortênsias. Escadaria de pedra até o terraço elevado (1,6 m) |
+| **Terraço** | Residência do líder (a Sede): dois telhados azul-marinho com cumeeira dourada, colunas vermelhas, janelas de papel, portas grandes com a pata e alpendre com telhado curvo. Pavilhão do sino, pavilhão do arquivo com rolos, estátua do fundador (o mensageiro da Grande Cheia), nascente com canal e cascata caindo no lago, nicho secreto atrás da cascata e torre de vigia no canto, alcançável pulando de bloco em bloco |
+| **Vida** | Água correndo (lago, canal, cascata, espuma), carpas nadando, sino que balança sozinho, pétalas, vaga-lumes no lago, borboletas no jardim. Os telhados ficam translúcidos quando estão entre a câmera e o gato |
+| **Personagens novos com modelo 3D próprio** (gerados no Blender com `tools/blender/build_villager.py`, comprimidos como o resto do elenco) | **Guarda Ren** (portão, faz ronda), **Arquivista Bunko** (tanuki idoso do arquivo), **Tama** (gatinha do templo, corre pelo pátio) e **Batedora Kaze** (saída da vila). O Guarda Toshi passou a guardar a porta da residência, no terraço |
+| **Missões novas** | *O Sino que Toca Sozinho* (investigação: três pistas, o diário do guarda e uma dedução; a resposta é um ninho, que fica na viga). *As Lanternas dos Guardiões* (lógica: quatro versos, uma só ordem; abre o nicho atrás da cascata, com o Amuleto dos Guardiões). *As Patas de Jade* (exploração: debaixo da ponte, no bambuzal e no alto da torre). *Antes de Partir* (com a Kaze: contar os filhotes de cervo e responder o que fazer com poucos corações) |
+| **Clareira dos Cervos** (`data/clearing.ts`, `world/ExitTrail.tsx`) | Portão rústico de pedra e troncos, com corda de palha e tochas, fechado até a Sede autorizar a expedição. Trilha de terra pela floresta densa, com riacho, pedras, samambaias e um marco. Mais uma família de cervos. Acampamento da batedora. Andar até o fim da trilha leva às Terras Selvagens, e a volta chega na clareira |
+| **Integração** | Áreas andáveis, mapa (recinto, residência, trilha e rótulos), passeio pela vila, textos de todas as missões e falas que citavam os lugares antigos, colinas de fundo afastadas do templo |
+
+### Problemas encontrados e corrigidos
+| Problema | Como apareceu | Correção |
+|---|---|---|
+| O gato era puxado para fora do templo ao andar | Teste de caminhada: ele voltava para perto do Mirante | Uma rede de segurança antiga tratava todo o norte da vila como o Templo dos Enigmas; agora vale só na faixa daquele pátio |
+| Telhados tapando o gato (portão, pavilhões, torre, residência) | Capturas com a câmera do jogo | Telhados translúcidos enquanto ficam entre a câmera e o gato. A primeira tentativa, um bloqueio para a câmera, só a jogava para ângulos ruins e foi desfeita |
+| Material não ficava transparente | Opacidade 0,2 sem efeito na tela | O three.js compila material opaco com alfa travado: agora ele é recompilado ao trocar |
+| Ao sair da residência, a câmera ficava em cima do prédio | Captura | Prédio alto: ao sair, a câmera olha a porta a partir do pátio (`frontView`) |
+| Catálogo de modelos desatualizado no servidor de teste | Tela de erro "folder" | Servidor reiniciado; o código estava certo |
+| Id de objeto repetido (`sino_templo` já existia) | Teste de dados | Renomeado para `sino_mikage` |
+
+### Testes
+- `vitest`: 544 passando (33 arquivos).
+  - `tests/precinct.test.ts` é novo (11 testes): geografia; porta da Sede no terraço; os versos das lanternas com uma resposta só; a pata da torre só alcançável lá de cima; moradores dentro do recinto; a trilha andável até a linha de saída; a resposta dos filhotes; nada dependendo dos lugares antigos.
+  - Testes de contagem atualizados: 55 missões, 8 no capítulo 6, 8 no capítulo 5.
+- `tsc` ok. Build ok: pacote principal 982 KB (gzip 309 KB), 71 KB a mais que antes.
+- **No navegador, andando de verdade:**
+  - rua das glicínias → portão → pátio → escadaria → terraço (altura certa) → sino;
+  - entrar e sair da residência;
+  - Clareira dos Cervos → portão → trilha → Terras Selvagens (etapa da missão marcada) → volta para a clareira;
+  - mapa conferido, sem erros no console.
+
+### O que ficou de fora ou só em parte (sem inventar)
+- **Modelos dos personagens já existentes** (Mikage, Toshi e os outros) não foram refeitos. Só os quatro novos ganharam modelo.
+- **Comportamento dos NPCs:** Ren e Tama fazem ronda; os outros ficam no lugar e reagem ao jogador. Conversa entre NPCs e uso de objetos por eles não foram feitos.
+- **Transição para as Terras Selvagens:** é andando, mas com um escurecimento curto. A região continua sendo uma área separada (por desempenho no celular); não é um mundo contínuo.
+- **Terras Selvagens:** não ganharam missões, cavernas ou inimigos novos. As que já existiam continuam valendo.
+- **Reflexos de verdade na água:** não foram feitos (estilo cartoon); a água é animada.
+- **Minijogo novo:** não foi feito; as novidades são o enigma das lanternas e a dedução do sino.
+- **Desempenho no celular real** não foi medido. O complexo é estático e mesclado como o resto da vila.

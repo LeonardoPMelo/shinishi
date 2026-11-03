@@ -70,8 +70,10 @@ export interface InteriorDef {
   wainscot: string;
   /** Warm light colour inside. */
   light: string;
-  /** The house outside: centre, turn, width and depth, as built in world/Buildings.tsx (the door is on its +z side). */
-  house: { c: [number, number]; rot: number; w: number; d: number };
+  /** The house outside: centre, turn, width and depth, as built in world/Buildings.tsx (the door is on its +z side);
+   *  `y`: the ground the door stands on (the Sede's is on the temple terrace). `frontView`: coming out, the camera
+   *  looks at the cat from the courtyard (a tall building: from behind the cat the camera sat over its roof). */
+  house: { c: [number, number]; rot: number; w: number; d: number; y?: number; frontView?: boolean };
   props: Prop[];
   /** Inner walls (big buildings with several rooms). */
   partitions?: Partition[];
@@ -235,12 +237,14 @@ export const INTERIORS: InteriorDef[] = [
     wall: '#F1E6D2',
     wainscot: '#3D3552',
     light: '#FFE6B8',
-    house: { c: [-9, 62.6], rot: Math.PI, w: 3, d: 1.6 },
+    // the residence on the Templo de Mikage's terrace (data/precinct.ts RESIDENCE), north of the Bairro das
+    // Glicínias; until the expansion's Etapa 10 review it stood at the Clareira dos Cervos
+    house: { c: [27.6, -31.2], rot: 0, w: 10, d: 7, y: 1.6, frontView: true },
     view: { phi: 0.9, distance: 8.2 },
     lock: {
       unless: { flag: 'acesso_sede' },
-      label: 'Portão da Sede (fechado)',
-      text: 'O portão está fechado. O Guarda Toshi deixa entrar quem se formou na Academia Ninja (no dojô, perto da praça).',
+      label: 'Porta da residência (fechada)',
+      text: 'A porta da residência está fechada. O Guarda Toshi, aqui no terraço, deixa entrar quem se formou na Academia Ninja (no dojô, perto da praça).',
     },
     partitions: [
       // front of the main building: the hall in the middle, a door to each wing
@@ -355,10 +359,11 @@ export function outsideDoor(def: InteriorDef) {
   const fx = Math.sin(def.house.rot);
   const fz = Math.cos(def.house.rot);
   const half = def.house.d / 2;
+  const y = def.house.y ?? 0;
   return {
-    door: [cx + fx * half, 0, cz + fz * half] as Vec3,
+    door: [cx + fx * half, y, cz + fz * half] as Vec3,
     /** 1.4 m out: clear of the door step and the house collider. */
-    spot: [cx + fx * (half + 1.4), 0, cz + fz * (half + 1.4)] as Vec3,
+    spot: [cx + fx * (half + 1.4), y, cz + fz * (half + 1.4)] as Vec3,
     /** Heading of the cat coming out (looking away from the house). */
     heading: def.house.rot,
   };

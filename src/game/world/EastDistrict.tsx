@@ -36,7 +36,7 @@ function DistrictFence() {
   const rails = useMemo(() => {
     const list: { pos: [number, number, number]; rotY: number; len: number }[] = [];
     const seg = 2.4;
-    for (let x = EAST_GATE.x; x < EAST_FENCE.maxX - 0.1; x += seg) list.push({ pos: [x, 0, EAST_FENCE.minZ], rotY: 0, len: Math.min(seg, EAST_FENCE.maxX - x) });
+    // (the north side is the Templo de Mikage's wall, with its great gate: game/world/MikagePrecinct.tsx)
     for (let z = EAST_FENCE.minZ; z < RIDGE[RIDGE.length - 1].z0 - 0.1; z += seg) list.push({ pos: [EAST_FENCE.maxX, 0, z], rotY: -Math.PI / 2, len: Math.min(seg, RIDGE[RIDGE.length - 1].z0 - z) });
     return list;
   }, []);
@@ -58,7 +58,6 @@ function DistrictFence() {
         </group>
       ))}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[(EAST_FENCE.maxX - EAST_GATE.x) / 2 + 0.4, 3, 0.3]} position={[(EAST_FENCE.maxX + EAST_GATE.x) / 2, 2, EAST_FENCE.minZ - 0.4]} />
         <CuboidCollider args={[0.3, 3, (RIDGE_Z1 - EAST_FENCE.minZ) / 2]} position={[EAST_FENCE.maxX + 0.4, 2, zMid]} />
       </RigidBody>
     </>

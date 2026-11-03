@@ -28,6 +28,7 @@ export const TOUR: TourStop[] = [
   { x: -6, z: 31, angle: Math.PI * 1.5, title: 'Floresta de treino', caption: 'O Mestre Lótus ensina quem observa antes de pular.' },
   { x: -1.2, z: 45, angle: Math.PI * 1.5, title: 'Bosque Antigo', caption: 'Trilhas sob as árvores, cervos e a Árvore Anciã.' },
   { x: 24, z: 4, angle: Math.PI * 0.75, title: 'Bairro das Glicínias', caption: 'Um lago de carpas, hortas e terraços de chá.' },
+  { x: 27.6, z: -16.5, angle: 0, title: 'Templo de Mikage', caption: 'A casa do líder da vila: lago, sino e lanternas guardiãs.' },
   { x: -22, z: 6, angle: Math.PI * 0.5, title: 'Bambuzal', caption: 'Bambu alto e uma fonte termal fumegante.' },
 ];
 

@@ -319,9 +319,9 @@ describe('Terras Selvagens: itens e missões', () => {
     expect(arm).toEqual(expect.arrayContaining(['pocao_cura', 'corda_ninja', 'capa_vento']));
   });
 
-  it('sete missões no capítulo 6, e o posto do Hissui aceita passar sem lutar', () => {
+  it('oito missões no capítulo 6 (sete das Terras Selvagens e "Antes de Partir", na saída da vila), e o posto do Hissui aceita passar sem lutar', () => {
     const six = Object.values(MISSIONS).filter((m) => m.chapter === 6);
-    expect(six).toHaveLength(7);
+    expect(six).toHaveLength(8);
     expect(MISSIONS.posto.steps.find((s) => s.id === 'desfiladeiro')!.description).toMatch(/agachado/);
   });
 });

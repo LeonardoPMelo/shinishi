@@ -46,7 +46,9 @@ describe('regiões onde o gato pode andar', () => {
   it('fora de tudo, o gato volta para o ponto mais próximo de uma região', () => {
     expect(clampToRegions(0, 4)).toBeNull();
     expect(clampToRegions(-60, 5)).toEqual({ x: WEST.minX, z: 5 });
-    expect(clampToRegions(0, 80)).toEqual({ x: 0, z: SOUTH.maxZ });
+    expect(clampToRegions(10, 80)).toEqual({ x: 10, z: SOUTH.maxZ });
+    // the trail out of the village (Clareira dos Cervos) reaches a little farther south than the forest
+    expect(clampToRegions(-9, 80)).toEqual({ x: -9, z: 70.8 });
     expect(WALK_RECTS[0]).toBe(WORLD_BOUNDS);
   });
 });

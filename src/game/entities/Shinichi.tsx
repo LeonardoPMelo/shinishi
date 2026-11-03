@@ -487,7 +487,9 @@ export function Shinichi() {
     // districts outside its fence (data/regions.ts)
     if (!inTemple(pos.x, pos.z)) {
       // (the village only: the wild lands' north, at x ~500, is also "north of the village" by z; seen in Etapa 7)
-      if (pos.x < 150 && pos.z < WORLD_BOUNDS.minZ && inTemple(THREE.MathUtils.clamp(pos.x, TEMPLE.minX, TEMPLE.maxX), Math.max(pos.z, TEMPLE.minZ))) {
+      // (and only in line with that courtyard: the Templo de Mikage, north of the Bairro das Glicínias, is north of
+      // the village too, and this pulled the cat out of it)
+      if (pos.x < 150 && pos.x > TEMPLE.minX - 2 && pos.x < TEMPLE.maxX + 2 && pos.z < WORLD_BOUNDS.minZ && inTemple(THREE.MathUtils.clamp(pos.x, TEMPLE.minX, TEMPLE.maxX), Math.max(pos.z, TEMPLE.minZ))) {
         const tx = THREE.MathUtils.clamp(pos.x, TEMPLE.minX, TEMPLE.maxX);
         const tz = Math.max(pos.z, TEMPLE.minZ);
         if (tx !== pos.x || tz !== pos.z) body.setTranslation({ x: tx, y: pos.y, z: tz }, true);

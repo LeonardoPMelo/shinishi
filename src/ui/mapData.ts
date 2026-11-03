@@ -5,9 +5,12 @@ import { TEMPLE, GATE, SHRINE, FRACTION_DOOR } from '../systems/temple';
 import { EAST_FENCE, EAST_GATE, EAST_HOUSES, EAST_PLAZA, POND, TEA, RIDGE, RIDGE_Z1, LOOKOUT } from '../data/east';
 import { WEST, WEST_FENCE, WEST_GATE, WEST_HOUSES, HILL, ONSEN, BOARDWALK, PIER, CLEARING } from '../data/west';
 import { SOUTH_FENCE, SOUTH_GATE, STREAM, ANCIENT, MEADOW, LEDGES, LOG_BRIDGE } from '../data/south';
+import { RESIDENCE, BELL, ARCHIVE, TEMPLE_POND, GREAT_GATE, TERRACE, TOWER } from '../data/precinct';
+import { EXIT_TRAIL } from '../data/clearing';
 
-// minZ reaches the Templo dos Enigmas courtyard north of the fence, maxX the Bairro das Glicínias
-export const MAP_BOUNDS = { minX: -42, maxX: 42, minZ: -38, maxZ: 64.5 };
+// minZ reaches the Templo dos Enigmas and the Templo de Mikage north of the fence, maxX the Bairro das Glicínias,
+// maxZ the trail out of the Clareira dos Cervos
+export const MAP_BOUNDS = { minX: -42, maxX: 42, minZ: -38, maxZ: EXIT_TRAIL.z1 + 0.6 };
 /** The village rectangle itself (inside the fence). */
 export const VILLAGE_RECT = { minX: -20, maxX: 20, minZ: -20, maxZ: 40.5 };
 
@@ -38,6 +41,16 @@ export const MAP_BUILDINGS: [number, number, number, number, number, string][] =
   ...WEST_HOUSES.map((h): [number, number, number, number, number, string] => (h.rotY === 0 ? [h.pos[0], h.pos[2], h.size[0], h.size[2], 0, h.roof] : [h.pos[0], h.pos[2], h.size[2], h.size[0], 0, h.roof])),
   [(BOARDWALK.x0 + BOARDWALK.x1) / 2, (BOARDWALK.z0 + BOARDWALK.z1) / 2, BOARDWALK.x1 - BOARDWALK.x0, BOARDWALK.z1 - BOARDWALK.z0, 0, '#9B7048'],
   [(PIER.x0 + PIER.x1) / 2, (PIER.z0 + PIER.z1) / 2, PIER.x1 - PIER.x0, PIER.z1 - PIER.z0, 0, '#9B7048'],
+  // Templo de Mikage: the terrace, the residence, the gate, the bell and archive pavilions, the tower, the pond
+  [(TERRACE.x0 + TERRACE.x1) / 2, (TERRACE.z0 + TERRACE.z1) / 2, TERRACE.x1 - TERRACE.x0, TERRACE.z1 - TERRACE.z0, 0, '#B9B2A4'],
+  [RESIDENCE.x, RESIDENCE.z, RESIDENCE.w, RESIDENCE.d, 0, '#2E3A5C'],
+  [GREAT_GATE.x, GREAT_GATE.z, 4.8, 1.4, 0, '#A8352C'],
+  [BELL.x, BELL.z, 2.6, 2.6, 0, '#2E3A5C'],
+  [ARCHIVE.x, ARCHIVE.z, ARCHIVE.w, ARCHIVE.d, 0, '#2E3A5C'],
+  [TOWER.x, TOWER.z, TOWER.w, TOWER.d, 0, '#8E877C'],
+  [TEMPLE_POND.x, TEMPLE_POND.z, TEMPLE_POND.rx * 2, TEMPLE_POND.rz * 2, 0, '#87C4CF'],
+  // the trail out of the village
+  [(EXIT_TRAIL.x0 + EXIT_TRAIL.x1) / 2, (EXIT_TRAIL.z0 + EXIT_TRAIL.z1) / 2, 1.8, EXIT_TRAIL.z1 - EXIT_TRAIL.z0, 0, '#9A7550'],
 ];
 
 /** Shapes of the Bairro das Glicínias for the 2D map. */
@@ -66,6 +79,8 @@ export const MAP_LABELS: { text: string; x: number; z: number }[] = [
   { text: 'Bosque Antigo', x: -2, z: 44.4 },
   { text: 'Árvore Anciã', x: 5, z: 62.4 },
   { text: 'Clareira dos Cervos', x: -11.6, z: 60.6 },
+  { text: 'Templo de Mikage', x: 30.6, z: -24.6 },
+  { text: 'Terras Selvagens ↓', x: -9, z: 69.4 },
 ];
 
 export { RIVER, GARDEN, PILLARS, TALL_ROCK, TEMPLE, GATE };

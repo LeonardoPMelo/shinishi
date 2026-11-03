@@ -53,6 +53,8 @@ export const SOUTH_PATHS: [number, number][][] = [
   [[-9.4, 49.4], [-10.2, 51.2], [-11.2, 52.4]],
   // east branch toward the ledges
   [[3.6, 51.0], [8.0, 50.6], [10.4, 50.8]],
+  // through the Clareira dos Cervos to the gate out of the village (data/clearing.ts)
+  [[-11.2, 52.4], [-10.6, 57.6], [-9.0, 61.0], [-9.0, 64.0]],
 ];
 
 function segDist(x: number, z: number, [ax, az]: [number, number], [bx, bz]: [number, number]) {
@@ -146,7 +148,7 @@ export const SOUTH_OBJECTS: WorldObject[] = [
   {
     id: 'placa_bosque', kind: 'sign', position: [0.4, 0, 41.4], rotation: Math.PI, label: 'Ler a placa', name: 'Bosque Antigo',
     dialogue: say('Bosque Antigo',
-      '🪧 BOSQUE ANTIGO\n↓ Árvore Anciã (pela ponte de tronco)   ·   ← Clareira dos Cervos   ·   → Pedras do Musgo\n"Os cedros têm mais de cem anos. Ande com respeito."'),
+      '🪧 BOSQUE ANTIGO\n↓ Árvore Anciã (pela ponte de tronco)   ·   ← Clareira dos Cervos e Saída para as Terras Selvagens   ·   → Pedras do Musgo\n"Os cedros têm mais de cem anos. Ande com respeito."'),
   },
   {
     id: 'placa_arvore', kind: 'examine', position: [ANCIENT.x - 1.4, ANCIENT.moundH, ANCIENT.z - ANCIENT.trunk - 1.4], label: 'Medir o tronco', name: 'Árvore Anciã', radius: 1.7,

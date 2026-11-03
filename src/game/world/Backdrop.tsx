@@ -106,6 +106,8 @@ export function Backdrop() {
         let pz = z;
         if (z > -26 && z < 34) px = x > 0 ? Math.max(x, 46 + sx * 0.8) : Math.min(x, -46 - sx * 0.8);
         else if (z >= 34 && Math.abs(x) < 44) pz = Math.max(z, 70 + sx * 0.6);
+        // and behind the Templo de Mikage (north of the Bairro das Glicínias: x 20–41, z down to -36.4)
+        else if (z <= -26 && px > 10 && px < 50) pz = Math.min(z, -52 - sx * 0.4);
         list.push({
           p: [px, -3, pz],
           s: [sx, height + r() * height, 9 + r() * 7],

@@ -1,5 +1,4 @@
 import { ShopSigns } from './ShopSigns';
-import { SedeGate } from './SedeGate';
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
@@ -650,7 +649,6 @@ export function Buildings() {
       <Asset name="casa_vila" position={[-3, 0, 14]} rotation={[0, Math.PI, 0]} fitWidth={5.4} fallback={<House position={[-3, 0, 14]} rotY={Math.PI} size={[3.8, 2.2, 3]} roof="#4F6B52" lanterns />} />
 
       {/* the great gate of Mikage's residence (Etapa 5), at the south end of the Training Forest */}
-      <SedeGate />
 
       {/* Mestre Kuma's pagoda */}
       <Pagoda position={[0, 0, -15]} />

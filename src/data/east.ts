@@ -69,8 +69,8 @@ export const EAST_PATHS: [number, number][][] = [
   // from the market path, around the fish stall and the house corner, through the gate, to the plaza
   // (traced on the physics occupancy grid so nothing stands on it)
   [[7.5, -1.1], [7.6, 1.9], [11.0, 1.8], [15.2, 1.7], [16.6, 1.1], [18.0, 1.6], [19.2, 2.0], [23.9, 2.0]],
-  // north lane under the wisteria tunnel
-  [[27.2, -1.0], [27.3, -6.5], [27.6, -12.8]],
+  // north lane under the wisteria tunnel, straight on to the great gate of the Templo de Mikage
+  [[27.2, -1.0], [27.3, -6.5], [27.6, -12.8], [27.6, -14.0]],
   // east: plaza → pond → terraces
   [[30.0, 2.6], [33.0, 4.4], [34.4, 7.6]],
   // to Dona Fuji's door

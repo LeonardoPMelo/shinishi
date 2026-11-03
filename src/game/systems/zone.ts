@@ -72,7 +72,8 @@ export function exitInterior(id: string) {
   const def = INTERIORS_BY_ID[id];
   if (!def) return;
   const out = outsideDoor(def);
-  travel('outdoor', out.spot, out.heading, OUTDOOR_VIEW);
+  // the camera goes behind the heading: turned round, it looks back at the door from the courtyard
+  travel('outdoor', out.spot, def.house.frontView ? out.heading + Math.PI : out.heading, OUTDOOR_VIEW);
 }
 
 /**

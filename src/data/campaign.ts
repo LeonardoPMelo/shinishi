@@ -5,7 +5,7 @@ export const CHAPTERS = [
   { id: 3, title: 'Os Saberes da Vila', blurb: 'Banquetes, chás, máquinas, hortas, uma balança antiga e um rival que precisa de um amigo.' },
   { id: 4, title: 'O Templo dos Enigmas', blurb: 'Atrás do pagode, um templo fechado há anos: espelhos, frações e gongos guardam o santuário.' },
   { id: 5, title: 'A Academia e a Sede', blurb: 'Quatro provas na Academia Ninja, uma audiência com o Mikage e os segredos da Sede do líder.' },
-  { id: 6, title: 'As Terras Selvagens', blurb: 'Um acampamento além da cerca oeste, um cartógrafo numa árvore, uma caverna de névoa e o posto do General Hissui.' },
+  { id: 6, title: 'As Terras Selvagens', blurb: 'Um acampamento além da Clareira dos Cervos, um cartógrafo numa árvore, uma caverna de névoa e o posto do General Hissui.' },
   { id: 7, title: 'O Pacto das Duas Margens', blurb: 'Quem é o General Hissui, o que o Disco Solar abre e o que ficou para trás na noite da Grande Cheia.' },
 ] as const;
 

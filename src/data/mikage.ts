@@ -5,8 +5,8 @@ import { YUKI_TRAIL_ROUTES } from './wild';
 import type { OrderPuzzle } from '../systems/orderPuzzle';
 
 /**
- * A Sede de Mikage (Etapa 5 da expansão): the residence and seat of the village's leader, behind the great
- * gate at the far end of the Training Forest (south, past the stream), at the foot of the mountains. Mikage is original to this game: a very tall, silver-grey old cat with a white
+ * A Sede de Mikage (Etapa 5 da expansão): the residence and seat of the village's leader, on the upper terrace
+ * of the Templo de Mikage, north of the Bairro das Glicínias (data/precinct.ts). Mikage is original to this game: a very tall, silver-grey old cat with a white
  * mane, a torn ear from the Great Flood, an indigo haori with the golden paw, and a staff with a small bell.
  * Wise and warm, hopeless with paperwork, fond of jasmine tea and of terrible puns.
  *
@@ -138,7 +138,7 @@ export const SEDE_MISSIONS: Mission[] = [
     giver: 'sumi',
     description: 'O Mikage, líder da Vila das Patas, quer conhecer o novo graduado da Academia.',
     steps: [
-      { id: 'portao', description: 'Fale com o Guarda Toshi no portão da Sede (no fim da Floresta do Treinamento, ao sul)', target: { npc: 'toshi' } },
+      { id: 'portao', description: 'Fale com o Guarda Toshi na porta da residência (Templo de Mikage, ao norte do Bairro das Glicínias)', target: { npc: 'toshi' } },
       { id: 'mikage', description: 'Encontre o Mikage no Salão de Audiências', target: { npc: 'mikage' } },
     ],
     rewards: { xp: 40, coins: 10 },
@@ -383,9 +383,10 @@ export const MIKAGE: NPCDefinition = {
 export const TOSHI: NPCDefinition = {
   id: 'toshi',
   name: 'Guarda Toshi',
-  role: 'Guarda do portão da Sede',
-  position: [-6.4, 0, 61.0],
-  faceRotation: Math.PI,
+  role: 'Guarda da residência do Mikage',
+  // by the residence door on the temple terrace, facing the stair
+  position: [30.5, 1.6, -26.6],
+  faceRotation: 0,
   look: { species: 'cat', fur: '#6B5A4A', belly: '#D9CBB8', scale: 1.05, mask: '#4A3D32', eyes: 'round' },
   voice: 'meow_low',
   barks: ['Portão vigiado, vila tranquila.', 'Nada passa por mim. Exceto borboletas. Elas são rápidas.'],
@@ -393,12 +394,12 @@ export const TOSHI: NPCDefinition = {
     { when: { active: 'audiencia', notStep: 'audiencia.portao' }, tree: {
       start: {
         id: 'start', speaker: 'Guarda Toshi', mood: 'happy',
-        text: 'A Faixa Índigo da Academia! Então você é o graduado que o Mikage está esperando.\nPode entrar. O Salão de Audiências fica bem no fundo, depois do jardim e do pátio.',
+        text: 'A Faixa Índigo da Academia! Então você é o graduado que o Mikage está esperando.\nPode entrar. Lá dentro, o Salão de Audiências fica bem no fundo, depois do jardim e do pátio.',
         options: [{ label: '🚪 Obrigado, Toshi!', nextNodeId: null, action: 'STEP:audiencia.portao;FLAG:acesso_sede;SFX:mechanism' }],
       },
     } },
     { when: { flag: 'acesso_sede' }, tree: say('Guarda Toshi', 'Pode passar, graduado! E se o Mikage oferecer chá de jasmim, aceite: ele fica feliz.') },
-    { tree: say('Guarda Toshi', 'Esta é a Sede do Mikage, o líder da vila, aos pés da montanha.\nSó entram os graduados da Academia Ninja. A Academia fica no dojô, lá na vila, perto da praça: a Professora Sumi cuida das matrículas.') },
+    { tree: say('Guarda Toshi', 'Esta é a residência do Mikage, o líder da vila. O templo lá embaixo é de todo mundo; aqui dentro, só entram os graduados da Academia Ninja.\nA Academia fica no dojô, perto da praça: a Professora Sumi cuida das matrículas.') },
   ],
 };
 

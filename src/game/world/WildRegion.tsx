@@ -22,7 +22,7 @@ import {
   WILD_ORIGIN, WILD, WILD_RIVER, WILD_WALLS, WILD_STONES, WILD_STONE_R, ROPE_BRIDGE, BRIDGE_REPAIR, WILD_TRAILS, WILD_PINES,
   WILD_CHERRIES, WILD_MAPLES, BENTO_TREE, HERB_SPOTS, CRYSTALS, TRAPS, TRAP, CAMPFIRE, KIT_BUSH, BENTO_GUARD_CLEAR,
   CANYON, CANYON_PASSED_Z, CAVE, OUTPOST, LOOKOUT, WIND_ZONE, SUN_PUZZLE, SUN_STONES, SUN_GATE, WILD_CODE_ACTIONS,
-  TRAIL_GATE, WILD_GATE, w, toLocal, type WildWall,
+  WILD_GATE, w, toLocal, type WildWall,
 } from '../../data/wild';
 
 /**
@@ -498,37 +498,6 @@ function Camp() {
           <meshBasicMaterial map={vila} transparent />
         </mesh>
       </group>
-    </group>
-  );
-}
-
-/** The trail gate in the village (Bambuzal's west fence), drawn with the village. */
-export function TrailGateVillage() {
-  const tex = useIconTexture('🏕️', '#F3E2B8', '#2A1E16');
-  const [x, , z] = TRAIL_GATE.at;
-  return (
-    <group position={[x - 0.9, 0, z]} rotation={[0, Math.PI / 2, 0]}>
-      {[-1.4, 1.4].map((px) => (
-        <mesh key={px} position={[px, 1.4, 0]} castShadow>
-          <cylinderGeometry args={[0.15, 0.18, 2.8, 8]} />
-          <Toon color="#7A5236" tex="bark" />
-          <Ink thickness={0.02} />
-        </mesh>
-      ))}
-      <mesh position={[0, 2.75, 0]}>
-        <boxGeometry args={[3.5, 0.24, 0.26]} />
-        <Toon color="#6E4A30" tex="wood" />
-      </mesh>
-      {/* the sign faces the village (east) */}
-      <mesh position={[0, 2.15, 0.14]}>
-        <planeGeometry args={[0.66, 0.66]} />
-        <meshBasicMaterial map={tex} transparent />
-      </mesh>
-      {/* the rope across, until the expedition opens the way */}
-      <mesh position={[0, 1.0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.03, 0.03, 2.8, 5]} />
-        <Toon color="#C9B48C" />
-      </mesh>
     </group>
   );
 }

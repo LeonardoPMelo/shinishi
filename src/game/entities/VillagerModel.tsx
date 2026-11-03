@@ -65,6 +65,11 @@ export const VILLAGER_ASSETS: Record<string, AssetName> = {
   hissui: 'general_hissui',
   hissui_sede: 'general_hissui',
   hissui_aliado: 'general_hissui',
+  // O Templo de Mikage e a Clareira dos Cervos
+  ren: 'ren',
+  bunko: 'bunko',
+  tama: 'tama',
+  kaze: 'kaze',
 };
 
 /**
@@ -74,6 +79,8 @@ export const VILLAGER_ASSETS: Record<string, AssetName> = {
  */
 export const VILLAGER_STYLE: Partial<Record<AssetName, { head?: number; restLid?: { shape: 'sleepy' | 'happy'; amount: number } }>> = {
   pipo: { head: 1.22 },
+  tama: { head: 1.22 },
+  bunko: { restLid: { shape: 'sleepy', amount: 0.55 } },
   neko: { restLid: { shape: 'sleepy', amount: 0.75 } },
   mochi: { restLid: { shape: 'happy', amount: 0.8 } },
 };

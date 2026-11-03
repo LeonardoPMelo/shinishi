@@ -9,6 +9,8 @@ import { ACADEMY_CHALLENGES } from './academy';
 import { SEDE_CHALLENGES } from './mikage';
 import { WILD_CHALLENGES } from './wild';
 import { STORY_CHALLENGES } from './story';
+import { PRECINCT_CHALLENGES } from './precinct';
+import { CLEARING_CHALLENGES } from './clearing';
 
 const list: Challenge[] = [
   {
@@ -186,6 +188,6 @@ const list: Challenge[] = [
   },
 ];
 
-list.push(...CHAPTER3_CHALLENGES, ...EAST_CHALLENGES, ...WEST_CHALLENGES, ...SOUTH_CHALLENGES, ...REDESIGN_CHALLENGES, ...INTERIOR_CHALLENGES, ...ACADEMY_CHALLENGES, ...SEDE_CHALLENGES, ...WILD_CHALLENGES, ...STORY_CHALLENGES);
+list.push(...CHAPTER3_CHALLENGES, ...EAST_CHALLENGES, ...WEST_CHALLENGES, ...SOUTH_CHALLENGES, ...REDESIGN_CHALLENGES, ...INTERIOR_CHALLENGES, ...ACADEMY_CHALLENGES, ...SEDE_CHALLENGES, ...WILD_CHALLENGES, ...STORY_CHALLENGES, ...PRECINCT_CHALLENGES, ...CLEARING_CHALLENGES);
 
 export const CHALLENGES: Record<string, Challenge> = Object.fromEntries(list.map((c) => [c.id, c]));

@@ -4,6 +4,8 @@ import { WEST } from './west';
 import { SOUTH } from './south';
 import { INTERIORS, interiorRect } from './interiors';
 import { WILD_RECT } from './wild';
+import { PRECINCT } from './precinct';
+import { EXIT_TRAIL } from './clearing';
 
 /**
  * Where the cat may stand, as a union of rectangles: the village and the districts outside its fence.
@@ -20,9 +22,13 @@ export const WALK_RECTS: Rect[] = [
   { minX: TEA.x0, maxX: EAST.maxX, minZ: EAST.maxZ, maxZ: LOOKOUT.z1 },
   { minX: WEST.minX, maxX: WORLD_BOUNDS.minX, minZ: WEST.minZ, maxZ: WEST.maxZ },
   { minX: SOUTH.minX, maxX: SOUTH.maxX, minZ: WORLD_BOUNDS.maxZ, maxZ: SOUTH.maxZ },
+  // the Templo de Mikage, north of the Bairro das Glicínias (data/precinct.ts): up to the district's fence line
+  { minX: PRECINCT.minX, maxX: PRECINCT.maxX, minZ: PRECINCT.minZ, maxZ: EAST.minZ },
+  // the trail past the Clareira dos Cervos' gate (data/clearing.ts)
+  { minX: EXIT_TRAIL.x0, maxX: EXIT_TRAIL.x1, minZ: SOUTH.maxZ, maxZ: EXIT_TRAIL.z1 },
   // the rooms of the houses you can walk into (data/interiors.ts), far east of the map
   ...INTERIORS.map(interiorRect),
-  // the wild lands past the Trilha da Expedição (data/wild.ts), far west... at x 500, out of everyone's way
+  // the wild lands past the Trilha da Expedição (data/wild.ts), at x 500, out of everyone's way
   WILD_RECT,
 ];
 

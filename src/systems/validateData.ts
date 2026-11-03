@@ -10,6 +10,8 @@ import { TEMPLE_SOLVE_ACTIONS } from '../data/temple';
 import { ACADEMY_CODE_ACTIONS } from '../data/academy';
 import { SEDE_CODE_ACTIONS } from '../data/mikage';
 import { WILD_CODE_ACTIONS } from '../data/wild';
+import { PRECINCT_CODE_ACTIONS } from '../data/precinct';
+import { CLEARING_CODE_ACTIONS } from '../data/clearing';
 import { SHOPS, SHOPS_BY_ID } from '../data/shops';
 import { parseActions } from './progression';
 
@@ -140,6 +142,8 @@ export function validateData(): DataReport {
   for (const [k, a] of Object.entries(ACADEMY_CODE_ACTIONS)) act(a, `academia ${k}`);
   for (const [k, a] of Object.entries(SEDE_CODE_ACTIONS)) act(a, `sede ${k}`);
   for (const [k, a] of Object.entries(WILD_CODE_ACTIONS)) act(a, `selvagem ${k}`);
+  for (const [k, a] of Object.entries(PRECINCT_CODE_ACTIONS)) act(a, `templo de Mikage ${k}`);
+  for (const [k, a] of Object.entries(CLEARING_CODE_ACTIONS)) act(a, `clareira ${k}`);
 
   // NPCs
   const npcIds = new Set<string>();
