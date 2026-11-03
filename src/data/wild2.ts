@@ -80,7 +80,8 @@ export const SINGING: { id: string; x: number; z: number; color: string; note: n
   { id: 'cristal_rosa', x: 28.0, z: -34.8, color: '#FF9FD2', note: 2 },
   { id: 'cristal_ouro', x: 31.2, z: -30.6, color: '#FFD86A', note: 3 },
 ];
-export const ECHO_STONE = { x: 26.2, z: -27.8 };
+// (beside the cave trail: on it, it stood in the way)
+export const ECHO_STONE = { x: 27.4, z: -27.6 };
 /** The three tunes, longer each time (indices into SINGING). */
 export const TUNES: number[][] = [[0, 2, 1], [1, 3, 0, 2], [2, 0, 3, 1, 3]];
 /** The chamber in the north rock, shut by a slab until the last tune: x range and depth (local). */

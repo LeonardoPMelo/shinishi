@@ -327,7 +327,7 @@ export const WORLD_OBJECTS: WorldObject[] = [
   {
     id: 'placa_argolas',
     kind: 'sign',
-    position: [-0.6, 0, 27.2],
+    position: [-1.3, 0, 26.6],
     rotation: 0.4,
     label: 'Ler a placa',
     name: 'Placa de treino',

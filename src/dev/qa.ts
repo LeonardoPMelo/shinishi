@@ -158,7 +158,7 @@ export async function bridge() {
   return res;
 }
 
-/** Walk next to walls and check whether the camera sees the cat (ray camera → cat hits nothing solid). */
+/** Walk next to walls and check whether the camera sees the cat (ray camera → cat hits no solid collider). */
 export async function camera() {
   const ray = new THREE.Raycaster();
   const results: { spot: string; blockedFrames: number; frames: number }[] = [];
@@ -178,11 +178,11 @@ export async function camera() {
       const target = playerPosition.clone().add(new THREE.Vector3(0, 0.4, 0));
       ray.set(cam, target.clone().sub(cam).normalize());
       ray.far = cam.distanceTo(target) - 0.6;
-      const hits = ray.intersectObjects(r3f().scene.children, true).filter((h) => {
-        const m = h.object as THREE.Mesh;
-        const mat = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.Material | undefined;
-        return m.visible && mat && !mat.transparent && !mat.userData?.wind && m.type !== 'Points' && !(m as unknown as { isInstancedMesh?: boolean }).isInstancedMesh;
-      });
+      // asked of the physics world: merged meshes free their vertex arrays once on the GPU (StaticMerge), so a
+      // three.js ray cannot test them; walls, fences and rocks all have solid colliders
+      const { world, rapier } = (window as unknown as { __rapier: { world: { castRay: (r: unknown, t: number, s: boolean, f?: number) => unknown }; rapier: { Ray: new (o: object, d: object) => unknown } } }).__rapier;
+      const dir = target.clone().sub(cam).normalize();
+      const hits = world.castRay(new rapier.Ray(cam, dir), ray.far, true, 2 | 4 | 8) ? [1] : [];
       frames++;
       if (hits.length) blocked++;
     }

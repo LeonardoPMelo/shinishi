@@ -777,3 +777,73 @@ As 10 etapas estão implementadas e publicadas. O que resta está na lista de pe
 ### Testes
 - `vitest`: 568 passando (35 arquivos). `tsc` ok. Build ok.
 - No navegador: a floresta vista de perto e de longe, o gato visível entre as copas, a porta do Mikage testada a pé.
+
+## 18. Prompt mestre — Fase 1: auditoria geral e correções (2026-11-03)
+
+### Ferramentas: o que estava de fato disponível
+- **Usadas:** o código do projeto; o navegador embutido do app (o jogo rodando no servidor de desenvolvimento); o motor de física do próprio jogo (Rapier), consultado por uma auditoria nova.
+- **Disponível, ainda não usado nesta fase:** Blender 5.2, instalado no computador; é o que gera os moradores (`tools/blender/build_villager.py`).
+- **Não disponíveis:**
+  - **Gemini, Tripo e Mixamo:** nenhum deles está conectado à sessão. Os conectores ativos são só "Claude Docs" e "scheduled-tasks", e o catálogo de conectores não tem nenhum dos três (o "Gemini" que aparece lá é uma corretora de criptomoedas).
+  - **Claude in Chrome:** nenhum navegador conectado, então não dá para usar os sites deles com a sua conta.
+  - Nada foi baixado, comprado ou assinado.
+
+### Auditoria automática (`src/dev/audit.ts`, só no modo de desenvolvimento)
+`__audit.run()` consulta o mundo físico, e não os dados. Todos os colisores, de fora e de dentro das casas, ficam montados ao mesmo tempo (as zonas só escondem o desenho), então uma passada vê o mapa inteiro, cerca de 1.050 colisores. Ela verifica:
+- **Caminhos:** todos os caminhos e trilhas (vila, distritos, templo, terras selvagens), amostrados a cada 0,5 m. Uma bola do tamanho do gato não pode encostar em nada sólido. O ponto final é o destino (porta, portão, fonte) e encosta nele de propósito.
+- **Moradores e rondas:** onde cada morador fica parado e o trajeto inteiro de cada ronda.
+- **Inimigos:** pontos de partida e rotas.
+- **Objetos:** cada objeto interativo precisa ter um lugar livre, ao alcance, onde o gato possa ficar.
+- **Portas:** o lugar onde o gato aparece fora e dentro de cada casa.
+
+### O que a auditoria achou (22 pontos) e as correções
+| Onde | Problema | Correção |
+|---|---|---|
+| Academia | Quem saía da Academia caía em cima da pilha de caixotes da rota secreta, que ficava na frente da porta. O caminho da praça também terminava nos caixotes. | Os caixotes foram para trás da barraca de frutas. |
+| Rota secreta da barraca | **Bug novo, achado testando no jogo:** o gato podia ficar preso entre o último caixote e a beira do toldo, sem chão embaixo e sem conseguir pular. O vão antigo, de 0,7 m, tinha o mesmo defeito. | Degraus mais fundos (1,2 m) e vão de 0,9 m, maior que o gato. Testado: andando e correndo, chão → caixote → caixote → toldo; quem só anda para a frente cai no chão em vez de ficar preso. |
+| Praça | A mesa da torta da Chef Hana ficava no meio do passeio do Pipo e da ronda do Guarda Roku, e a ronda do Roku passava por um poste. | A mesa foi para dentro do círculo do Pipo; a ronda do Roku foi ajustada. |
+| Peixaria | O Bigodes ficava encostado na parede da casa de trás. | Foi para um lugar livre atrás da barraca. |
+| Templo de Mikage | O Toshi ficava 3 cm dentro do degrau da residência. O caminho da ponte em arco chegava pelo lado e batia no corrimão. O caminho da fonte passava por cima de uma lanterna. | Toshi um pouco à frente. O caminho entra pela ponta da ponte. O caminho da fonte passa entre as lanternas. |
+| Vila | Uma lanterna de pedra no meio de um caminho, uma placa no meio de um cruzamento, um caminho raspando o tronco da cerejeira e outro colado à frente de uma casa. | A lanterna e a placa foram para a beira; os caminhos contornam a árvore e a casa. |
+| Bambuzal | Um banco na boca da trilha que desce para o rio. | O banco foi para o lado. |
+| Ruínas (terras selvagens) | As trilhas passavam por cima das pedras do Sol e da Nuvem, e a da caverna atravessava a Pedra do Eco. | As trilhas passam ao lado das pedras. A Pedra do Eco ficou ao lado da trilha, ainda ao alcance dela. |
+
+Depois das correções a auditoria dá **zero problemas**: caminhos, moradores, rondas, inimigos, objetos e portas.
+
+### Outros testes desta fase
+- **Paredes (`__qa.walls`):** em 32 tentativas de entrar em 8 casas pelos 4 lados, correndo, o gato nunca atravessou parede e nunca ficou preso.
+- **Câmera (`__qa.camera`):**
+  - Em 24 quadros ao lado de paredes, 1 quadro teve a visão bloqueada, entre as casas do oeste, enquanto a câmera ainda virava.
+  - O teste usava um raio do three.js, que quebrava nas malhas fundidas: para poupar memória, elas descartam os vértices depois de enviados à placa de vídeo. Agora o teste usa um raio da física.
+- **Console:** sem erros na vila, nos interiores, no templo, na clareira e nas terras selvagens.
+  - Havia um erro real, de vez em quando: o pré-aquecimento dos shaders (`compileAsync` do three.js) quebrava num temporizador, fora de qualquer `catch` ("reading 'isReady'"), quando um material trocava de programa no meio da espera (um telhado ficando transparente, uma troca de zona).
+  - **Correção:** o pré-aquecimento usa `compile()`, que começa o mesmo trabalho sem essa espera (`Effects.tsx`).
+- **Regressão:** `tests/placement.test.ts` (4 testes): a mesa fora das rondas, as trilhas ao lado das pedras, o caminho da ponte entrando pela ponta, a placa fora do cruzamento.
+
+### Medições de desempenho (para a fase de otimização)
+Um quadro, incluindo o mapa de sombras:
+
+| Lugar | Chamadas de desenho | Triângulos |
+|---|---|---|
+| Praça | 526 | 1,87 milhão |
+| Templo | 383 | 1,42 milhão |
+| Clareira | 525 | 1,89 milhão |
+| Floresta | 242 | 1,17 milhão |
+| Acampamento dos Espinhos | 361 | 0,95 milhão |
+| Caverna | 174 | 0,87 milhão |
+
+- **Na praça:** os blocos fundidos do cenário (60 mil a 100 mil triângulos cada) são a maior parte.
+- **Próximo passo:**
+  - versões simplificadas (LOD) desses blocos para longe da câmera;
+  - menos segmentos nas peças geradas por código;
+  - tirar das sombras o que não precisa.
+
+### Plano da evolução visual (próximas fases)
+1. **Inimigos:** hoje são feitos de formas simples no código. Passariam a ser modelos de verdade no Blender, pelo mesmo pipeline dos moradores (ouriço, raposa, javali, texugo, doninha, arqueira, chefe), com poses e animação de andar, ataque e atordoado.
+2. **Otimização:** LOD dos blocos fundidos e redução de triângulos (as medições acima), sem perder a aparência.
+3. **Acampamento dos Espinhos:** o chão de terra batida ainda é liso e vazio, com pouco detalhe entre as barracas.
+4. **Com Gemini, Tripo ou Mixamo**, só se você conectar e autorizar:
+   - Gemini para imagens de referência;
+   - Tripo para gerar modelos 3D;
+   - Mixamo para animações.
+   Cada download precisa da sua aprovação, com nome, origem e tamanho.

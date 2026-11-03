@@ -160,9 +160,11 @@ export function PostFX({ bloom, msaa, scale = 1, tint = [1, 1, 1], exposure = 1,
     const warm = () => {
       const prev = gl.getRenderTarget();
       gl.setRenderTarget(composer.readBuffer);
-      const done = gl.compileAsync ? gl.compileAsync(scene, camera) : Promise.resolve(gl.compile(scene, camera));
+      // compile() starts the same work compileAsync() does (programs link in the background where the driver
+      // allows it); compileAsync's own polling threw "reading 'isReady'" from a timer, out of reach of any catch,
+      // when a material swapped its program while it waited (a roof fading, a zone change)
+      gl.compile(scene, camera);
       gl.setRenderTarget(prev);
-      return done.catch(() => undefined);
     };
     const t1 = setTimeout(warm, 1500);
     const t2 = setTimeout(warm, 8000); // again once the cast GLBs have loaded

@@ -6,6 +6,7 @@ import App from './App';
 if (import.meta.env.DEV) import('./systems/validateData');
 // dev: QA harness that drives the real controller (see dev/qa.ts)
 if (import.meta.env.DEV) import('./dev/qa');
+if (import.meta.env.DEV) import('./dev/audit');
 // dev: fixed-camera performance bench (see dev/bench.ts)
 if (import.meta.env.DEV) import('./dev/bench');
 // dev: foot-slide measurement of the locomotion clips (see dev/gait.ts)

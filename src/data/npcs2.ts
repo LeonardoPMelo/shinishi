@@ -226,7 +226,7 @@ const bigodes: NPCDefinition = {
   id: 'bigodes',
   name: 'Seu Bigodes',
   role: 'Peixeiro do mercado',
-  position: [9.6, 0, 0.6],
+  position: [9.5, 0, 1.1],
   faceRotation: -Math.PI / 2,
   look: { species: 'cat', fur: '#D98E4A', belly: '#FFE6C7', scale: 1.1, wide: 1.25, stripes: '#B06A2E', accessory: 'vendor' },
   voice: 'meow_low',

@@ -101,9 +101,11 @@ export const PRECINCT_PATHS: [number, number][][] = [
   [[AXIS_X, -13.4], [AXIS_X, STAIRS.zBottom]],
   [[AXIS_X, STAIRS.zTop], [AXIS_X, RESIDENCE_FRONT]],
   // to the bridge
-  [[AXIS_X, -16.8], [ARCH_BRIDGE.x0, -16.8], [ARCH_BRIDGE.x0, ARCH_BRIDGE.z]],
+  // (onto the bridge from its west end: coming from the north the path met the rail)
+  [[AXIS_X, -16.8], [ARCH_BRIDGE.x0 - 1.2, -16.8], [ARCH_BRIDGE.x0 - 0.6, ARCH_BRIDGE.z], [ARCH_BRIDGE.x0, ARCH_BRIDGE.z]],
   // to the basin
-  [[AXIS_X, -16.0], [23.6, -16.0]],
+  // (between the axis lanterns, not over the north pair)
+  [[AXIS_X, -16.8], [24.4, -16.8]],
   // on the terrace: to the bell, and to the archive
   [[26.0, -24.7], [BELL.x + BELL.half, -24.7]],
   [[29.2, -24.7], [33.6, -24.7], [33.6, -28.2], [ARCHIVE.x, -28.2]],

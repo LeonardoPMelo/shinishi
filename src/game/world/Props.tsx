@@ -403,7 +403,7 @@ export function Props() {
       <StoneLantern position={[1.6, 0, -10]} />
       <StoneLantern position={[-3, 0, -6.2]} />
       <StoneLantern position={[6, 0, 2.3]} />
-      <StoneLantern position={[-7.5, 0, 6.5]} />
+      <StoneLantern position={[-8.1, 0, 5.6]} />
       <StoneLantern position={[3.5, 0, 7.5]} />
 
       <TrainingPost position={[5.6, 0, -7.4]} />

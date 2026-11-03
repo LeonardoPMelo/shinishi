@@ -385,7 +385,7 @@ export const TOSHI: NPCDefinition = {
   name: 'Guarda Toshi',
   role: 'Guarda da residência do Mikage',
   // by the residence door on the temple terrace, facing the stair
-  position: [30.5, 1.6, -26.6],
+  position: [30.5, 1.6, -26.3],
   faceRotation: 0,
   look: { species: 'cat', fur: '#6B5A4A', belly: '#D9CBB8', scale: 1.05, mask: '#4A3D32', eyes: 'round' },
   voice: 'meow_low',

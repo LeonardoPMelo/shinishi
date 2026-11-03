@@ -602,8 +602,9 @@ const roku: NPCDefinition = {
   id: 'roku',
   name: 'Guarda Roku',
   role: 'Guarda (muito) atrapalhado',
-  position: [-3.5, 0, -5.6],
-  patrol: [[-3.5, 0, -5.6], [3.5, 0, -5.6], [3.8, 0, -2.8], [-3.8, 0, -2.8]],
+  // (the round keeps off the lamp post by the south path and the pie table: dev/audit.ts)
+  position: [-3.5, 0, -5.2],
+  patrol: [[-3.5, 0, -5.2], [3.5, 0, -5.2], [3.8, 0, -3.2], [-3.8, 0, -3.2]],
   look: { species: 'cat', fur: '#8E8E96', belly: '#D8D8DE', scale: 1.15, wide: 1.2, accessory: 'guard' },
   voice: 'meow_low',
   offers: [{ mission: 'fantasma', when: PEIXES_DONE }],

@@ -141,10 +141,11 @@ export const WILD_TRAILS: [number, number][][] = [
   // (Etapa 10: it ran inside the canyon's east wall, which ends at z -6; now it passes south of it)
   [[-6, 22], [-8, 12], [-12, 2], [-16, -6], [-24, -4.6], [-36.8, -4.6], [-37, -24], [-38, -30]],
   [[24, 24], [18, 10], [14, -2], [9.5, -6], [3.5, -6], [-4, -8], [-12, -6]],
-  [[14, -2], [22, -6], [30, -8], [30, -14]],
+  // (the ruins' stones stand beside these two, not on them: dev/audit.ts)
+  [[14, -2], [22, -6], [30, -8], [31, -8.4], [31, -13.6]],
   // (Etapa 10: these two ran into the ruins' low walls beside the gate; now they go around them)
   [[22, -6], [22.8, -15.6], [26, -22.4], [26, -30]],
-  [[30, -8], [39.8, -9.4], [40.6, -16], [43.5, -22], [43.5, -26]],
+  [[30, -8], [36, -7.6], [39.8, -9.4], [40.6, -16], [43.5, -22], [43.5, -26]],
   [[-14, 24], [-20, 32]],
 ];
 

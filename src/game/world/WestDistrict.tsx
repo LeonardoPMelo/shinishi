@@ -570,7 +570,7 @@ function Clearing() {
           <Toon color="#9CCB5E" />
         </mesh>
       </RigidBody>
-      <Bench position={[CLEARING.x + 0.4, 0, CLEARING.z + CLEARING.r + 0.6]} rotY={0} />
+      <Bench position={[CLEARING.x + 1.6, 0, CLEARING.z + CLEARING.r + 0.6]} rotY={0} />
       <StoneLantern position={[-20.8, 0, 7.8]} />
     </group>
   );

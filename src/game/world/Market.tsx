@@ -465,14 +465,21 @@ export function LanternString({ from, to, sag = 0.35, count = 7 }: { from: [numb
 
 // ── Secret route: crate stack → fruit stall canopy → chest ────────────────────
 export function CrateSteps() {
-  // Wide, continuous steps so a jump at full speed still lands on the next level:
-  // ground → 0.6 m (two crates side by side) → 1.2 m (2 × 2 crates) → canopy edge at 2.2 m.
-  const low: [number, number, number][] = [[8.15, 0.3, -6.7], [8.75, 0.3, -6.7]];
-  const high: [number, number, number][] = [[8.15, 0.3, -6.1], [8.75, 0.3, -6.1], [8.15, 0.9, -6.1], [8.75, 0.9, -6.1]];
+  // Two wide, deep steps (1.2 × 1.2 m each), so a jump at full speed still lands on the next level:
+  // ground → 0.6 m → 1.2 m → canopy edge at 2.2 m. Behind the stall (east side): in front of it they stood on
+  // the academy's doorstep (dev/audit.ts). The top step stops 0.9 m short of the canopy: wider than the cat, so
+  // it never hangs wedged between the step's edge and the canopy's (it did with a 0.6–0.7 m gap: no ground under
+  // it, no jump), and a full jump still clears the gap.
+  const low: [number, number, number][] = [];
+  const high: [number, number, number][] = [];
+  for (const z of [-4.7, -4.1]) {
+    for (const x of [11.7, 12.3]) low.push([x, 0.3, z]);
+    for (const x of [10.5, 11.1]) high.push([x, 0.3, z], [x, 0.9, z]);
+  }
   return (
     <RigidBody type="fixed" colliders={false}>
-      <CuboidCollider args={[0.6, 0.3, 0.3]} position={[8.45, 0.3, -6.7]} />
-      <CuboidCollider args={[0.6, 0.6, 0.3]} position={[8.45, 0.6, -6.1]} />
+      <CuboidCollider args={[0.6, 0.3, 0.6]} position={[12.0, 0.3, -4.4]} />
+      <CuboidCollider args={[0.6, 0.6, 0.6]} position={[10.8, 0.6, -4.4]} />
       {[...low, ...high].map((p, i) => (
         <Crate key={i} position={p} size={0.6} rotY={(i % 3) * 0.06 - 0.05} />
       ))}

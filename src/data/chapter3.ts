@@ -23,7 +23,8 @@ const say = (speaker: string, text: string, options: DialogueOption[] = [bye()])
 export const HORTA = { x: 8, z: 19.25, w: 6, d: 4 };
 export const LAUNCHER = { x: 13.5, z: 12.5, basketX: 10.5 };
 export const BALANCE: [number, number, number] = [-2.5, 0, -11.5];
-export const PIE: [number, number, number] = [-3.7, 0, -2.3];
+// (inside Pipo's ring round the fountain and clear of Roku's round: dev/audit.ts found both walking through it)
+export const PIE: [number, number, number] = [-2.9, 0, -1.6];
 const FLOWERS: [number, number, number][] = [[4, 0, 34], [1.5, 0, 29.5], [-3, 0, 36.5]];
 
 // ── Items ─────────────────────────────────────────────────────────────────────
