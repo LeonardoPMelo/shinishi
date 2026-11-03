@@ -120,3 +120,23 @@ describe('a Clareira dos Cervos: a saída para as Terras Selvagens', () => {
     expect(Object.values(NPCS_BY_ID).filter((n) => near(n.position, -6.4, 61.0, 0.6)).map((n) => n.id)).toEqual([]);
   });
 });
+
+describe('a porta da residência do Mikage', () => {
+  it('quem está no terraço, na frente da porta, consegue apertar "Entrar" (a porta fica na altura do terraço)', async () => {
+    const THREE = await import('three');
+    const { pickInteractable } = await import('../src/game/systems/interaction');
+    const sede = INTERIORS_BY_ID.sede;
+    const out = outsideDoor(sede);
+    const door = { id: 'porta_sede', position: new THREE.Vector3(...out.door), radius: 1.9, label: () => 'Entrar', onInteract: () => {} };
+    // the cat's body centre stands about 0.7 m over the ground it is on
+    const cat = { x: out.spot[0], y: out.spot[1] + 0.7, z: out.spot[2] };
+    expect(pickInteractable([door], cat, 'playing')?.item.id).toBe('porta_sede');
+  });
+
+  it('o código da porta usa a altura da porta (não o chão da vila)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const src = readFileSync(resolve(__dirname, '../src/game/world/Interiors.tsx'), 'utf8');
+    expect(src).toContain('new THREE.Vector3(o.door[0], o.door[1], o.door[2])');
+  });
+});

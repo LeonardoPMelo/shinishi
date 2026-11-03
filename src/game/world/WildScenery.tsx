@@ -40,7 +40,9 @@ const smooth = (a: number, b: number, t: number) => {
 const C = (h: string) => new THREE.Color(h);
 const BIOME = {
   meadow: C('#86B55A'),
-  forest: C('#4F7A3C'),
+  // moss green (the darker one read as a flat, muddy floor under the trees)
+  forest: C('#6A9A4C'),
+  litter: C('#8C7A4E'),
   cherry: C('#8AB46C'),
   campina: C('#97C463'),
   trampled: C('#A49A70'),
@@ -64,7 +66,8 @@ export function biomeColor(x: number, z: number, out: THREE.Color) {
   if (inR(x, z, [22, -18, 40, -1])) return out.copy(BIOME.ruins);
   if (inR(x, z, [39, -40, 48, -24.5])) return out.copy(BIOME.rock).lerp(BIOME.meadow, 0.35);
   if (inR(x, z, [-48, 8, -28, 38])) return out.copy(BIOME.cherry);
-  if (inR(x, z, [-28, -2, 3, 38]) || inR(x, z, [-26, -38, 2, -22])) return out.copy(BIOME.forest);
+  // the forest floor: moss with patches of fallen leaves
+  if (inR(x, z, [-28, -2, 3, 38]) || inR(x, z, [-26, -38, 2, -22])) return out.copy(BIOME.forest).lerp(BIOME.litter, smooth(0.2, 0.9, noise2(x * 1.9 + 7, z * 1.9 - 3) * 0.5 + 0.5) * 0.55);
   if (inR(x, z, [10, -1, 27, 38])) return out.copy(BIOME.campina);
   return out.copy(BIOME.meadow);
 }
@@ -346,7 +349,7 @@ export function Undergrowth() {
   const sets = useMemo(() => {
     const free = (pad: number) => (x: number, z: number) => !bare(x, z, pad);
     return {
-      ferns: scatterIn(311, 260, [...FOREST, ...CHERRY], free(1.2)),
+      ferns: scatterIn(311, 420, [...FOREST, ...CHERRY], free(1.2)),
       bushes: scatterIn(313, 140, [...FOREST, ...CHERRY, ...MEADOWS], free(1.6)),
       flowers: scatterIn(317, 420, [...MEADOWS, ...CHERRY], free(0.9)),
       mushrooms: scatterIn(331, 90, FOREST, free(1.0)),
@@ -402,7 +405,7 @@ export function WoodsDetail() {
           <CuboidCollider args={[l.len / 2, 0.24, 0.26]} position={[0, 0.24, 0]} />
           <mesh position={[0, 0.26, 0]} rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow>
             <cylinderGeometry args={[0.26, 0.3, l.len, 9]} />
-            <Toon color="#6E5440" tex="bark" />
+            <Toon color="#7C6E5E" tex="bark" />
           </mesh>
           {[-1, 1].map((s) => (
             <mesh key={s} position={[(s * l.len) / 2, 0.26, 0]} rotation={[0, 0, Math.PI / 2]}>
@@ -429,12 +432,12 @@ export function WoodsDetail() {
           </mesh>
         </RigidBody>
       ))}
-      {OLD_TREES.map((t, i) =>
+      {/* (the old giant pine is drawn with the instanced forest: WildForest.tsx) */}
+      {OLD_TREES.filter((t) => t.kind !== 'pine').map((t, i) =>
         t.kind === 'maple' ? <MapleTree key={`o${i}`} position={[t.x, 0, t.z]} scale={t.s} seed={i + 40} green={i % 2 === 0} />
           : t.kind === 'cherry' ? <SakuraTree key={`o${i}`} position={[t.x, 0, t.z]} scale={t.s} seed={i + 40} />
             : <PineTree key={`o${i}`} position={[t.x, 0, t.z]} scale={t.s} />,
       )}
-      {EDGE_TREES.map(([x, z], i) => <PineTree key={`e${i}`} position={[x, 0, z]} scale={1.3 + (i % 5) * 0.12} />)}
     </group>
   );
 }

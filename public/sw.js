@@ -8,7 +8,7 @@
  *    4-byte partial answer once got stored as a whole model and broke the game on GitHub Pages (v1).
  * Bump VERSION to drop every old cache.
  */
-const VERSION = 'shinichi-v5'; // v5: Terras Selvagens reconstruídas (terreno, acampamentos, caverna, novos inimigos)
+const VERSION = 'shinichi-v6'; // v6: porta do Mikage e floresta das Terras Selvagens
 const SHELL = ['./', './index.html', './manifest.webmanifest', './paw.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

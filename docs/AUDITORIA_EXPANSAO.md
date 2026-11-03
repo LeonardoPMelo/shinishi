@@ -753,3 +753,27 @@ As 10 etapas estão implementadas e publicadas. O que resta está na lista de pe
 - **Sons e música:** nenhuma gravação nova (exige baixar arquivos com sua aprovação). Música de caverna e de suspense não existem; os sons novos reaproveitam os efeitos que já havia.
 - **Reflexos reais na água e ciclo dia/noite** não foram feitos.
 - **Desempenho no celular** não foi medido. O pacote cresceu 56 KB; a vegetação é instanciada e o cenário estático é mesclado.
+## 17. Porta do Mikage e floresta das Terras Selvagens (relato do usuário, 2026-11-03)
+
+### Problemas relatados
+- **"Não estou conseguindo entrar na casa do Mikage."** Causa: o ponto de interação da porta de cada casa era criado sempre na altura do chão da vila (y = 0). A porta da residência fica no terraço, 1,6 m acima, e a interação só alcança 2,2 m para cima ou para baixo. O gato no terraço ficava a cerca de 2,3 m do ponto, então o botão "Entrar" nunca aparecia. Nos testes anteriores eu tinha usado o atalho de entrar direto, que não passa pela porta: por isso o defeito escapou.
+  - **Correção:** a porta usa a própria altura (`Interiors.tsx`).
+  - **Testes:** com o gato no terraço, em frente à porta, o "Entrar" é escolhido (falha com o código antigo), e o código da porta usa a altura dela.
+  - **No jogo:** subindo a escadaria a pé, aparece "Porta da residência (fechada)" (sem a formatura na Academia) ou "Entrar: Sede de Mikage" (com ela), e o E leva para dentro.
+- **"Ainda está tudo muito feio na floresta."** O que estava feio:
+  - um único pinheiro de "pratos" empilhados em toda parte;
+  - copas começando à altura da cabeça, tapando o gato e a trilha;
+  - chão verde-escuro chapado;
+  - troncos caídos alaranjados.
+
+### Floresta refeita (`world/WildForest.tsx`)
+- **Árvores:** três tipos instanciados (uma chamada de desenho para os troncos de cada tipo e uma para as copas): cedros altos em camadas, carvalhos de copa redonda e bétulas de tronco branco. Cores variam de árvore para árvore.
+- **Copas:** começam alto e ficam translúcidas perto da linha entre a câmera e o gato. É o mesmo efeito das copas da vila, agora considerando a posição de cada árvore.
+- **Posição:** junto das trilhas, só carvalhos e bétulas (copa alta), para a câmera ver o caminho; os cedros ficam mata adentro e nas bordas. A mata ficou mais densa (54 árvores a mais), e o anel em volta da região usa as mesmas árvores.
+- **Chão:** verde-musgo com manchas de folhas secas, manchas de sol entre as copas e alguns feixes de luz.
+- **Outros:** troncos caídos cinza-amarronzados e mais samambaias.
+- **Testes:** `tests/wildforest.test.ts` (3 testes): os três tipos misturados; nenhum tronco em trilha, paredão ou rio; nada de cedro colado à trilha.
+
+### Testes
+- `vitest`: 568 passando (35 arquivos). `tsc` ok. Build ok.
+- No navegador: a floresta vista de perto e de longe, o gato visível entre as copas, a porta do Mikage testada a pé.

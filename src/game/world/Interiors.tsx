@@ -507,7 +507,9 @@ function Doors({ def }: { def: InteriorDef }) {
     const o = outsideDoor(def);
     return {
       id: `porta_${def.id}`,
-      position: new THREE.Vector3(o.door[0], 0, o.door[2]),
+      // at the door's own height: the Sede's is on the temple terrace, 1.6 m up (at y 0 the prompt never showed
+      // there: the interaction only reaches 2.2 m up or down)
+      position: new THREE.Vector3(o.door[0], o.door[1], o.door[2]),
       radius: 1.9,
       tagHeight: 2.0,
       label: () => {

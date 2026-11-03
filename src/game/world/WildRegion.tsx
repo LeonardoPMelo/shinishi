@@ -4,7 +4,7 @@ import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier
 import * as THREE from 'three';
 import { create } from 'zustand';
 import { Toon, Ink, getGradient } from '../materials';
-import { PineTree, SakuraTree, MapleTree } from './Props';
+import { SakuraTree, MapleTree } from './Props';
 import { Rock } from './Rock';
 import { TerraceBox, StepBlock } from './districtParts';
 import { StaticMerge } from '../StaticMerge';
@@ -12,6 +12,7 @@ import { WildTerrain, Mountains, CliffRock, Undergrowth, WoodsDetail, RiverBanks
 import { WildCamps, WildCampsLife } from './WildCamps';
 import { WildCave, WildCaveLife } from './WildCave';
 import { WildFauna } from './WildFauna';
+import { WildForest } from './WildForest';
 import { useSpot, useIconTexture } from '../systems/training';
 import { useGameStore } from '../../store/gameStore';
 import { emit } from '../../systems/events';
@@ -22,7 +23,7 @@ import { useZone } from '../systems/zone';
 import { isActive } from '../../systems/combat';
 import { press as pressOrder, brokenRule } from '../../systems/orderPuzzle';
 import {
-  WILD_ORIGIN, WILD, WILD_RIVER, WILD_WALLS, WILD_STONES, WILD_STONE_R, ROPE_BRIDGE, BRIDGE_REPAIR, WILD_TRAILS, WILD_PINES,
+  WILD_ORIGIN, WILD, WILD_RIVER, WILD_WALLS, WILD_STONES, WILD_STONE_R, ROPE_BRIDGE, BRIDGE_REPAIR, WILD_TRAILS,
   WILD_CHERRIES, WILD_MAPLES, BENTO_TREE, HERB_SPOTS, CRYSTALS, TRAPS, TRAP, CAMPFIRE, KIT_BUSH, BENTO_GUARD_CLEAR,
   CANYON, CANYON_PASSED_Z, CAVE, OUTPOST, LOOKOUT, WIND_ZONE, SUN_PUZZLE, SUN_STONES, SUN_GATE, WILD_CODE_ACTIONS,
   WILD_GATE, w, toLocal, type WildWall,
@@ -501,7 +502,7 @@ function Camp() {
 function Forest() {
   return (
     <group>
-      {WILD_PINES.map(([x, z], i) => <PineTree key={`p${i}`} position={[x, 0, z]} scale={1.05 + ((i * 13) % 7) / 14} />)}
+      {/* the pines' spots, the edges and the ring past them: the instanced forest (WildForest.tsx) */}
       {WILD_CHERRIES.map(([x, z], i) => <SakuraTree key={`c${i}`} position={[x, 0, z]} scale={1.1 + ((i * 11) % 5) / 12} seed={i + 3} />)}
       {WILD_MAPLES.map(([x, z], i) => <MapleTree key={`m${i}`} position={[x, 0, z]} scale={1.1} seed={i + 5} green={i % 3 !== 0} />)}
       <SakuraTree position={[BENTO_TREE.x, 0, BENTO_TREE.z]} scale={1.9} seed={9} />
@@ -511,16 +512,9 @@ function Forest() {
         <Toon color="#6E4A3A" tex="bark" />
       </mesh>
       {/* the trees around the edge: the region ends where the forest gets too thick */}
-      {BORDER.map(([x, z], i) => <PineTree key={`b${i}`} position={[x, 0, z]} scale={1.4 + (i % 4) * 0.15} />)}
     </group>
   );
 }
-const BORDER: [number, number][] = (() => {
-  const out: [number, number][] = [];
-  for (let x = WILD.minX - 2; x <= WILD.maxX + 2; x += 3.4) out.push([x, WILD.maxZ + 2.5 + (Math.abs(x * 7) % 2)]);
-  for (let z = WILD.minZ + 4; z <= WILD.maxZ; z += 3.4) out.push([WILD.minX - 2.5 - (Math.abs(z * 5) % 2), z], [WILD.maxX + 2.5 + (Math.abs(z * 3) % 2), z]);
-  return out;
-})();
 
 function Outpost() {
   return (
@@ -1189,6 +1183,7 @@ export function WildRegion() {
         <WildCampsLife />
         <WildCaveLife />
         <WildFauna />
+        <WildForest />
         <River />
         <Waterfall />
         <RopeBridge />
