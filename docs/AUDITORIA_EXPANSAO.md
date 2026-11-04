@@ -1040,3 +1040,17 @@ Os oito tipos de bicho eram montados no código com esferas, cones e caixas. As 
 ### Limitações
 - **Gemini, Tripo e Mixamo continuam indisponíveis:** os modelos e as animações foram feitos só com o Blender, por código. As animações são de poses-chave calculadas, não captura de movimento.
 - **Chefe Espinho:** não aparece num jogo novo antes da parte da história em que surge; foi conferido no estúdio e nas imagens do Blender.
+
+### Ajustes depois da revisão de perto (2026-11-04)
+- **Patas, em todos os bichos:**
+  - **Antes:** tubos retos em cima de discos achatados, que pareciam pernas de mesa.
+  - **Agora:** cada pata é uma forma macia só, com anatomia. As da frente descem de um ombro arredondado, passam pelo cotovelo e chegam ao pulso. As de trás saem de uma coxa cheia, com o joelho para a frente e o jarrete para trás. As patinhas são redondas, e as "meias" escuras continuam.
+- **Ouriço:** espinhos mais escuros, com pontas claras só no fim, cobrindo também o alto, perto da cabeça.
+- **Raposa:** pelo do peito. **Arqueira:** a aljava inclinada para trás, sobre o ombro.
+- **Texugo:** o escudo passou da pata dianteira para o corpo. Preso à pata, ele voava por cima da cabeça no bote e ficava deitado no chão quando o texugo dormia.
+- **Conferido:**
+  - poses no Blender (parado, andar, ataque, dormir);
+  - antes e depois no estúdio, com os materiais do jogo;
+  - em jogo, cada estado com a sua animação e sem erros.
+- **Detalhe:** bicho além dos 45 m não atualiza a animação (não é desenhado) e retoma ao voltar a ficar perto.
+- **Tamanho:** 70 a 126 KB por bicho.

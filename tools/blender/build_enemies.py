@@ -482,13 +482,26 @@ def quad_bones(hips, chest, neck, head_tip, legs, tail):
 
 
 def leg_parts(spots, top_z, r, foot, color, foot_color, bone_names=LEGS, mat='fur', upper=None):
-    """Stubby legs (a tube from inside the body to the ground) with a round paw. `upper`: the body colour the
-    leg starts in, turning into `color` (the socks) below the middle."""
-    for (x, y), bn in zip(spots, bone_names):
+    """Legs with a little anatomy, each one smooth blob: the front ones come down from a rounded shoulder past an
+    elbow to the wrist, the hind ones from a full thigh to a knee forward and a hock back; a round paw at the
+    bottom (no flat disc). `upper`: the body colour the leg starts in, turning into `color` (the socks)."""
+    for i, ((x, y), bn) in enumerate(zip(spots, bone_names)):
+        front = i < 2
+        if front:
+            pts = [((x, y, top_z), r * 1.45), ((x, y + r * 0.25, top_z * 0.55), r * 1.0), ((x, y - r * 0.1, foot * 2.4), r * 0.82)]
+        else:
+            pts = [((x, y + r * 0.35, top_z), r * 1.9), ((x, y - r * 0.8, top_z * 0.6), r * 1.15), ((x, y + r * 0.7, foot * 2.8), r * 0.82)]
+        el = []
+        for k in range(len(pts) - 1):
+            el += chain([pts[k][0], pts[k + 1][0]], [pts[k][1], pts[k + 1][1]], r * 0.45)
+        el.append(((x, y - r * (0.55 if front else 0.25), foot * 1.05), (r * 1.2, r * 1.5, foot * 1.05)))
+        leg = blob('leg', el, voxel=max(0.006, r * 0.22), keep=0.35)
         mid = top_z * 0.5 + foot
-        paint = color if not upper else (lambda co, n, u=upper, c=color, m=mid: mix(c, u, smooth(m * 0.85, m * 1.25, co.z)))
-        part(tube('leg', [(x, y, top_z), (x, y + r * 0.1, mid), (x, y - r * 0.1, foot * 1.4)], [r * 1.35, r * 1.0, r * 0.78], segs=12), mat, paint, bn)
-        part(ell('paw', (x, y - r * 0.45, foot * 0.95), (r * 1.2, r * 1.55, foot), segs=14, rings=8), 'pad', foot_color, bn)
+
+        def paint(co, n, u=upper, c=color, m=mid, f=foot):
+            sock = c if not u else mix(c, u, smooth(m * 0.85, m * 1.25, co.z))
+            return mix(foot_color, sock, smooth(f * 0.9, f * 1.9, co.z))
+        part(leg, mat, paint, bn)
 
 
 # ── The creatures ────────────────────────────────────────────────────────────────
@@ -500,6 +513,7 @@ def build_fox(cfg):
         ((0, 0.0, 0.46), (0.15, 0.2, 0.15)),
         ((0, 0.16, 0.45), (0.15, 0.15, 0.15)),
         ((0, -0.2, 0.56), (0.11, 0.09, 0.12)),  # neck ruff
+        ((0, -0.27, 0.47), (0.1, 0.06, 0.11)),  # chest fluff
     ], voxel=0.012)
     part(body, 'fur', lambda co, n: mix(fur, cream, smooth(0.02, -0.12, n.z) * smooth(0.05, -0.2, co.y + 0.05) + smooth(-0.5, -0.9, n.z) * 0.8), 'body')
     hc = Vector((0, -0.33, 0.72))
@@ -542,7 +556,7 @@ def archer_extras(body, head, hc):
     pts = [Matrix.Rotation(0.5, 3, 'Y') @ (p - c) + c for p in pts]
     part(tube('bow', pts, 0.016, segs=6), 'leather', wood, 'body')
     part(tube('string', [pts[0], pts[-1]], 0.004, segs=4), 'leather', string, 'body')
-    q0, q1 = Vector((-0.1, 0.12, 0.58)), Vector((-0.16, 0.26, 0.86))
+    q0, q1 = Vector((-0.1, 0.1, 0.6)), Vector((-0.17, 0.36, 0.8))
     part(tube('quiver', [q0, q1], [0.06, 0.055], segs=12), 'leather', leather, 'body')
     for k in range(3):
         o = Vector(((k - 1) * 0.025, 0.0, 0.0))
@@ -569,7 +583,7 @@ def hedgehog_body(cfg, s=1.0):
         zf = 1 - 2 * (i + 0.5) / n
         rr = math.sqrt(1 - zf * zf)
         d = Vector((math.cos(golden * i) * rr, math.sin(golden * i) * rr, zf))
-        if d.z < -0.25 or d.y < -0.62 or (d.y < -0.3 and d.z < 0.25):
+        if d.z < -0.25 or d.y < -0.72 or (d.y < -0.35 and d.z < 0.45):
             continue
         try:
             loc0, nor = on_surface(body, bc, d)
@@ -578,7 +592,7 @@ def hedgehog_body(cfg, s=1.0):
         L = (0.12 + 0.04 * math.sin(i * 7.1)) * s
         aim = (nor * 0.6 + Vector((0, 0.75, 0.05))).normalized()
         c = cone('spine', loc0 - nor * 0.02 * s, loc0 + aim * L, 0.036 * s, 0.0, segs=5)
-        part(c, 'pad', lambda co, n_, a=loc0, L=L: mix(spine, tipc, smooth(0.55, 1.0, (co - a).length / L)), 'body')
+        part(c, 'pad', lambda co, n_, a=loc0, L=L: mix(spine, tipc, smooth(0.72, 1.0, (co - a).length / L)), 'body')
         cones.append(c)
     loc_l = eye(head, hc + S((0.07, 0, 0.03)), (0.5, -1, 0.1), 0.04 * s, 0.045 * s, C('#3A2A22'), lid=face)
     eye(head, hc + S((-0.07, 0, 0.03)), (-0.5, -1, 0.1), 0.04 * s, 0.045 * s, C('#3A2A22'), lid=face)
@@ -693,14 +707,15 @@ def build_badger(cfg):
     part(hm, 'metal', C('#7A6A4E'), 'head')
     part(tube('rim', [hc + Vector((math.cos(a) * 0.255, 0.02 + math.sin(a) * 0.255, 0.08)) for a in [k / 24 * 2 * math.pi for k in range(25)]], 0.014, segs=6, cap=False), 'metal', C('#5E5038'), 'head')
     part(cone('crest', hc + Vector((0, 0.0, 0.22)), hc + Vector((0, 0.05, 0.33)), 0.03, 0.0, segs=6), 'cloth', C('#C8302C'), 'head')
-    # shield, held in front of the right shoulder: planks, an iron rim and a boss
+    # shield, held in front of the right shoulder: planks, an iron rim and a boss (on the body: on the leg it
+    # swung over the head in the lunge)
     sc = Vector((0.27, -0.62, 0.46))
     Rz = Matrix.Rotation(-0.28, 3, 'Z')
     fwd = Rz @ Vector((0, -1, 0))
     part(tube('shield', [sc - fwd * 0.03, sc], [0.29, 0.29], segs=24), 'wood',
-         lambda co, n: mix(C('#8C5A36'), C('#6E4428'), 0.5 + 0.5 * math.sin(((Rz.inverted() @ (co - sc)).x) * 55)), 'leg.FR')
-    part(tube('srim', [sc + Rz @ Vector((math.cos(a) * 0.29, 0.005, math.sin(a) * 0.29)) for a in [k / 24 * 2 * math.pi for k in range(25)]], 0.02, segs=6, cap=False), 'metal', C('#5E5038'), 'leg.FR')
-    part(ell('boss', sc + fwd * 0.012, (0.08, 0.04, 0.08), forward=tuple(fwd)), 'metal', C('#B8A07A'), 'leg.FR')
+         lambda co, n: mix(C('#8C5A36'), C('#6E4428'), 0.5 + 0.5 * math.sin(((Rz.inverted() @ (co - sc)).x) * 55)), 'body')
+    part(tube('srim', [sc + Rz @ Vector((math.cos(a) * 0.29, 0.005, math.sin(a) * 0.29)) for a in [k / 24 * 2 * math.pi for k in range(25)]], 0.02, segs=6, cap=False), 'metal', C('#5E5038'), 'body')
+    part(ell('boss', sc + fwd * 0.012, (0.08, 0.04, 0.08), forward=tuple(fwd)), 'metal', C('#B8A07A'), 'body')
     spots = [(0.26, -0.3), (-0.26, -0.3), (0.26, 0.33), (-0.26, 0.33)]
     leg_parts(spots, 0.36, 0.08, 0.05, black, black, upper=fur)
     tail = [(0, 0.46, 0.5), (0, 0.54, 0.46), (0, 0.6, 0.4)]
@@ -767,7 +782,7 @@ def build_spirit(cfg):
 
 
 KINDS = {
-    'ourico': dict(build=build_hedgehog, fur='#8C6A4E', spine='#5A4434', band='#8C2E2E', swing=0.55, lunge=0.3, sink=0.1),
+    'ourico': dict(build=build_hedgehog, fur='#8C6A4E', spine='#4A3628', band='#8C2E2E', swing=0.55, lunge=0.3, sink=0.1),
     'raposa': dict(build=build_fox, fur='#D9733A', band='#2E2A36', swing=0.5, lunge=0.3, sink=0.2),
     'arqueira': dict(build=build_fox, fur='#9AA0A8', band='#3E6A3A', dark='#3A3A40', iris='#9CD3E8', extras=archer_extras, swing=0.5, sink=0.2, throws=True),
     'javali': dict(build=build_boar, fur='#7A6656', swing=0.35, lunge=0.4, sink=0.3),
