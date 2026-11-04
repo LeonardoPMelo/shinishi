@@ -1,8 +1,8 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
-import { Toon, Ink } from '../materials';
+import { Toon, Ink, getGradient } from '../materials';
 import { useGameStore } from '../../store/gameStore';
 import { emit } from '../../systems/events';
 import { isHostile } from '../../systems/combat';
@@ -12,6 +12,7 @@ import { useZone } from '../systems/zone';
 import { w } from '../../data/wild';
 import {
   ESPINHO_CAMP, ESPINHO_TENTS, ESPINHO_LOOKOUT, ESPINHO_FIRE, ESPINHO_LOOT, CAGES, CAGE_SAFE, CAGE_REACH, FORT_TOWERS, WILD2_CODE_ACTIONS,
+  CAMP_PATHS, CAMP_PROPS,
 } from '../../data/wild2';
 
 /**
@@ -28,30 +29,93 @@ const WOOD_DARK = '#4E3626';
 const CLOTH = '#8C6A4A';
 const toast = (icon: string, text: string) => emit({ type: 'toast', icon, text });
 
-/** A tent: two sloped cloth sides on a ridge pole, the front open. */
+/** Tent panel: a cloth sheet from the ridge down to one side, sagging a little between the poles. */
+function panelGeometry(side: number, W: number, H: number, L: number) {
+  const g = new THREE.PlaneGeometry(1, 1, 6, 10);
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const u = pos.getX(i) + 0.5; // 0 at the ridge, 1 at the ground
+    const v = pos.getY(i) + 0.5; // along the ridge
+    const sag = Math.sin(Math.PI * u) * (0.55 + 0.45 * Math.sin(Math.PI * v));
+    pos.setXYZ(i, side * (W * u - 0.05 * sag), H * (1 - u) - 0.06 * sag + 0.02, (v - 0.5) * L);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** Tent end: the back closed by a triangle; at the front two flaps folded open. */
+function triangleGeometry(a: [number, number, number], b: [number, number, number], c: [number, number, number]) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([...a, ...b, ...c], 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * A canvas tent: two sagging cloth sides on a ridge pole, the back closed, the front flaps tied open (a dark
+ * inside with a bedroll), a hem along the bottom, guy ropes to pegs at both ends. The front faces +z.
+ */
 export function Tent({ x, z, rot = 0, color = CLOTH, size = 1 }: { x: number; z: number; rot?: number; color?: string; size?: number }) {
   const s = size;
+  const W = 1.08 * s, H = 1.38 * s, L = 2.4 * s;
+  const geo = useMemo(() => ({
+    sides: [panelGeometry(-1, W, H, L), panelGeometry(1, W, H, L)],
+    back: triangleGeometry([-W, 0.02, -L / 2], [W, 0.02, -L / 2], [0, H, -L / 2]),
+    // the flaps: each half of the front, swung out round its outer edge
+    flaps: [-1, 1].map((side) => triangleGeometry([side * W, 0.02, L / 2], [side * W * 1.55, 0.25 * s, L / 2 + 0.55 * s], [0, H, L / 2])),
+  }), [W, H, L, s]);
+  const hem = new THREE.Color(color).multiplyScalar(0.72).getStyle();
+  const inner = new THREE.Color(color).multiplyScalar(1.15).getStyle();
   return (
     <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, rot, 0]}>
       <CuboidCollider args={[1.0 * s, 0.7 * s, 1.2 * s]} position={[0, 0.7 * s, 0]} />
-      {[-1, 1].map((side) => (
-        <mesh key={side} position={[side * 0.55 * s, 0.7 * s, 0]} rotation={[0, 0, -side * 0.72]} castShadow receiveShadow>
-          <boxGeometry args={[1.6 * s, 0.05, 2.4 * s]} />
-          <Toon color={color} />
+      {geo.sides.map((g, i) => (
+        <mesh key={i} geometry={g} castShadow receiveShadow>
+          <Toon color={color} side={THREE.DoubleSide} />
           <Ink thickness={0.012} />
         </mesh>
       ))}
-      <mesh position={[0, 1.27 * s, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 2.6 * s, 6]} />
-        <Toon color={WOOD_DARK} />
+      <mesh geometry={geo.back} receiveShadow>
+        <Toon color={hem} side={THREE.DoubleSide} />
       </mesh>
-      {[-1.25, 1.25].map((zz) => (
-        <mesh key={zz} position={[0, 0.64 * s, zz * s]}>
-          <cylinderGeometry args={[0.05, 0.05, 1.3 * s, 6]} />
-          <Toon color={WOOD_DARK} />
+      {geo.flaps.map((g, i) => (
+        <mesh key={i} geometry={g} castShadow>
+          <Toon color={inner} side={THREE.DoubleSide} />
         </mesh>
       ))}
-      {/* a bedroll inside */}
+      {/* the hem along both bottom edges */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * (W - 0.04), 0.07, 0]} rotation={[0, 0, side * 0.9]}>
+          <boxGeometry args={[0.04, 0.16, L + 0.02]} />
+          <Toon color={hem} />
+        </mesh>
+      ))}
+      {/* ridge pole, the two uprights, guy ropes and pegs */}
+      <mesh position={[0, H + 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, L + 0.3, 6]} />
+        <Toon color={WOOD_DARK} />
+      </mesh>
+      {[-1, 1].map((e) => (
+        <group key={e}>
+          <mesh position={[0, H / 2, e * (L / 2 + 0.05)]}>
+            <cylinderGeometry args={[0.04, 0.045, H, 6]} />
+            <Toon color={WOOD_DARK} />
+          </mesh>
+          <mesh position={[0, H * 0.5, e * (L / 2 + 0.52 * s)]} rotation={[e * -0.6, 0, 0]}>
+            <cylinderGeometry args={[0.008, 0.008, 1.66 * s, 4]} />
+            <Toon color="#D8C8A0" />
+          </mesh>
+          <mesh position={[0, 0.06, e * (L / 2 + 0.98 * s)]} rotation={[e * 0.3, 0, 0]}>
+            <cylinderGeometry args={[0.02, 0.012, 0.16, 5]} />
+            <Toon color={WOOD} />
+          </mesh>
+        </group>
+      ))}
+      {/* the shade inside, and a bedroll */}
+      <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[W * 1.7, L]} />
+        <Toon color="#4A3A30" />
+      </mesh>
       <mesh position={[0, 0.06, -0.2 * s]} scale={[0.7, 0.12, 1.4]}>
         <boxGeometry args={[1 * s, 1, 1 * s]} />
         <Toon color="#7E3B32" />
@@ -261,6 +325,231 @@ function WeaponRack({ x, z, rot = 0 }: { x: number; z: number; rot?: number }) {
 }
 
 /** The static half: tents, lookouts, fences, racks, crates. */
+// ── The camp's ground and its clutter ───────────────────────────────────────────
+
+/** Cheap smooth noise for the ground's colour (a few sines). */
+const gnoise = (x: number, z: number) => (Math.sin(x * 0.9 + Math.sin(z * 0.7) * 1.7) + Math.sin(z * 1.1 + Math.sin(x * 0.6) * 2.1) + Math.sin((x - z) * 2.3) * 0.4) / 2.4;
+const smoothstep = (a: number, b: number, t: number) => {
+  const k = Math.min(1, Math.max(0, (t - a) / (b - a)));
+  return k * k * (3 - 2 * k);
+};
+function segDist(x: number, z: number, [ax, az]: [number, number], [bx, bz]: [number, number]) {
+  const dx = bx - ax, dz = bz - az;
+  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+  return Math.hypot(x - (ax + dx * t), z - (az + dz * t));
+}
+const campPathDist = (x: number, z: number) => Math.min(...CAMP_PATHS.flatMap((p) => p.slice(1).map((b, i) => segDist(x, z, p[i], b))));
+
+/**
+ * The camp's floor, over the region's ground (which is too coarse, ~1.3 m a vertex, for paths): trampled earth
+ * in patches, paths worn paler and smoother, a dark ring of ash round the fire, a ragged edge fading into the
+ * grass (vertex alpha). Drawn on its own (dynamic: the static merge keeps only rgb).
+ */
+function CampGround() {
+  const geometry = useMemo(() => {
+    const R = ESPINHO_CAMP.r + 1;
+    const g = new THREE.PlaneGeometry(R * 2, R * 2, 88, 88);
+    g.rotateX(-Math.PI / 2);
+    g.translate(ESPINHO_CAMP.x, 0.012, ESPINHO_CAMP.z);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    const col = new Float32Array(pos.count * 4);
+    // muted, earthy browns (a saturated orange read as painted floor next to the green)
+    const earth = new THREE.Color('#8A7458'), darker = new THREE.Color('#6A5844'), worn = new THREE.Color('#B4A284');
+    const ash = new THREE.Color('#4A4540'), scorched = new THREE.Color('#5E5044');
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i);
+      const n = gnoise(x * 0.45, z * 0.45);
+      c.copy(earth).lerp(darker, smoothstep(-0.2, 0.7, n) * 0.7);
+      // grit: a fine speckle
+      c.multiplyScalar(0.94 + 0.1 * (gnoise(x * 4.1 + 3, z * 4.3 - 1) * 0.5 + 0.5));
+      c.lerp(worn, (1 - smoothstep(0.3, 0.95, campPathDist(x, z) + gnoise(x * 1.7, z * 1.7) * 0.18)) * 0.85);
+      const fd = Math.hypot(x - ESPINHO_FIRE.x, z - ESPINHO_FIRE.z);
+      c.lerp(scorched, (1 - smoothstep(1.4, 3.0, fd + gnoise(x * 2.2, z * 2.2) * 0.3)) * 0.7);
+      c.lerp(ash, 1 - smoothstep(0.5, 1.4, fd));
+      // a ragged edge: the trodden earth gives way to the grass unevenly
+      const r = Math.hypot(x - ESPINHO_CAMP.x, z - ESPINHO_CAMP.z);
+      const edge = ESPINHO_CAMP.r - 1.6 + gnoise(x * 0.8 + 11, z * 0.8) * 1.2;
+      col.set([c.r, c.g, c.b, 1 - smoothstep(edge - 1.8, edge + 0.6, r)], i * 4);
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 4));
+    return g;
+  }, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <mesh geometry={geometry} receiveShadow userData={{ dynamic: true }} renderOrder={-1}>
+      <meshToonMaterial vertexColors transparent depthWrite={false} polygonOffset polygonOffsetFactor={-2} gradientMap={getGradient()} />
+    </mesh>
+  );
+}
+
+/** A tripod of sticks over the fire with a black pot hanging from it. */
+function CookingPot({ x, z }: { x: number; z: number }) {
+  return (
+    <group position={[x, 0, z]}>
+      {[0, 2.09, 4.19].map((a) => (
+        <mesh key={a} position={[Math.cos(a) * 0.38, 0.56, Math.sin(a) * 0.38]} rotation={[Math.sin(a) * 0.36, 0, -Math.cos(a) * 0.36]}>
+          <cylinderGeometry args={[0.025, 0.03, 1.2, 5]} />
+          <Toon color={WOOD_DARK} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.88, 0]}>
+        <cylinderGeometry args={[0.006, 0.006, 0.28, 4]} />
+        <Toon color="#3A3A40" />
+      </mesh>
+      <mesh position={[0, 0.62, 0]} scale={[1, 0.8, 1]} castShadow>
+        <sphereGeometry args={[0.2, 12, 8, 0, Math.PI * 2, 0.35, Math.PI - 0.35]} />
+        <Toon color="#2E2E34" side={THREE.DoubleSide} />
+        <Ink thickness={0.01} />
+      </mesh>
+      <mesh position={[0, 0.74, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.18, 12]} />
+        <Toon color="#B8783A" />
+      </mesh>
+    </group>
+  );
+}
+
+/** Split logs stacked crosswise. */
+function Firewood({ x, z, rot = 0 }: { x: number; z: number; rot?: number }) {
+  const logs: [number, number][] = [[-0.26, 0.08], [0, 0.08], [0.26, 0.08], [-0.13, 0.23], [0.13, 0.23], [0, 0.38]];
+  return (
+    <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, rot, 0]}>
+      <CuboidCollider args={[0.4, 0.22, 0.45]} position={[0, 0.22, 0]} />
+      {logs.map(([lx, ly], i) => (
+        <mesh key={i} position={[lx, ly, 0]} rotation={[Math.PI / 2, 0, (i % 2) * 0.08]} castShadow>
+          <cylinderGeometry args={[0.08, 0.085, 0.8, 7]} />
+          <Toon color={i % 2 ? '#8A6446' : '#7A5A44'} tex="bark" />
+        </mesh>
+      ))}
+    </RigidBody>
+  );
+}
+
+/** A tied sack of stolen grain. */
+function Sack({ x, z, rot = 0, s = 1 }: { x: number; z: number; rot?: number; s?: number }) {
+  return (
+    <group position={[x, 0, z]} rotation={[0, rot, 0]} scale={s}>
+      <mesh position={[0, 0.26, 0]} scale={[1, 1.2, 0.9]} castShadow>
+        <sphereGeometry args={[0.24, 10, 8]} />
+        <Toon color="#C8AE7E" />
+        <Ink thickness={0.01} />
+      </mesh>
+      <mesh position={[0, 0.56, 0]}>
+        <cylinderGeometry args={[0.05, 0.09, 0.1, 8]} />
+        <Toon color="#A88E5E" />
+      </mesh>
+      <mesh position={[0, 0.52, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.07, 0.015, 5, 10]} />
+        <Toon color="#7A2E2A" />
+      </mesh>
+    </group>
+  );
+}
+
+/** The archer's ammunition: a heap of pinecones. */
+function PineconePile({ x, z }: { x: number; z: number }) {
+  const cones = useMemo(() => {
+    const out: [number, number, number, number][] = [];
+    for (let i = 0; i < 11; i++) {
+      const a = i * 2.4, r = i < 7 ? 0.22 : 0.09;
+      out.push([Math.cos(a) * r, i < 7 ? 0.08 : 0.2, Math.sin(a) * r, a]);
+    }
+    return out;
+  }, []);
+  return (
+    <group position={[x, 0, z]}>
+      {cones.map(([cx, cy, cz, a], i) => (
+        <mesh key={i} position={[cx, cy, cz]} rotation={[1.3, a, 0.4]}>
+          <coneGeometry args={[0.07, 0.18, 7]} />
+          <Toon color={i % 3 ? '#7A5236' : '#8C6440'} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Two posts and a bar with fish and herbs drying in the sun. */
+function DryingRack({ x, z, rot = 0 }: { x: number; z: number; rot?: number }) {
+  return (
+    <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, rot, 0]}>
+      {[-0.7, 0.7].map((px) => (
+        <group key={px}>
+          <CylinderCollider args={[0.7, 0.06]} position={[px, 0.7, 0]} />
+          <mesh position={[px, 0.72, 0]}>
+            <cylinderGeometry args={[0.045, 0.055, 1.44, 6]} />
+            <Toon color={WOOD} tex="bark" />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[0, 1.38, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.035, 0.035, 1.6, 6]} />
+        <Toon color={WOOD_DARK} />
+      </mesh>
+      {[-0.45, -0.15, 0.15, 0.45].map((px, i) => (
+        <group key={px} position={[px, 1.2, 0]}>
+          <mesh position={[0, 0.1, 0]}>
+            <cylinderGeometry args={[0.004, 0.004, 0.16, 3]} />
+            <Toon color="#D8C8A0" />
+          </mesh>
+          {i % 2 === 0 ? (
+            <mesh rotation={[0, 0, Math.PI / 2]} scale={[1, 0.38, 0.22]}>
+              <sphereGeometry args={[0.16, 8, 6]} />
+              <Toon color="#9FB0B8" />
+            </mesh>
+          ) : (
+            <mesh position={[0, -0.04, 0]}>
+              <coneGeometry args={[0.07, 0.22, 6]} />
+              <Toon color="#6E8E4A" />
+            </mesh>
+          )}
+        </group>
+      ))}
+    </RigidBody>
+  );
+}
+
+/** A low table with the band's map of the region, and two stumps to sit on. */
+function MapTable({ x, z, rot = 0 }: { x: number; z: number; rot?: number }) {
+  return (
+    <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, rot, 0]}>
+      <CuboidCollider args={[0.5, 0.25, 0.35]} position={[0, 0.25, 0]} />
+      <mesh position={[0, 0.44, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.0, 0.07, 0.7]} />
+        <Toon color="#8C6440" tex="planks" />
+        <Ink thickness={0.01} />
+      </mesh>
+      {[[-0.42, -0.28], [0.42, -0.28], [-0.42, 0.28], [0.42, 0.28]].map(([lx, lz]) => (
+        <mesh key={`${lx}${lz}`} position={[lx, 0.2, lz]}>
+          <boxGeometry args={[0.07, 0.4, 0.07]} />
+          <Toon color={WOOD_DARK} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.482, 0]} rotation={[-Math.PI / 2, 0, 0.12]}>
+        <planeGeometry args={[0.7, 0.48]} />
+        <Toon color="#E8D8B0" />
+      </mesh>
+      {/* the map's marks: the river, and a red cross on the camp */}
+      <mesh position={[0.1, 0.486, 0.02]} rotation={[-Math.PI / 2, 0, 0.6]}>
+        <planeGeometry args={[0.04, 0.42]} />
+        <Toon color="#5E8EC0" />
+      </mesh>
+      {[0.78, -0.78].map((a) => (
+        <mesh key={a} position={[-0.18, 0.488, -0.08]} rotation={[-Math.PI / 2, 0, a]}>
+          <planeGeometry args={[0.1, 0.025]} />
+          <Toon color="#C0392B" />
+        </mesh>
+      ))}
+      {[-0.85, 0.85].map((sx) => (
+        <mesh key={sx} position={[sx, 0.17, 0.05]} castShadow>
+          <cylinderGeometry args={[0.18, 0.2, 0.34, 9]} />
+          <Toon color="#7A5A44" tex="bark" />
+        </mesh>
+      ))}
+    </RigidBody>
+  );
+}
+
 export function WildCamps() {
   const { x: fx, z: fz } = ESPINHO_FIRE;
   return (
@@ -269,6 +558,13 @@ export function WildCamps() {
       {ESPINHO_TENTS.map((t, i) => <Tent key={i} x={t.x} z={t.z} rot={t.rot} color={['#7A5A4A', '#6E5A44', '#8C6A50'][i]} />)}
       <Lookout x={ESPINHO_LOOKOUT.x} z={ESPINHO_LOOKOUT.z} h={ESPINHO_LOOKOUT.h} />
       <FirePlace x={fx} z={fz} />
+      <CampGround />
+      <CookingPot x={fx} z={fz} />
+      <Firewood {...CAMP_PROPS.firewood} />
+      {CAMP_PROPS.sacks.map((p, i) => <Sack key={i} {...p} />)}
+      <PineconePile {...CAMP_PROPS.pinecones} />
+      <DryingRack {...CAMP_PROPS.rack} />
+      <MapTable {...CAMP_PROPS.table} />
       <Stakes a={[-26.4, -8.4]} b={[-26.4, -22.6]} />
       <Stakes a={[-24.4, -23.8]} b={[-12.6, -24.0]} />
       <Stakes a={[-7.2, -14.6]} b={[-7.6, -21.8]} />

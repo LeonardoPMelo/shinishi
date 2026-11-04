@@ -1054,3 +1054,46 @@ Os oito tipos de bicho eram montados no código com esferas, cones e caixas. As 
   - em jogo, cada estado com a sua animação e sem erros.
 - **Detalhe:** bicho além dos 45 m não atualiza a animação (não é desenhado) e retoma ao voltar a ficar perto.
 - **Tamanho:** 70 a 126 KB por bicho.
+
+## 22. Acampamento dos Espinhos, chão e paredões de rocha (2026-11-04)
+
+### O que estava feio (capturas em `tools/art-staging/camp_*_before.png`)
+- **Chão:** um verde-oliva chapado, sem caminhos, sem marca de fogueira e sem transição com a grama. O chão da região tem um vértice a cada ~1,3 m, grosso demais para trilhas.
+- **Barracas:** duas tábuas em "V".
+- **Acampamento:** vazio entre as barracas.
+- **Paredões (penhasco norte, cânion e ruínas):** apareciam como grandes placas lisas marrom-escuras. O núcleo de cada paredão era uma caixa mais larga e mais alta que as pedras em volta, e nos paredões norte-sul o encolhimento tinha ido para o eixo errado.
+
+### O que mudou
+- **Chão do acampamento (`CampGround`):** uma camada de alta resolução (0,25 m) por cima do chão.
+  - Terra batida em manchas de tom terroso, com grão fino.
+  - Caminhos gastos mais claros (`CAMP_PATHS`): da entrada à fogueira, e da fogueira a cada barraca, ao saque, às jaulas, à terceira jaula e à torre.
+  - Cinza escura em volta da fogueira e terra chamuscada em volta da cinza.
+  - Borda irregular que se desfaz na grama (transparência por vértice).
+- **Barracas de lona:** dois lados que cedem entre as varas e o fundo fechado. As abas da frente ficam presas abertas, com o interior escuro e o colchonete. Bainha, cumeeira, esteios, cordas e estacas. A colisão continua a mesma.
+- **Objetos do acampamento (`CAMP_PROPS`):**
+  - tripé com caldeirão sobre a fogueira;
+  - pilha de lenha;
+  - três sacos do saque;
+  - monte de pinhas, a munição da arqueira, ao pé da torre;
+  - varal com peixes e ervas secando;
+  - mesa baixa com o mapa do bando (com o rio e um X vermelho) e dois tocos.
+- **Paredões de rocha:**
+  - **Núcleo:** agora é uma pedra lascada longa, com a superfície de rocha natural e fina na espessura certa para cada direção de paredão.
+  - **Pedras:** mais largas que o núcleo, em duas fileiras desencontradas por camada, com uma camada de pedras com musgo no topo.
+  - **No caminho:** a primeira tentativa de cor no núcleo usou a textura "stone", que é de tijolos e virou um muro de tijolos. Foi trocada pela superfície de rocha que as pedras já usam.
+
+### Conferido
+- **Capturas antes e depois:** acampamento ao nível do olho e visto de cima, e paredão.
+- **Auditoria física:** zero problemas (caminhos, moradores, rondas, bichos, objetos, portas).
+  - Os caminhos gastos estão livres, exceto onde terminam na porta das barracas.
+  - As três jaulas são alcançáveis por 14 a 16 lados.
+  - A mesa do mapa estava em cima do caminho para a barraca do norte e foi tirada dali.
+- **Desempenho:** Espinhos ficou em ~240 chamadas e 0,7 milhão de triângulos (antes, ~305 e 1,0 milhão, com a variação entre medições).
+- **Testes:** `tests/camp.test.ts` (3 testes):
+  - os caminhos ligam a entrada, a fogueira, as barracas, o saque e as jaulas;
+  - os objetos ficam fora dos caminhos e dentro da cerca;
+  - nenhum objeto no lugar de um bicho do bando, na ronda da doninha ou colado numa jaula.
+- **Resultado:** 582 testes passando; nenhum erro no console.
+
+### Fica para depois
+A cachoeira ainda é um plano reto com listras (vista nas capturas do paredão norte).

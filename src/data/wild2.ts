@@ -34,6 +34,25 @@ export const ESPINHO_LOOKOUT = { x: -8.6, z: -18.4, h: 2.2 };
 export const ESPINHO_FIRE = { x: -17.4, z: -16.4 };
 /** The stolen goods, piled up. */
 export const ESPINHO_LOOT = { x: -13.4, z: -21.4 };
+/** The camp's worn paths (world/WildCamps.tsx paints them): from the entrance to the fire, and from the fire to each
+ *  tent, the loot, the cages and the lookout. */
+export const CAMP_PATHS: [number, number][][] = [
+  [[-6.6, -11.2], [-11.8, -13.0], [ESPINHO_FIRE.x, ESPINHO_FIRE.z]],
+  ...ESPINHO_TENTS.map((t): [number, number][] => [[ESPINHO_FIRE.x, ESPINHO_FIRE.z], [t.x, t.z]]),
+  [[ESPINHO_FIRE.x, ESPINHO_FIRE.z], [ESPINHO_LOOT.x, ESPINHO_LOOT.z]],
+  [[ESPINHO_FIRE.x, ESPINHO_FIRE.z], [-23.0, -14.0]],
+  // to the third cage (the band goes to feed the animals)
+  [[ESPINHO_FIRE.x, ESPINHO_FIRE.z], [-18.6, -20.2]],
+  [[-11.8, -13.0], [ESPINHO_LOOKOUT.x - 0.8, ESPINHO_LOOKOUT.z + 1.0]],
+];
+/** The camp's clutter (world/WildCamps.tsx): off the worn paths, the band's spots and the weasel's round. */
+export const CAMP_PROPS = {
+  firewood: { x: -19.8, z: -19.9, rot: 0.4 },
+  sacks: [{ x: -15.3, z: -22.2, rot: 0.3, s: 1 }, { x: -15.95, z: -21.55, rot: 1.2, s: 0.9 }, { x: -15.6, z: -22.75, rot: 2.2, s: 0.8 }],
+  pinecones: { x: -10.0, z: -19.7 },
+  rack: { x: -24.7, z: -21.7, rot: 0.7 },
+  table: { x: -21.4, z: -12.4, rot: -0.5 },
+};
 /** The cages with the missing animals (open each one: they run home to the camp). */
 export const CAGES: { id: string; x: number; z: number; animal: 'coelho' | 'cervo' | 'passaro' }[] = [
   { id: 'jaula_1', x: -24.4, z: -12.4, animal: 'coelho' },

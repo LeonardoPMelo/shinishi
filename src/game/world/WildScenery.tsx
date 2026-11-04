@@ -48,6 +48,7 @@ const BIOME = {
   campina: C('#97C463'),
   trampled: C('#A49A70'),
   dirt: C('#A3895F'),
+  campDirt: C('#8A7458'),
   sand: C('#CDBD92'),
   rock: C('#8A8478'),
   cave: C('#4C4854'),
@@ -62,7 +63,8 @@ export function biomeColor(x: number, z: number, out: THREE.Color) {
   if (x > WILD_RIVER.x0 - 1.4 && x < WILD_RIVER.x1 + 1.4) return out.copy(BIOME.sand);
   if (inR(x, z, [OUTPOST.x0, OUTPOST.z0 - 2, OUTPOST.x1, OUTPOST.z1])) return out.copy(BIOME.dirt);
   if (inR(x, z, [CANYON.x0, CANYON.z0, CANYON.x1, CANYON.z1])) return out.copy(BIOME.rock);
-  if (Math.hypot(x - ESPINHO_CAMP.x, z - ESPINHO_CAMP.z) < ESPINHO_CAMP.r) return out.copy(BIOME.dirt).lerp(BIOME.forest, smooth(ESPINHO_CAMP.r - 3, ESPINHO_CAMP.r, Math.hypot(x - ESPINHO_CAMP.x, z - ESPINHO_CAMP.z)));
+  // (the camp's own detail, paths and ash, is the overlay in WildCamps.tsx: CampGround)
+  if (Math.hypot(x - ESPINHO_CAMP.x, z - ESPINHO_CAMP.z) < ESPINHO_CAMP.r) return out.copy(BIOME.campDirt).lerp(BIOME.forest, smooth(ESPINHO_CAMP.r - 3, ESPINHO_CAMP.r, Math.hypot(x - ESPINHO_CAMP.x, z - ESPINHO_CAMP.z)));
   if (inR(x, z, [27, 12, 48, 34])) return out.copy(BIOME.trampled).lerp(BIOME.meadow, 0.45);
   if (inR(x, z, [22, -18, 40, -1])) return out.copy(BIOME.ruins);
   if (inR(x, z, [39, -40, 48, -24.5])) return out.copy(BIOME.rock).lerp(BIOME.meadow, 0.35);
@@ -194,17 +196,21 @@ export function CliffRock({ wl }: { wl: WildWall }) {
     const out: { p: [number, number, number]; s: [number, number, number]; rot: number; v: number; moss: boolean }[] = [];
     for (let i = 0; i < n; i++) {
       const u = -len / 2 + (i + 0.5) * seg;
+      // the rocks are wider than the core in every direction and a mossy cap closes the top: the core's flat
+      // faces showed between them, a big brown slab from the camp and from above
       const tiers = [
-        { y: wl.h * 0.28, sx: seg * 0.68, sy: wl.h * 0.34, sz: thick * 0.62 },
-        { y: wl.h * 0.62, sx: seg * 0.6, sy: wl.h * 0.26, sz: thick * 0.55 },
-        { y: wl.h * 0.9, sx: seg * 0.55, sy: wl.h * 0.16, sz: thick * 0.48 },
+        { y: wl.h * 0.26, sx: seg * 0.82, sy: wl.h * 0.36, sz: thick * 0.95 },
+        { y: wl.h * 0.6, sx: seg * 0.74, sy: wl.h * 0.3, sz: thick * 0.85 },
+        { y: wl.h * 0.86, sx: seg * 0.66, sy: wl.h * 0.2, sz: thick * 0.75 },
+        { y: wl.h * 0.98, sx: seg * 0.6, sy: wl.h * 0.1, sz: thick * 0.62 },
       ];
-      tiers.forEach((t, k) => {
-        const jitter = (r() - 0.5) * seg * 0.3;
+      // two staggered rocks a tier (the second half a segment along), so no gap shows the core
+      tiers.flatMap((t) => [{ ...t, off: 0 }, { ...t, off: 0.5, sx: t.sx * 0.8, sz: t.sz * 0.92, y: t.y + wl.h * 0.06 }]).forEach((t, k) => {
+        const jitter = (r() - 0.5) * seg * 0.3 + (t.off && i < n - 1 ? seg * t.off : t.off ? -seg * t.off : 0);
         const at: [number, number] = along ? [cx + u + jitter, cz + (r() - 0.5) * thick * 0.15] : [cx + (r() - 0.5) * thick * 0.15, cz + u + jitter];
         const sx = along ? t.sx : t.sz;
         const sz = along ? t.sz : t.sx;
-        out.push({ p: [at[0], t.y, at[1]], s: [sx * (0.9 + r() * 0.25), t.sy * (0.85 + r() * 0.3), sz * (0.9 + r() * 0.2)], rot: r() * 0.6 - 0.3, v: Math.floor(r() * 6), moss: k === 2 });
+        out.push({ p: [at[0], t.y, at[1]], s: [sx * (0.9 + r() * 0.25), t.sy * (0.85 + r() * 0.3), sz * (0.9 + r() * 0.2)], rot: r() * 0.6 - 0.3, v: Math.floor(r() * 6), moss: k >= 4 });
       });
     }
     return out;
@@ -213,10 +219,10 @@ export function CliffRock({ wl }: { wl: WildWall }) {
   return (
     <RigidBody type="fixed" colliders={false} userData={{ surface: 'stone' }}>
       <CuboidCollider args={[w0 / 2, ch / 2, d0 / 2]} position={[cx, ch / 2, cz]} />
-      <mesh position={[cx, wl.h / 2 - 0.1, cz]} receiveShadow>
-        <boxGeometry args={[w0 * 0.92, wl.h * 0.95, d0 * 0.8]} />
-        <Toon color="#5E5850" />
-      </mesh>
+      {/* the core behind the boulders: one long chiseled rock with the natural rock surface, thin across the
+          wall so the boulders cover it (a box read as a flat slab, and the stone texture as a brick wall) */}
+      <Rock variant={Math.abs(Math.round(wl.x0 + wl.z0)) % 6} kind="boulder" position={[cx, wl.h * 0.42, cz]}
+        scale={[w0 * (along ? 0.46 : 0.26), wl.h * 0.5, d0 * (along ? 0.26 : 0.46)]} color="#857E72" receiveShadow contact={false} />
       {rocks.map((k, i) => (
         <Rock key={i} variant={k.v} kind={k.moss ? 'flat' : 'boulder'} moss={k.moss} position={k.p} rotation={[0, k.rot, 0]} scale={k.s} color={i % 3 === 0 ? '#7E776C' : i % 3 === 1 ? '#8E877C' : '#857E72'} castShadow receiveShadow contact={false} />
       ))}
