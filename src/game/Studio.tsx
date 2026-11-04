@@ -1,14 +1,43 @@
 import { Suspense, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ShinichiCat, type AnimState } from './entities/ShinichiCat';
 import { VillagerModel, type VillagerMood } from './entities/VillagerModel';
 import type { AssetName } from './assets/catalog';
+import { EnemyModel, playClip, type EnemyClip, type EnemyRig } from './world/EnemyModel';
+import type { EnemyKind } from '../systems/combat';
 
 /** ?studio=cast lines up the villager models instead of Shinichi (or ?studio=cast&only=kiko,liria). */
 const params = new URLSearchParams(window.location.search);
 const CAST: AssetName[] = ['mestre_lotus', 'kiko', 'liria', 'sora', 'taro', 'luna', 'boku', 'hana', 'mestre_kuma', 'roku', 'neko', 'tanuki', 'kuro', 'mochi', 'bigodes', 'pipo', 'kaito', 'tsubaki', 'fuji', 'goro', 'hinoki'];
 const LINEUP = params.get('studio') === 'cast' ? (params.get('only')?.split(',') as AssetName[] | undefined) ?? CAST : null;
+/** ?studio=enemies lines up the wild lands' creatures (or ?studio=enemies&only=raposa,chefe); __studio.clip('walk'). */
+const ENEMY_KINDS: EnemyKind[] = ['ourico', 'raposa', 'doninha', 'arqueira', 'texugo', 'espirito', 'javali', 'chefe'];
+const BEASTS = params.get('studio') === 'enemies' ? (params.get('only')?.split(',') as EnemyKind[] | undefined) ?? ENEMY_KINDS : null;
+const beastRigs = new Map<EnemyKind, EnemyRig>();
+let beastClip: EnemyClip = 'idle';
+
+function Beast({ kind, x }: { kind: EnemyKind; x: number }) {
+  useFrame((_s, dt) => {
+    const rig = beastRigs.get(kind);
+    if (!rig) return;
+    playClip(rig, beastClip);
+    rig.mixer.update(dt);
+  });
+  return (
+    <group position={[x, -0.8, 0]} rotation={[0, -0.5, 0]}>
+      <EnemyModel kind={kind} onReady={(r) => beastRigs.set(kind, r)} />
+    </group>
+  );
+}
+const beastX = (i: number, list: EnemyKind[]) => {
+  // the boar and the Chief are twice as wide as the others
+  const w = (k: EnemyKind) => (k === 'javali' || k === 'chefe' ? 2.2 : 1.15);
+  const total = list.reduce((s, k) => s + w(k), 0);
+  let at = -total / 2;
+  for (let k = 0; k < i; k++) at += w(list[k]);
+  return at + w(list[i]) / 2;
+};
 
 function CastMember({ name, x }: { name: AssetName; x: number }) {
   const mood = useRef<VillagerMood>({ walking: false, talking: false, greeting: false, cheer: 0, walkSpeed: 0, lookYaw: 0, lookPitch: 0 });
@@ -41,6 +70,9 @@ function StudioRig() {
       cam.lookAt(...target);
     },
     size: (w: number, h: number) => set({ size: { width: w, height: h, top: 0, left: 0 } }),
+    clip: (c: EnemyClip) => {
+      beastClip = c;
+    },
     save: async (name: string) => {
       gl.render(scene, camera);
       const data = gl.domElement.toDataURL('image/png');
@@ -57,7 +89,8 @@ function StudioRig() {
       <directionalLight position={[-3, 2.5, -2.5]} intensity={0.9} color="#FFB878" />
       <directionalLight position={[3, 1, -2]} intensity={0.5} color="#9FC4FF" />
       <Suspense fallback={null}>
-        {LINEUP ? LINEUP.map((n, i) => <CastMember key={n} name={n} x={(i - (LINEUP.length - 1) / 2) * 1.25} />) : <ShinichiCat anim={anim} />}
+        {BEASTS ? BEASTS.map((k, i) => <Beast key={k} kind={k} x={beastX(i, BEASTS)} />)
+          : LINEUP ? LINEUP.map((n, i) => <CastMember key={n} name={n} x={(i - (LINEUP.length - 1) / 2) * 1.25} />) : <ShinichiCat anim={anim} />}
       </Suspense>
     </>
   );

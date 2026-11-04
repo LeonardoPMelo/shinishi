@@ -968,3 +968,75 @@ Arquivos que a edição anterior tinha passado de CRLF para LF voltaram ao origi
 - só capim e flores entram no corte por distância;
 - o encolhimento entra depois do shader que o material já tinha, e o programa ganha outra chave;
 - as distâncias terminam antes da neblina.
+
+## 21. Prompt mestre — Fase 3: os bichos das terras selvagens modelados no Blender (2026-11-04)
+
+### Antes
+Os oito tipos de bicho eram montados no código com esferas, cones e caixas. As patas balançavam por código e não havia animação de verdade: dormir era o corpo inclinado, e ficar tonto era um balanço.
+
+### Agora: `tools/blender/build_enemies.py` (Blender 5.2, local)
+- **Corpo:** metaballs fundidas numa malha macia, como o corpo do Shinichi, com cores pintadas nos vértices (barriga clara, meias escuras nas patas, ponta da cauda).
+- **Rosto:**
+  - olhos grandes com íris, pupila (em fenda nas raposas) e brilho;
+  - uma pálpebra de cara feia pintada no próprio olho, mais baixa perto do nariz;
+  - focinho e nariz.
+- **Cada um com a sua identidade:**
+
+  | Bicho | Detalhes |
+  |---|---|
+  | Ouriço bandido | 260 espinhos de pontas claras, faixa vermelha na testa |
+  | Raposa ninja | Faixa escura, olhos cor de âmbar, cauda de ponta creme |
+  | Raposa arqueira | Cinza, faixa verde, arco nas costas e aljava de pinhas |
+  | Javali rochoso | Presas, crina, placas de pedra nas costas |
+  | Texugo guardião | Listras no rosto, capacete com crista, escudo redondo de tábuas com aro e umbo |
+  | Doninha ninja | Corpo comprido, faixa preta, cachecol vermelho com as pontas para trás |
+  | Espírito da névoa | Gota com cauda de fumaça, olhos fundos e uma folhinha na cabeça |
+  | Chefe Espinho | Ouriço grande de espinhos dourados, coroa de espinhos e manto vermelho preso por um broche dourado |
+
+- **Esqueleto:** corpo, cabeça, quatro patas e duas peças de cauda; o espírito não tem patas. Tudo vira **uma malha só com esqueleto** (uma parte por material), e o jogo desenha 5 peças por bicho.
+- **Animações (7):**
+  - parado (respira, olha em volta, mexe a cauda);
+  - andar (trote em diagonal);
+  - correr (galope);
+  - preparo (agachado, cabeça baixa, cauda em pé: o aviso antes do bote);
+  - ataque (o bote para a frente; a arqueira empina e arremessa);
+  - tonto (a cabeça gira, as patas abrem);
+  - dormir (deitado, patas dobradas, cauda enrolada).
+- **Compressão (`compress_enemies.sh`):** simplificação de 55% + meshopt, com o gltf-transform que já estava no cache (nada foi baixado). Ficaram 8 a 12 mil triângulos e 70 a 113 KB por bicho, cerca de 800 KB no total. Conferido no estúdio: olhos, espinhos e meias continuam intactos.
+
+### No jogo (`world/EnemyModel.tsx`, `world/Enemies.tsx`)
+- **Os materiais são de cada bicho:** o brilho branco ao levar golpe e o brilho vermelho do preparo acendem só aquele bicho. São os mesmos toon e contorno dos moradores. O espírito é transparente e sem contorno, e o faro o deixa visível como antes.
+- **A animação segue o estado:**
+
+  | Estado | Animação |
+  |---|---|
+  | Dormindo ou calmo | dormir |
+  | Tonto ou derrotado | tonto |
+  | Preparando o bote | preparo |
+  | Atacando | ataque (a velocidade acompanha a duração do bote de cada um) |
+  | Andando | andar ou correr, pela velocidade real, com o passo acompanhando |
+  | O resto | parado |
+
+  As trocas são suaves.
+- **O que o jogo continua fazendo:** o tremor do preparo, o encolher da derrota, as marcas na cabeça e a barra de vida.
+- **Formas antigas:** continuam no código e são desenhadas enquanto o modelo carrega, ou se o arquivo faltar.
+- **Desempenho:**
+  - Cada bicho tem corte pelo campo de visão (limites com folga para as poses). Além da neblina (45 m) ele não é desenhado, mas a cabeça dele continua funcionando.
+  - **Resultado:** o Acampamento dos Espinhos ficou em ~305 chamadas e ~1,0 milhão de triângulos, como com as formas antigas (340 a 400 chamadas, 0,6 a 1,0 milhão).
+  - **Correção no caminho:** na primeira versão os 20 bichos eram desenhados sempre, cerca de 0,3 milhão de triângulos a mais por quadro.
+- **Estúdio:** `?studio=enemies` (ou `&only=raposa,chefe`) mostra os bichos com os materiais do jogo, e `__studio.clip('walk')` troca a animação.
+
+### Testes
+- **`tests/enemyModels.test.ts` (3 testes):**
+  - cada tipo tem modelo no catálogo, com menos de 200 KB;
+  - cada arquivo tem esqueleto, as 7 animações, os ossos esperados (sem patas só no espírito) e apenas materiais que o jogo conhece;
+  - o estado escolhe a animação certa.
+- **`tests/east.test.ts`:** o teste da cópia leve dos moradores deixou de contar os bichos, que não têm cópia leve.
+- **No navegador, em jogo:**
+  - em 10 amostras, cada estado tocou a animação certa (perseguir → correr, patrulha → andar ou parado, preparo, ataque, tonto, dormir), e todas as animações estavam rodando;
+  - nenhum erro no console nas terras selvagens;
+  - combate funcionando com os modelos novos.
+
+### Limitações
+- **Gemini, Tripo e Mixamo continuam indisponíveis:** os modelos e as animações foram feitos só com o Blender, por código. As animações são de poses-chave calculadas, não captura de movimento.
+- **Chefe Espinho:** não aparece num jogo novo antes da parte da história em que surge; foi conferido no estúdio e nas imagens do Blender.

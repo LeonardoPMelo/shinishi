@@ -8,7 +8,7 @@
  *    4-byte partial answer once got stored as a whole model and broke the game on GitHub Pages (v1).
  * Bump VERSION to drop every old cache.
  */
-const VERSION = 'shinichi-v9'; // v9: vegetação por distância
+const VERSION = 'shinichi-v10'; // v10: bichos das terras selvagens modelados no Blender
 const SHELL = ['./', './index.html', './manifest.webmanifest', './paw.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

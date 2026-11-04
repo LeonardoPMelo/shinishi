@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -22,11 +22,14 @@ import { spawnRing } from '../systems/vfx';
 import { useSpot, useIconTexture } from '../systems/training';
 import { interactFallback } from '../systems/interaction';
 import { press } from '../systems/input';
+import { assetFileExists } from '../assets/catalog';
+import { EnemyModel, clipFor, enemyAsset, playClip, type EnemyRig } from './EnemyModel';
 
 /**
  * The creatures of the wild lands (Etapa 7 da expansão). Their minds are systems/combat.ts (unit-tested); this
  * feeds them the cat and the world (ray casts against the fixed colliders), turns what they do into hits,
- * pinecones and sounds, and draws them: toon models made of simple shapes, with a mark over the head for what
+ * pinecones and sounds, and draws them: rigged Blender models with their own clips (EnemyModel.tsx; the toon
+ * shapes below are drawn while a model loads, or if its file is missing), with a mark over the head for what
  * they are thinking (! seen you, ? heard something, 💫 dizzy, 💤 asleep), a red glow while they wind up
  * (the moment to get out of the way) and a puff of smoke when they give up and run home.
  *
@@ -42,6 +45,9 @@ function seeded(seed: number) {
   let s = seed;
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
 }
+
+/** Creatures farther than this from the camera are not drawn (the fog starts at 42 m). */
+const DRAW_FAR = 45;
 
 /** Where the calmed boar lies, out of the way (2 m to the side of its post). */
 export const BOAR_ASIDE = 2.0;
@@ -443,21 +449,35 @@ function Creature({ e, register }: { e: Enemy; register: (id: string, g: Creatur
       skin.depthWrite = false;
     }
   }, [e.kind, skin]);
+  // the model's mixer and materials, once it has loaded (read by the frame loop through the box)
+  const rigBox = useRef<EnemyRig | null>(null);
   useEffect(() => {
-    if (root.current && body.current && marks.current && bar.current) register(e.id, { root: root.current, body: body.current, marks: marks.current, bar: bar.current, skin });
+    if (root.current && body.current && marks.current && bar.current) register(e.id, { root: root.current, body: body.current, marks: marks.current, bar: bar.current, skin, rig: rigBox });
   }, [e.id, register, skin]);
   const top = TOP[e.kind];
+  const shapes = (
+    <>
+      {e.kind === 'ourico' && <Hedgehog skin={skin} />}
+      {e.kind === 'raposa' && <Fox skin={skin} />}
+      {e.kind === 'espirito' && <Spirit skin={skin} />}
+      {e.kind === 'javali' && <Boar skin={skin} />}
+      {e.kind === 'texugo' && <Badger skin={skin} />}
+      {e.kind === 'doninha' && <Weasel skin={skin} />}
+      {e.kind === 'arqueira' && <FoxArcher skin={skin} />}
+      {e.kind === 'chefe' && <Chief skin={skin} />}
+    </>
+  );
+  const onRig = useCallback((r: EnemyRig) => {
+    rigBox.current = r;
+  }, []);
   return (
     <group ref={root} userData={{ dynamic: true }}>
       <group ref={body}>
-        {e.kind === 'ourico' && <Hedgehog skin={skin} />}
-        {e.kind === 'raposa' && <Fox skin={skin} />}
-        {e.kind === 'espirito' && <Spirit skin={skin} />}
-        {e.kind === 'javali' && <Boar skin={skin} />}
-        {e.kind === 'texugo' && <Badger skin={skin} />}
-        {e.kind === 'doninha' && <Weasel skin={skin} />}
-        {e.kind === 'arqueira' && <FoxArcher skin={skin} />}
-        {e.kind === 'chefe' && <Chief skin={skin} />}
+        {assetFileExists(enemyAsset(e.kind)) ? (
+          <Suspense fallback={shapes}>
+            <EnemyModel kind={e.kind} onReady={onRig} />
+          </Suspense>
+        ) : shapes}
       </group>
       <group ref={marks} position={[0, top + 0.25, 0]}>
         {(Object.keys(tex) as (keyof typeof tex)[]).map((k) => (
@@ -474,7 +494,7 @@ function Creature({ e, register }: { e: Enemy; register: (id: string, g: Creatur
   );
 }
 
-interface CreatureRefs { root: THREE.Group; body: THREE.Group; marks: THREE.Group; bar: THREE.Mesh; skin: THREE.MeshToonMaterial; legs?: THREE.Object3D[]; last?: { x: number; z: number } }
+interface CreatureRefs { root: THREE.Group; body: THREE.Group; marks: THREE.Group; bar: THREE.Mesh; skin: THREE.MeshToonMaterial; rig: { current: EnemyRig | null }; legs?: THREE.Object3D[]; last?: { x: number; z: number } }
 
 // ── The fight ─────────────────────────────────────────────────────────────────
 
@@ -495,6 +515,10 @@ export function Enemies() {
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const refs = useRef(new Map<string, CreatureRefs>());
   const register = useMemo(() => (id: string, g: CreatureRefs) => refs.current.set(id, g), []);
+  useEffect(() => {
+    // dev: which clip each creature is playing (__enemyRigs.get('raposa_pedras').rig.current.clip)
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__enemyRigs = refs.current;
+  }, []);
   const cones = useRef<THREE.Group>(null);
   const seen = useRef({ swipe: -1, noise: -1, tips: new Set<string>() });
   /** How high each pinecone in flight was thrown from (an archer on a lookout). */
@@ -633,7 +657,7 @@ export function Enemies() {
     toast('🐗', 'Nhac! O javali mastiga o atum de olhos fechados, se arrasta para o canto e volta a roncar. Caminho livre!');
   }, 1.8);
 
-  useFrame(({ clock }, raw) => {
+  useFrame(({ clock, camera }, raw) => {
     const dt = Math.min(raw, 0.05);
     const list = combatWorld.enemies;
     if (!active || list.length === 0) return;
@@ -691,8 +715,10 @@ export function Enemies() {
       const g = refs.current.get(e.id);
       if (!g) continue;
       const gone = e.mode === 'defeated' && e.timer <= 0;
-      g.root.visible = !gone;
-      if (gone) continue;
+      // past the fog it is not drawn at all (its mind keeps running): 20 creatures were ~0.3 M triangles a frame
+      const far = Math.hypot(e.x - camera.position.x, e.z - camera.position.z) > DRAW_FAR;
+      g.root.visible = !gone && !far;
+      if (gone || far) continue;
       // walking legs: how far it moved this frame sets the stride (still when standing)
       if (!g.legs) {
         g.legs = [];
@@ -707,21 +733,35 @@ export function Enemies() {
       g.root.position.set(e.x, ELEVATION[e.id] ?? 0, e.z);
       g.root.rotation.y = e.heading;
       const spec = ENEMIES[e.kind];
+      // the model: its clip follows the state, the step follows the real speed
+      const rig = g.rig.current;
+      if (rig) {
+        const clip = clipFor(e.mode, moved, spec.walk, spec.run);
+        const scale = clip === 'walk' ? THREE.MathUtils.clamp(moved / Math.max(spec.walk, 0.8), 0.6, 1.8)
+          : clip === 'run' ? THREE.MathUtils.clamp(moved / spec.run, 0.7, 1.6)
+            : clip === 'attack' && spec.attack.kind === 'charge' ? 0.6 / spec.attack.time : 1;
+        playClip(rig, clip, scale);
+        rig.mixer.update(dt);
+      }
       // giving up: shrinks into the puff of smoke
       const k = e.mode === 'defeated' ? Math.max(0.05, e.timer / 1.4) : 1;
       g.body.scale.setScalar(k);
       let bob = 0;
       if (e.kind === 'espirito') bob = 0.15 * Math.sin(t * 2 + e.home.x);
-      if (e.mode === 'patrol' || e.mode === 'chase' || e.mode === 'retreat' || e.mode === 'distracted') bob += Math.abs(Math.sin(t * 10)) * 0.05;
+      // (the model's walk and run already bounce)
+      if (!rig && (e.mode === 'patrol' || e.mode === 'chase' || e.mode === 'retreat' || e.mode === 'distracted')) bob += Math.abs(Math.sin(t * 10)) * 0.05;
       g.body.position.y = bob;
       // the windup: shakes and glows red; a hit: flashes white; asleep or calmed: lying low
       const shaking = e.mode === 'windup';
       g.body.position.x = shaking ? Math.sin(t * 60) * 0.04 : 0;
-      g.body.rotation.z = e.mode === 'sleep' || e.mode === 'calm' ? 0.5 : e.mode === 'stunned' ? Math.sin(t * 8) * 0.15 : 0;
+      // (the model lies down and wobbles in its own sleep and stunned clips)
+      g.body.rotation.z = rig ? 0 : e.mode === 'sleep' || e.mode === 'calm' ? 0.5 : e.mode === 'stunned' ? Math.sin(t * 8) * 0.15 : 0;
       const glow = shaking ? 0.5 + 0.4 * Math.sin(t * 20) : 0;
-      g.skin.emissive.set(e.flash > 0 ? '#FFFFFF' : '#FF3A2A');
-      g.skin.emissiveIntensity = e.flash > 0 ? 0.9 : glow;
-      if (e.kind === 'espirito') g.skin.opacity = faro ? 0.8 : 0.12;
+      for (const m of rig ? rig.lit : [g.skin]) {
+        m.emissive.set(e.flash > 0 ? '#FFFFFF' : '#FF3A2A');
+        m.emissiveIntensity = e.flash > 0 ? 0.9 : glow;
+      }
+      if (e.kind === 'espirito') for (const m of rig ? rig.all : [g.skin]) m.opacity = faro ? 0.8 : 0.12;
       // the mark over the head
       const m = markOf(e);
       for (const c of g.marks.children) c.visible = c.name === m && (e.kind !== 'espirito' || faro || m === 'alert');
