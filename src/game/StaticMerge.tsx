@@ -146,6 +146,8 @@ interface Bucket {
   geos: THREE.BufferGeometry[];
   /** Which of `geos` cast a shadow (they go into the cell's shadow proxy too). */
   casts: boolean[];
+  /** A lighter shape for the shadow, when the geometry has one (geometry.userData.shadowLod: the tree crowns). */
+  shadows: (THREE.BufferGeometry | null)[];
 }
 
 /**
@@ -182,12 +184,31 @@ export function StaticMerge({ children, chunk = 32, castAll = false }: { childre
         const vc = bakeable(material);
         let bucket = buckets.get(key);
         if (!bucket) {
-          bucket = { material: vc ? sharedVertexColorMaterial(base, material) : material, receive: mesh.receiveShadow, geos: [], casts: [] };
+          bucket = { material: vc ? sharedVertexColorMaterial(base, material) : material, receive: mesh.receiveShadow, geos: [], casts: [], shadows: [] };
           buckets.set(key, bucket);
         }
         const keepVC = !!(material as THREE.Material & { vertexColors?: boolean }).vertexColors && !!mesh.geometry.attributes.color;
         bucket.geos.push(normalize(mesh.geometry, inverse.clone().multiply(mesh.matrixWorld), vc ? material.color! : null, (material.userData.worldUV as number) || 0, keepVC));
+        // dev: triangles by source shape (__mergeStats), to find the shapes drawn in more detail than they need
+        if (import.meta.env.DEV) {
+          const g = mesh.geometry as THREE.BufferGeometry & { parameters?: Record<string, unknown> };
+          // custom geometries by identity (rocks, puffs and models are shared): their size and a sample owner
+          const owner = () => {
+            const names: string[] = [];
+            for (let o: THREE.Object3D | null = mesh; o && names.length < 3; o = o.parent) if (o.name) names.push(o.name);
+            return names.join('<') || (material.color ? `#${material.color.getHexString()}` : '');
+          };
+          const key = g.parameters ? `${g.type} ${JSON.stringify(g.parameters)}` : `${g.type} ${g.uuid.slice(0, 6)} ${Math.round((g.index ? g.index.count : g.attributes.position.count) / 3)} ${owner()}`;
+          const stats = ((window as unknown as { __mergeStats?: Record<string, { n: number; tris: number; cast: number }> }).__mergeStats ??= {});
+          const tris = (g.index ? g.index.count : g.attributes.position.count) / 3;
+          const st = (stats[key] ??= { n: 0, tris: 0, cast: 0 });
+          st.n++;
+          st.tris += tris;
+          if (cast) st.cast += tris;
+        }
         bucket.casts.push(cast);
+        const lod = cast ? (mesh.geometry.userData.shadowLod as THREE.BufferGeometry | undefined) : undefined;
+        bucket.shadows.push(lod ? normalize(lod, inverse.clone().multiply(mesh.matrixWorld), null) : null);
         if (mesh.parent) removed.push({ obj: mesh, parent: mesh.parent });
         // solid things standing on the ground darken it where they touch (Etapa 3: baked contact, no SSAO)
         if (cast && !material.transparent) addMeshContact(mesh);
@@ -206,7 +227,7 @@ export function StaticMerge({ children, chunk = 32, castAll = false }: { childre
       const cell = key.slice(key.lastIndexOf('|') + 1);
       const pk = `${cell}|${b.material.side}|${b.material.shadowSide}`;
       const p = proxies.get(pk) ?? { side: b.material.side, shadowSide: b.material.shadowSide, geos: [] };
-      for (const g of b.geos.filter((_g, i) => b.casts[i])) {
+      for (const g of b.geos.map((full, i) => (b.casts[i] ? b.shadows[i] ?? full : null)).filter((x): x is THREE.BufferGeometry => !!x)) {
         const pg = new THREE.BufferGeometry();
         pg.setAttribute('position', g.attributes.position);
         pg.setIndex(g.index);
@@ -230,6 +251,7 @@ export function StaticMerge({ children, chunk = 32, castAll = false }: { childre
     for (const b of buckets.values()) {
       const geo = mergeGeometries(b.geos, false);
       b.geos.forEach((g) => g.dispose());
+      b.shadows.forEach((g) => g?.dispose());
       if (!geo) continue;
       geo.computeBoundingSphere();
       // Once on the GPU, the merged arrays are never read again (collisions are Rapier's, culling uses the

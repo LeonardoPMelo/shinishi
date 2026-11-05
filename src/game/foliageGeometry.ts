@@ -83,5 +83,8 @@ export function getPuffGeometry(variant = 0, detail: 'high' | 'low' | 'tiny' = '
   geo.dispose();
   welded.computeBoundingSphere();
   cache.set(key, welded);
+  // the shadow of a crown is drawn from the light copy (same lumps, half the triangles): the crowns were
+  // ~1 M triangles of the scenery, nearly all of them drawn a second time into the shadow map (StaticMerge)
+  if (!tiny) welded.userData.shadowLod = getPuffGeometry(variant, 'tiny');
   return welded;
 }

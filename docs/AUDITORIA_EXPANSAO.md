@@ -1166,3 +1166,23 @@ A rocha da cachoeira da vila era uma caixa marrom lisa.
 - **Testes:**
   - `tests/enemyModels.test.ts`: as 11 animações e os ossos das orelhas em cada arquivo, o novo mapa de estados, o tranco e o farejar de vez em quando;
   - 584 testes passando.
+
+## 25. Otimização: sombra das copas com cópia leve (2026-11-05)
+
+### Medição
+Contei, só no modo de desenvolvimento, os triângulos de cada forma de origem do cenário fundido (`window.__mergeStats`, em `StaticMerge.tsx`):
+- **Total do cenário:** cerca de 2,2 milhões de triângulos.
+- **Copas de árvore** (4 formas de 874 triângulos, verdes e rosa-cerejeira, usadas 1.172 vezes): **1,02 milhão (46%)**. 0,93 milhão disso era desenhado de novo no mapa de sombras.
+- **Seguintes**, bem atrás: pedras (≈205 mil) e esferas pequenas de enfeites (≈100 mil).
+
+### O que mudou
+A sombra de cada copa agora é desenhada pela versão leve dela, a mesma usada nas moitas: os mesmos tufos, com menos da metade dos triângulos (6 tufos em vez de 8).
+- `foliageGeometry.ts`: a copa normal guarda a leve em `userData.shadowLod`.
+- `StaticMerge.tsx`: usa essa cópia ao montar as cópias de sombra.
+- **Na tela:** a copa continua a mesma.
+
+### Resultado
+- **Cópias de sombra do mundo inteiro:** 1,16 milhão → 0,59 milhão de triângulos (**−50%**), numa contagem exata, sem variação entre medições.
+- **Aparência:** conferida com capturas lado a lado, de dois ângulos, na praça e na rua do mercado. As sombras das árvores ficaram iguais; só os moradores tinham mudado de lugar.
+- **Testes:** `tests/shadowLod.test.ts`. As copas normais têm a cópia leve, com menos de 55% dos triângulos, e ela ocupa quase o mesmo lugar: até ~11% do raio, porque tem 6 tufos em vez de 8.
+- **Limite da medição:** o ganho de tempo na GPU não pôde ser medido nesta máquina (mesmo motivo do §19). O número confiável é a contagem de triângulos.
