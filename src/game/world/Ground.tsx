@@ -164,7 +164,7 @@ export const PATHS: [number, number][][] = [
 // x from -56 to 56 and z to 72: the three districts outside the fence (§25, §26) and the land beyond them
 const GROUND = { minX: -56, minZ: -40, w: 112, d: 112, ppu: 8 };
 
-function valueNoise(seed: number) {
+export function valueNoise(seed: number) {
   const rand = seeded(seed);
   const n = 64;
   const grid = Array.from({ length: n * n }, () => rand());
@@ -240,7 +240,7 @@ function useGroundMacro() {
  * pebbles (a cell pattern: light top, dark rim) and fine grit. Details fade out by screen size (fwidth),
  * so far paths don't shimmer. Pebbles are only computed where there is dirt.
  */
-const DIRT_GLSL = /* glsl */ `
+export const DIRT_GLSL = /* glsl */ `
   float gHash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
   float gNoise(vec2 p) {
     vec2 i = floor(p), f = fract(p);
@@ -262,8 +262,54 @@ const DIRT_GLSL = /* glsl */ `
   }
 `;
 
+
+/**
+ * The dirt of a path, given `w` (world xz), `mac` (the macro texture's rgb: b = path mask) and the colour so far
+ * in `diffuseColor`: a ragged border, a darker damp edge on the grass, two scales of tone, a paler trodden middle,
+ * grit and pebbles, all fading out with distance. Shared by the village (here) and the wild lands (WildScenery).
+ */
+export const DIRT_MIX_GLSL = /* glsl */ `
+// how much detail this pixel can hold (1 up close, 0 far away)
+float px = length(fwidth(w));
+float near = 1.0 - smoothstep(0.03, 0.12, px);
+float grain = 1.0 - smoothstep(0.012, 0.04, px);
+
+// ragged edge: the soft macro mask pushed in and out by two scales of noise, then cut fairly crisp
+float edgeN = (gNoise(w * 1.7) - 0.5) * 0.5 + (gNoise(w * 5.3 + 3.1) - 0.5) * 0.28 * near;
+float e = mac.b + edgeN;
+float dirtMask = smoothstep(0.42, 0.42 + mix(0.22, 0.06, near), e);
+
+// grass just outside the path: a little darker and damper (trampled, shaded by the tufts)
+diffuseColor.rgb *= 1.0 - 0.12 * smoothstep(0.24, 0.42, e) * (1.0 - dirtMask);
+
+if (dirtMask > 0.001) {
+  float t1 = gNoise(w * 0.65 + 11.0), t2 = gNoise(w * 3.2 + 7.0);
+  vec3 dirt = mix(vec3(0.62, 0.47, 0.32), vec3(0.80, 0.64, 0.44), smoothstep(0.15, 0.85, t1 * 0.6 + t2 * 0.4));
+  dirt *= 0.94 + mac.r * 0.12;
+  // trodden middle is paler and smoother, the border darker
+  dirt *= mix(0.86, 1.07, smoothstep(0.5, 0.95, e));
+  // fine grit
+  float g1 = gHash(floor(w * 38.0));
+  dirt *= 1.0 - grain * (step(0.9, g1) * 0.16 - step(g1, 0.05) * 0.08);
+  // pebbles, ~7 per meter, thinner toward the middle of the path
+  if (uPebbles > 0.5 && near > 0.01) {
+    vec3 pb = gPebble(w * 6.5);
+    float keep = 1.0 - 0.6 * smoothstep(0.75, 1.0, e);
+    float peb = pb.z > 0.0 && fract(pb.y * 3.7) < keep ? 1.0 - smoothstep(pb.z * 0.82, pb.z, pb.x) : 0.0;
+    float rim = peb * smoothstep(pb.z * 0.45, pb.z, pb.x);
+    vec3 stone = vec3(0.74, 0.70, 0.64) * (0.82 + 0.3 * fract(pb.y * 13.1));
+    stone *= 1.0 - rim * 0.32;
+    // a thin dark ring of shadow just outside each pebble
+    float ring = pb.z > 0.0 ? smoothstep(pb.z * 1.35, pb.z, pb.x) * (1.0 - peb) : 0.0;
+    dirt *= 1.0 - ring * 0.18 * near;
+    dirt = mix(dirt, stone, peb * near);
+  }
+  diffuseColor.rgb = mix(diffuseColor.rgb, dirt, dirtMask);
+}
+`;
+
 /** 1 = draw the dirt's pebbles, 0 = skip them (cheaper rungs). A uniform, so switching never recompiles. */
-const pebbleSwitch = { value: 1 };
+export const pebbleSwitch = { value: 1 };
 if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__pebbles = pebbleSwitch;
 
 function useGroundMaterial(grass: THREE.Texture, macro: THREE.Texture) {
@@ -292,43 +338,7 @@ ${DIRT_GLSL}`)
            diffuseColor.rgb *= 0.86 + mac.r * 0.28;
            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.12, 1.05, 0.78), smoothstep(0.55, 0.8, mac.g) * 0.6);
 
-           // how much detail this pixel can hold (1 up close, 0 far away)
-           float px = length(fwidth(w));
-           float near = 1.0 - smoothstep(0.03, 0.12, px);
-           float grain = 1.0 - smoothstep(0.012, 0.04, px);
-
-           // ragged edge: the soft macro mask pushed in and out by two scales of noise, then cut fairly crisp
-           float edgeN = (gNoise(w * 1.7) - 0.5) * 0.5 + (gNoise(w * 5.3 + 3.1) - 0.5) * 0.28 * near;
-           float e = mac.b + edgeN;
-           float dirtMask = smoothstep(0.42, 0.42 + mix(0.22, 0.06, near), e);
-
-           // grass just outside the path: a little darker and damper (trampled, shaded by the tufts)
-           diffuseColor.rgb *= 1.0 - 0.12 * smoothstep(0.24, 0.42, e) * (1.0 - dirtMask);
-
-           if (dirtMask > 0.001) {
-             float t1 = gNoise(w * 0.65 + 11.0), t2 = gNoise(w * 3.2 + 7.0);
-             vec3 dirt = mix(vec3(0.62, 0.47, 0.32), vec3(0.80, 0.64, 0.44), smoothstep(0.15, 0.85, t1 * 0.6 + t2 * 0.4));
-             dirt *= 0.94 + mac.r * 0.12;
-             // trodden middle is paler and smoother, the border darker
-             dirt *= mix(0.86, 1.07, smoothstep(0.5, 0.95, e));
-             // fine grit
-             float g1 = gHash(floor(w * 38.0));
-             dirt *= 1.0 - grain * (step(0.9, g1) * 0.16 - step(g1, 0.05) * 0.08);
-             // pebbles, ~7 per meter, thinner toward the middle of the path
-             if (uPebbles > 0.5 && near > 0.01) {
-               vec3 pb = gPebble(w * 6.5);
-               float keep = 1.0 - 0.6 * smoothstep(0.75, 1.0, e);
-               float peb = pb.z > 0.0 && fract(pb.y * 3.7) < keep ? 1.0 - smoothstep(pb.z * 0.82, pb.z, pb.x) : 0.0;
-               float rim = peb * smoothstep(pb.z * 0.45, pb.z, pb.x);
-               vec3 stone = vec3(0.74, 0.70, 0.64) * (0.82 + 0.3 * fract(pb.y * 13.1));
-               stone *= 1.0 - rim * 0.32;
-               // a thin dark ring of shadow just outside each pebble
-               float ring = pb.z > 0.0 ? smoothstep(pb.z * 1.35, pb.z, pb.x) * (1.0 - peb) : 0.0;
-               dirt *= 1.0 - ring * 0.18 * near;
-               dirt = mix(dirt, stone, peb * near);
-             }
-             diffuseColor.rgb = mix(diffuseColor.rgb, dirt, dirtMask);
-           }
+           ${DIRT_MIX_GLSL}
 
            // contact shadows stamped by rocks and stones (groundContact.ts)
            float ao = texture2D(uContact, macroUv).r;

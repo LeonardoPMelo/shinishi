@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
 import { Toon, Ink, getGradient } from '../materials';
+import { Campfire } from './Campfire';
+import { Rock } from './Rock';
 import { useGameStore } from '../../store/gameStore';
 import { emit } from '../../systems/events';
 import { isHostile } from '../../systems/combat';
@@ -54,8 +56,9 @@ function triangleGeometry(a: [number, number, number], b: [number, number, numbe
 /**
  * A canvas tent: two sagging cloth sides on a ridge pole, the back closed, the front flaps tied open (a dark
  * inside with a bedroll), a hem along the bottom, guy ropes to pegs at both ends. The front faces +z.
+ * `torn`: an abandoned one, sagging low and leaning over.
  */
-export function Tent({ x, z, rot = 0, color = CLOTH, size = 1 }: { x: number; z: number; rot?: number; color?: string; size?: number }) {
+export function Tent({ x, z, rot = 0, color = CLOTH, size = 1, torn = false }: { x: number; z: number; rot?: number; color?: string; size?: number; torn?: boolean }) {
   const s = size;
   const W = 1.08 * s, H = 1.38 * s, L = 2.4 * s;
   const geo = useMemo(() => ({
@@ -69,6 +72,7 @@ export function Tent({ x, z, rot = 0, color = CLOTH, size = 1 }: { x: number; z:
   return (
     <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, rot, 0]}>
       <CuboidCollider args={[1.0 * s, 0.7 * s, 1.2 * s]} position={[0, 0.7 * s, 0]} />
+      <group rotation={[0, 0, torn ? 0.16 : 0]} scale={[1, torn ? 0.7 : 1, 1]}>
       {geo.sides.map((g, i) => (
         <mesh key={i} geometry={g} castShadow receiveShadow>
           <Toon color={color} side={THREE.DoubleSide} />
@@ -120,6 +124,7 @@ export function Tent({ x, z, rot = 0, color = CLOTH, size = 1 }: { x: number; z:
         <boxGeometry args={[1 * s, 1, 1 * s]} />
         <Toon color="#7E3B32" />
       </mesh>
+      </group>
     </RigidBody>
   );
 }
@@ -256,12 +261,11 @@ function Flag({ x, z, icon, cloth, rot = 0 }: { x: number; z: number; icon: stri
 function FirePlace({ x, z }: { x: number; z: number }) {
   return (
     <group position={[x, 0, z]}>
-      {Array.from({ length: 9 }, (_, i) => (
-        <mesh key={i} position={[Math.cos((i / 9) * Math.PI * 2) * 0.55, 0.08, Math.sin((i / 9) * Math.PI * 2) * 0.55]}>
-          <sphereGeometry args={[0.14, 6, 5]} />
-          <Toon color="#8E877C" />
-        </mesh>
-      ))}
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        const k = 0.23 + ((i * 0.37) % 1) * 0.08;
+        return <Rock key={i} variant={i % 4} kind="pebble" position={[Math.cos(a) * 0.66, 0.06, Math.sin(a) * 0.66]} rotation={[0, a * 3, 0]} scale={[k * 1.25, k * 0.85, k]} color={i % 3 ? '#8C8478' : '#7A7268'} contact={false} />;
+      })}
       {[0, 2.1, 4.2].map((a, i) => (
         <RigidBody key={i} type="fixed" colliders={false} position={[Math.cos(a) * 1.6, 0, Math.sin(a) * 1.6]} rotation={[0, -a + Math.PI / 2, 0]}>
           <CuboidCollider args={[0.6, 0.18, 0.18]} position={[0, 0.18, 0]} />
@@ -693,27 +697,12 @@ function Cage({ id, x, z, animal }: { id: string; x: number; z: number; animal: 
   );
 }
 
-/** The fire: lit and smoking while the band is there, cold ash after. */
+/** The fire: lit and smoking while the band is there, cold ash after. Its stones are the fire place's. */
 function CampFire({ x, z }: { x: number; z: number }) {
   const gone = useGameStore((s) => !!s.progress.flags.espinho_vencido);
-  const flame = useRef<THREE.Group>(null);
-  useFrame(({ clock }) => {
-    flame.current?.children.forEach((m, i) => m.scale.setScalar(0.85 + 0.25 * Math.sin(clock.elapsedTime * 9 + i * 2)));
-  });
   return (
     <group position={[x, 0, z]} userData={{ dynamic: true }}>
-      {[0, 1, 2].map((i) => (
-        <mesh key={i} position={[0, 0.1, 0]} rotation={[0, i * 1.05, Math.PI / 2 - 0.3]}>
-          <cylinderGeometry args={[0.06, 0.07, 0.7, 6]} />
-          <Toon color={gone ? '#3A3430' : '#5A3E2A'} />
-        </mesh>
-      ))}
-      {!gone && (
-        <group ref={flame}>
-          <mesh position={[0, 0.32, 0]}><coneGeometry args={[0.22, 0.55, 8]} /><meshBasicMaterial color="#FF8A2A" /></mesh>
-          <mesh position={[0, 0.42, 0]}><coneGeometry args={[0.12, 0.42, 8]} /><meshBasicMaterial color="#FFD86A" /></mesh>
-        </group>
-      )}
+      <Campfire lit={!gone} stones={false} />
     </group>
   );
 }

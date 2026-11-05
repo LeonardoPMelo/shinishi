@@ -92,7 +92,7 @@ function freeOfShapes(x: number, z: number) {
  * middle, sunlit at the tip. Blades fan out and arc over, so a field reads as soft grass rather than
  * rows of upright spikes. 3 triangles per blade; normals point up so every blade lights evenly.
  */
-function tuftGeometry() {
+export function tuftGeometry() {
   const pos: number[] = [];
   const col: number[] = [];
   // the root matches the ground green so a tuft grows out of the lawn instead of sitting on it as a dark star
@@ -156,7 +156,7 @@ function tuftGeometry() {
  * pale, straw-colored tips, three of them carrying a small seed head. ~0.5–0.65 m: the wild edges of the
  * lawn, against fences and walls and along the paths.
  */
-function tallTuftGeometry() {
+export function tallTuftGeometry() {
   const pos: number[] = [];
   const col: number[] = [];
   const base = new THREE.Color('#4A8236');
@@ -216,7 +216,7 @@ function tallTuftGeometry() {
 }
 
 /** Five round petals and a center, flat, facing up. Center is vertex-colored gold. */
-function flowerGeometry() {
+export function flowerGeometry() {
   const parts: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
@@ -247,7 +247,7 @@ function flowerGeometry() {
   return g;
 }
 
-function swayMaterial(opts: { side?: THREE.Side; strength: number }) {
+export function swayMaterial(opts: { side?: THREE.Side; strength: number }) {
   const m = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: getGradient(), side: opts.side ?? THREE.FrontSide });
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uWindTime = windTime;

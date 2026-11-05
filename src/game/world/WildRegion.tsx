@@ -10,7 +10,8 @@ import { TerraceBox, StepBlock } from './districtParts';
 import { StaticMerge } from '../StaticMerge';
 import { Cascade } from './Cascade';
 import { WildTerrain, Mountains, CliffRock, Undergrowth, WoodsDetail, RiverBanks } from './WildScenery';
-import { WildCamps, WildCampsLife } from './WildCamps';
+import { WildCamps, WildCampsLife, Tent } from './WildCamps';
+import { Campfire as CampfireModel } from './Campfire';
 import { WildCave, WildCaveLife } from './WildCave';
 import { WildFauna } from './WildFauna';
 import { WildForest } from './WildForest';
@@ -24,7 +25,7 @@ import { useZone } from '../systems/zone';
 import { isActive } from '../../systems/combat';
 import { press as pressOrder, brokenRule } from '../../systems/orderPuzzle';
 import {
-  WILD_ORIGIN, WILD, WILD_RIVER, WILD_WALLS, WILD_STONES, WILD_STONE_R, ROPE_BRIDGE, BRIDGE_REPAIR, WILD_TRAILS,
+  WILD_ORIGIN, WILD, WILD_RIVER, WILD_WALLS, WILD_STONES, WILD_STONE_R, ROPE_BRIDGE, BRIDGE_REPAIR,
   WILD_CHERRIES, WILD_MAPLES, BENTO_TREE, HERB_SPOTS, CRYSTALS, TRAPS, TRAP, CAMPFIRE, KIT_BUSH, BENTO_GUARD_CLEAR,
   CANYON, CANYON_PASSED_Z, CAVE, OUTPOST, LOOKOUT, WIND_ZONE, SUN_PUZZLE, SUN_STONES, SUN_GATE, WILD_CODE_ACTIONS,
   WILD_GATE, w, toLocal, type WildWall,
@@ -69,39 +70,6 @@ function WildGround() {
       <CuboidCollider args={[0.4, 4, d0 / 2]} position={[WILD.maxX + 0.6, 3, cz]} />
       <CuboidCollider args={[w0 / 2, 4, 0.4]} position={[cx, 3, WILD.maxZ + 0.6]} />
     </RigidBody>
-  );
-}
-
-function Trails() {
-  const segs = useMemo(() => {
-    const out: { x: number; z: number; len: number; rot: number }[] = [];
-    for (const line of WILD_TRAILS) {
-      for (let i = 0; i < line.length - 1; i++) {
-        const [ax, az] = line[i];
-        const [bx, bz] = line[i + 1];
-        out.push({ x: (ax + bx) / 2, z: (az + bz) / 2, len: Math.hypot(bx - ax, bz - az), rot: Math.atan2(bx - ax, bz - az) });
-      }
-    }
-    return out;
-  }, []);
-  const joints = useMemo(() => WILD_TRAILS.flat(), []);
-  return (
-    <group>
-      {segs.map((s, i) => (
-        <group key={i} position={[s.x, 0.012, s.z]} rotation={[0, s.rot, 0]}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-            <planeGeometry args={[1.7, s.len]} />
-            <Toon color="#B49C7C" />
-          </mesh>
-        </group>
-      ))}
-      {joints.map(([x, z], i) => (
-        <mesh key={`j${i}`} position={[x, 0.013, z]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <circleGeometry args={[0.85, 16]} />
-          <Toon color="#B49C7C" />
-        </mesh>
-      ))}
-    </group>
   );
 }
 
@@ -317,29 +285,6 @@ function Wall({ wl }: { wl: WildWall }) {
 
 // ── Places ────────────────────────────────────────────────────────────────────
 
-function Tent({ x, z, rot = 0, color = '#C9A56A', torn = false }: { x: number; z: number; rot?: number; color?: string; torn?: boolean }) {
-  return (
-    <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, rot, 0]}>
-      <CuboidCollider args={[1.1, 0.8, 1.2]} position={[0, 0.8, 0]} />
-      {/* a canvas prism: three sides around the ridge pole, one edge up */}
-      <mesh position={[0, 0.62, 0]} rotation={[-Math.PI / 2, 0, torn ? 0.5 : 0]} scale={[1, 1, torn ? 0.8 : 1]} castShadow>
-        <cylinderGeometry args={[1.25, 1.25, 2.4, 3, 1]} />
-        <Toon color={color} />
-        <Ink thickness={0.015} />
-      </mesh>
-      {/* the dark doorway at the front */}
-      <mesh position={[0, 0.3, 1.21]} rotation={[0, 0, Math.PI / 2]}>
-        <circleGeometry args={[0.42, 3]} />
-        <Toon color="#3A2E2A" />
-      </mesh>
-      <mesh position={[0, 1.88, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 2.7, 6]} />
-        <Toon color="#6E4E36" />
-      </mesh>
-    </RigidBody>
-  );
-}
-
 function Crate({ x, z, s = 0.7, rot = 0 }: { x: number; z: number; s?: number; rot?: number }) {
   return (
     <RigidBody type="fixed" colliders={false} position={[x, 0, z]} rotation={[0, rot, 0]}>
@@ -373,36 +318,14 @@ function Banner({ x, z, icon, cloth, rot = 0 }: { x: number; z: number; icon: st
   );
 }
 
-/** Logs ringed with stones; `lit` adds the flickering flame. */
+/** A stone-ringed fire (Campfire.tsx), lit or cold, with a collider so the cat walks round it. */
 function FireRing({ x, z, lit }: { x: number; z: number; lit: boolean }) {
-  const flame = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    const f = flame.current;
-    if (!f) return;
-    const t = clock.elapsedTime;
-    f.scale.set(1 + 0.12 * Math.sin(t * 9), 1 + 0.2 * Math.sin(t * 7.3 + 1), 1 + 0.12 * Math.cos(t * 8));
-  });
   return (
     <group position={[x, 0, z]}>
       <RigidBody type="fixed" colliders={false}>
         <CylinderCollider args={[0.15, 0.55]} position={[0, 0.15, 0]} />
       </RigidBody>
-      {Array.from({ length: 8 }, (_, i) => {
-        const a = (i / 8) * Math.PI * 2;
-        return <Rock key={i} variant={i % 4} kind="pebble" position={[Math.cos(a) * 0.65, 0.08, Math.sin(a) * 0.65]} scale={0.22} color="#7E776C" contact={false} />;
-      })}
-      {[0, 1.2].map((r) => (
-        <mesh key={r} position={[0, 0.12, 0]} rotation={[0, r, Math.PI / 2]}>
-          <cylinderGeometry args={[0.07, 0.07, 0.9, 6]} />
-          <Toon color="#5A3E2A" tex="bark" />
-        </mesh>
-      ))}
-      {lit && (
-        <mesh ref={flame} position={[0, 0.45, 0]} userData={{ dynamic: true }}>
-          <coneGeometry args={[0.28, 0.75, 8]} />
-          <meshBasicMaterial color="#FFB347" transparent opacity={0.9} />
-        </mesh>
-      )}
+      <CampfireModel lit={lit} />
     </group>
   );
 }
@@ -1125,7 +1048,6 @@ export function WildRegion() {
     <>
       <group position={[OX, 0, OZ]} visible={active}>
         <StaticMerge>
-          <Trails />
           <Forest />
           {WILD_WALLS.map((wl, i) => <Wall key={i} wl={wl} />)}
           <Camp />

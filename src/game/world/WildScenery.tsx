@@ -1,15 +1,18 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Toon, getGradient, enhanceToon } from '../materials';
 import { Rock } from './Rock';
 import { PineTree, MapleTree, SakuraTree } from './Props';
-import { useGrassTexture } from './Ground';
+import { useEffectiveQuality } from '../../store/uiSettings';
+import { useGrassTexture, DIRT_GLSL, DIRT_MIX_GLSL, pebbleSwitch, valueNoise } from './Ground';
+import { tuftGeometry, tallTuftGeometry, flowerGeometry, swayMaterial, lushness } from './Foliage';
 import { getPuffGeometry } from '../foliageGeometry';
 import { addDistanceFade, chunkInstanced } from '../vegetation';
-import { WILD, WILD_RIVER, WILD_WALLS, CAVE, OUTPOST, CANYON, distToTrail, inWall, keepOpen, scatter, type WildWall } from '../../data/wild';
-import { ESPINHO_CAMP } from '../../data/wild2';
+import { WILD, WILD_RIVER, WILD_WALLS, CAVE, OUTPOST, CANYON, WILD_TRAILS, WILD_ORIGIN, distToTrail, inWall, keepOpen, scatter, type WildWall } from '../../data/wild';
+import { ESPINHO_CAMP, CAMP_PATHS } from '../../data/wild2';
 
 /**
  * As Terras Selvagens' landscape (after Etapa 10), in local coordinates (the region's group places it):
@@ -75,11 +78,257 @@ export function biomeColor(x: number, z: number, out: THREE.Color) {
   return out.copy(BIOME.meadow);
 }
 
+// ── The ground's paths and grass, as in the village ────────────────────────────
+
+/** How much of the ground is grass (1) or bare (0: sand along the river, the canyon's and the lookout's rock, the cave). */
+export function grassAmount(x: number, z: number) {
+  if (inR(x, z, [CAVE.x0, CAVE.z0 - 2, CAVE.x1, CAVE.z1])) return 0;
+  if (x > WILD_RIVER.x0 - 1.4 && x < WILD_RIVER.x1 + 1.4 && z > WILD.minZ - 1 && z < WILD.maxZ + 1) return 0;
+  if (inR(x, z, [CANYON.x0, CANYON.z0, CANYON.x1, CANYON.z1])) return 0;
+  if (inR(x, z, [39, -40, 48, -24.5])) return 0.45;
+  return 1;
+}
+
+const segDistL = (x: number, z: number, [ax, az]: [number, number], [bx, bz]: [number, number]) => {
+  const vx = bx - ax, vz = bz - az;
+  const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / (vx * vx + vz * vz)));
+  return Math.hypot(x - ax - vx * t, z - az - vz * t);
+};
+
+/** The trail and camp-path segments (a, b, and how much narrower the path is), built once. */
+const DIRT_SEGS: [number, number, number, number, number][] = [
+  ...WILD_TRAILS.flatMap((l) => l.slice(0, -1).map((p, i) => [p[0], p[1], l[i + 1][0], l[i + 1][1], 0] as [number, number, number, number, number])),
+  ...CAMP_PATHS.flatMap((l) => l.slice(0, -1).map((p, i) => [p[0], p[1], l[i + 1][0], l[i + 1][1], 0.15] as [number, number, number, number, number])),
+];
+
+/** The mask from the distance to the nearest path, plus the camps' trodden middles and the outpost's yard. */
+function dirtFrom(d: number, x: number, z: number, edgeNoise: number) {
+  const edge = (0.62 + (edgeNoise - 0.5) * 0.35) * 1.2;
+  let dirt = 1 - Math.min(1, Math.max(0, (d - edge * 0.7) / (edge * 0.6)));
+  const er = Math.hypot(x - ESPINHO_CAMP.x, z - ESPINHO_CAMP.z);
+  dirt = Math.max(dirt, 1 - smooth(ESPINHO_CAMP.r - 4 + edgeNoise * 1.5, ESPINHO_CAMP.r - 1 + edgeNoise * 1.5, er));
+  const cr = Math.hypot(x - 34, z - 22);
+  dirt = Math.max(dirt, (1 - smooth(2.3 + edgeNoise * 1.0, 4.0 + edgeNoise * 0.8, cr)) * 0.95);
+  if (inR(x, z, [OUTPOST.x0 + 1, OUTPOST.z0 + 1, OUTPOST.x1 - 1, OUTPOST.z1 - 1])) dirt = Math.max(dirt, 0.55 + 0.3 * edgeNoise);
+  return Math.max(0, Math.min(1, dirt));
+}
+
+/**
+ * The path mask the dirt shader reads (0 grass … 1 trodden earth), as the village's: the trails a little wider
+ * than its lanes, the camps' worn middles and the outpost's yard. Noise breaks the edges up.
+ */
+export function dirtMask(x: number, z: number, edgeNoise: number) {
+  let d = 99;
+  for (const [ax, az, bx, bz, k] of DIRT_SEGS) d = Math.min(d, segDistL(x, z, [ax, az], [bx, bz]) + k);
+  return dirtFrom(d, x, z, edgeNoise);
+}
+
+/** The terrain plane's extent (local): the walkable region and the hills around it. */
+const TERRAIN_M = 34;
+const TERRAIN = { x0: WILD.minX - TERRAIN_M, z0: WILD.minZ - TERRAIN_M, x1: WILD.maxX + TERRAIN_M, z1: WILD.maxZ + TERRAIN_M };
+
+/**
+ * The macro texture over the terrain, as the village's (r: brightness patches, g: warm patches, b: path mask, at the
+ * village's noise scales), and a: grass amount. A data texture: a canvas would premultiply the alpha and wipe the
+ * other channels wherever there is no grass. The path distance is rasterised segment by segment, only near each
+ * segment, so building it takes a fraction of a second instead of seconds.
+ */
+export function buildWildMacro() {
+  const PPU = 5;
+  const W = Math.round((TERRAIN.x1 - TERRAIN.x0) * PPU);
+  const H = Math.round((TERRAIN.z1 - TERRAIN.z0) * PPU);
+  const dist = new Float32Array(W * H).fill(99);
+  const R = 2.4;
+  for (const [ax, az, bx, bz, k] of DIRT_SEGS) {
+    const px0 = Math.max(0, Math.floor((Math.min(ax, bx) - R - TERRAIN.x0) * PPU));
+    const px1 = Math.min(W - 1, Math.ceil((Math.max(ax, bx) + R - TERRAIN.x0) * PPU));
+    const py0 = Math.max(0, Math.floor((Math.min(az, bz) - R - TERRAIN.z0) * PPU));
+    const py1 = Math.min(H - 1, Math.ceil((Math.max(az, bz) + R - TERRAIN.z0) * PPU));
+    const vx = bx - ax, vz = bz - az, ll = vx * vx + vz * vz || 1;
+    for (let py = py0; py <= py1; py++) {
+      const z = TERRAIN.z0 + (py + 0.5) / PPU;
+      for (let px = px0; px <= px1; px++) {
+        const x = TERRAIN.x0 + (px + 0.5) / PPU;
+        const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / ll));
+        const d = Math.hypot(x - ax - vx * t, z - az - vz * t) + k;
+        const i = py * W + px;
+        if (d < dist[i]) dist[i] = d;
+      }
+    }
+  }
+  const n1 = valueNoise(3);
+  const n2 = valueNoise(9);
+  const data = new Uint8Array(W * H * 4);
+  for (let py = 0; py < H; py++) {
+    const z = TERRAIN.z0 + (py + 0.5) / PPU;
+    for (let px = 0; px < W; px++) {
+      const x = TERRAIN.x0 + (px + 0.5) / PPU;
+      const i = py * W + px;
+      const k = i * 4;
+      const inside = outside(x, z) <= 0;
+      data[k] = Math.round((n1(x * 0.12, z * 0.12) * 0.7 + n1(x * 0.4 + 17, z * 0.4) * 0.3) * 255);
+      data[k + 1] = Math.round(n2(x * 0.08, z * 0.08) * 255);
+      data[k + 2] = inside ? Math.round(dirtFrom(dist[i], x, z, n2(x * 1.3, z * 1.3)) * 255) : 0;
+      data[k + 3] = Math.round((inside ? grassAmount(x, z) : 1) * 255);
+    }
+  }
+  const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function useWildMacro() {
+  return useMemo(buildWildMacro, []);
+}
+
+/**
+ * The village's ground shader on the wild terrain: the grass texture at the village's scale under a light tint of
+ * each biome's colour (bare ground, a = 0, takes the biome colour itself), the same brightness and warm patches,
+ * and the same dirt on the paths (DIRT_MIX_GLSL: ragged edges, damp border, tones, grit, pebbles).
+ */
+function wildGroundMaterial(grass: THREE.Texture, macro: THREE.Texture) {
+  const m = new THREE.MeshToonMaterial({ map: grass, vertexColors: true, gradientMap: getGradient(), color: '#FFFFFF' });
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uMacro = { value: macro };
+    shader.uniforms.uPebbles = pebbleSwitch;
+    shader.uniforms.uRect = { value: new THREE.Vector4(TERRAIN.x0 + WILD_ORIGIN[0], TERRAIN.z0 + WILD_ORIGIN[1], TERRAIN.x1 - TERRAIN.x0, TERRAIN.z1 - TERRAIN.z0) };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vWorldXZ;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWorldXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform sampler2D uMacro;
+uniform float uPebbles;
+uniform vec4 uRect;
+varying vec2 vWorldXZ;
+${DIRT_GLSL}`)
+      .replace(
+        '#include <color_fragment>',
+        `vec2 w = vWorldXZ;
+         vec4 mac4 = texture2D(uMacro, (w - uRect.xy) / uRect.zw);
+         vec3 mac = mac4.rgb;
+         #if defined( USE_COLOR ) || defined( USE_COLOR_ALPHA )
+           // grass: the texture, lightly tinted by the biome; bare ground: the biome's own colour
+           vec3 grassCol = diffuseColor.rgb * mix(vec3(1.0), vColor.rgb * 1.3, 0.35);
+           diffuseColor.rgb = mix(vColor.rgb, grassCol, mac4.a);
+         #endif
+         diffuseColor.rgb *= 0.86 + mac.r * 0.28;
+         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.12, 1.05, 0.78), smoothstep(0.55, 0.8, mac.g) * 0.6);
+         ${DIRT_MIX_GLSL}`
+      );
+  };
+  m.customProgramCacheKey = () => 'wild-ground-1';
+  return m;
+}
+
+/**
+ * The village's grass in the wild lands: the same tufts, tall grass at the verges and in the lush patches, and the
+ * same flowers, swaying in the same wind, fading out with distance (vegetation.ts). Not on paths, walls, the river,
+ * the cave, the camps' middles or bare rock.
+ */
+export function WildGrass() {
+  const quality = useEffectiveQuality();
+  const density = quality === 'alta' ? 1 : quality === 'media' ? 0.6 : 0.3;
+  const { world, rapier } = useRapier();
+  // as in the village: wait for every fixed collider, then keep the grass out of whatever stands on the ground
+  // (tents, crates, tables, trunks, rocks), probing straight down from above
+  const [blocked, setBlocked] = useState<((x: number, z: number) => boolean) | null>(null);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const ray = new rapier.Ray({ x: 0, y: 8, z: 0 }, { x: 0, y: -1, z: 0 });
+      const flags = rapier.QueryFilterFlags.ONLY_FIXED | rapier.QueryFilterFlags.EXCLUDE_SENSORS;
+      setBlocked(() => (x: number, z: number) => {
+        ray.origin = { x: x + WILD_ORIGIN[0], y: 8, z: z + WILD_ORIGIN[1] };
+        const hit = world.castRay(ray, 8, true, flags);
+        return !!hit && hit.timeOfImpact < 7.85;
+      });
+    }, 600);
+    return () => clearTimeout(id);
+  }, [world, rapier]);
+  const meshes = useMemo(() => {
+    if (!blocked) return null;
+    const r = rnd(4243);
+    const short: { x: number; z: number; r: number; lush: number }[] = [];
+    const tall: { x: number; z: number; r: number }[] = [];
+    const flowers: { x: number; z: number; r: number }[] = [];
+    // about the village's density (≈4 samples per m² before the patches thin them), scaled by the quality setting
+    const N = Math.round(30000 * density);
+    for (let i = 0; i < N; i++) {
+      const x = WILD.minX + r() * (WILD.maxX - WILD.minX);
+      const z = WILD.minZ + r() * (WILD.maxZ - WILD.minZ);
+      const k = r();
+      if (grassAmount(x, z) < 0.9 || grassBare(x, z)) continue;
+      if (dirtMask(x, z, 0.5) > 0.3 || blocked(x, z)) continue;
+      const lush = lushness(x, z);
+      if (r() > 0.32 + 0.68 * THREE.MathUtils.smoothstep(lush, 0.25, 0.65)) continue;
+      const pd = distToTrail(x, z);
+      if ((pd > 1.15 && pd < 1.9 && k < 0.45) || lush > 0.7) tall.push({ x, z, r: k });
+      else short.push({ x, z, r: k, lush });
+      if (i % 11 === 0) flowers.push({ x, z, r: k });
+    }
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const s = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0);
+    const c = new THREE.Color();
+    const grass = new THREE.InstancedMesh(tuftGeometry(), swayMaterial({ side: THREE.DoubleSide, strength: 0.45 }), short.length);
+    short.forEach((p, i) => {
+      q.setFromAxisAngle(up, p.r * Math.PI * 2);
+      const kk = (0.8 + ((p.r * 7.3) % 1) * 0.7) * (0.78 + 0.32 * p.lush);
+      s.set(kk, kk * (0.85 + ((p.r * 13.1) % 1) * 0.5), kk);
+      grass.setMatrixAt(i, m.compose(new THREE.Vector3(p.x, 0, p.z), q, s));
+      const patch = 1 - THREE.MathUtils.smoothstep(p.lush, 0.2, 0.7);
+      const j = ((p.r * 31.7) % 1) - 0.5;
+      grass.setColorAt(i, c.setRGB(0.92 + 0.14 * patch + j * 0.08, 0.95 + 0.06 * patch + j * 0.06, 0.88 - 0.1 * patch + j * 0.05));
+    });
+    const tallMesh = new THREE.InstancedMesh(tallTuftGeometry(), swayMaterial({ side: THREE.DoubleSide, strength: 0.7 }), tall.length);
+    tall.forEach((p, i) => {
+      q.setFromAxisAngle(up, p.r * Math.PI * 2);
+      const kk = 0.85 + ((p.r * 5.9) % 1) * 0.5;
+      s.set(kk, kk * (0.8 + ((p.r * 11.3) % 1) * 0.6), kk);
+      tallMesh.setMatrixAt(i, m.compose(new THREE.Vector3(p.x, 0, p.z), q, s));
+      const j = ((p.r * 29.3) % 1) - 0.5;
+      tallMesh.setColorAt(i, c.setRGB(0.95 + j * 0.08, 0.97 + j * 0.05, 0.86 + j * 0.06));
+    });
+    const FLOWERS = ['#FFFFFF', '#FFD1E3', '#F7A8C8', '#FFE58A', '#BFD8FF', '#D9B8FF', '#FF9F80'];
+    const flowerMesh = new THREE.InstancedMesh(flowerGeometry(), swayMaterial({ strength: 0.25 }), flowers.length);
+    flowers.forEach((p, i) => {
+      q.setFromEuler(new THREE.Euler((p.r - 0.5) * 0.4, p.r * 20, (((p.r * 3) % 1) - 0.5) * 0.4));
+      const kk = 0.9 + ((p.r * 5.7) % 1) * 0.7;
+      flowerMesh.setMatrixAt(i, m.compose(new THREE.Vector3(p.x + 0.05, 0.16 + ((p.r * 9.1) % 1) * 0.1, p.z), q, new THREE.Vector3(kk, kk, kk)));
+      const patch = Math.floor((Math.sin(p.x * 0.35) + Math.cos(p.z * 0.3) + 2) * 1.6) % FLOWERS.length;
+      flowerMesh.setColorAt(i, c.set(FLOWERS[(patch + (p.r > 0.8 ? 1 : 0)) % FLOWERS.length]));
+    });
+    for (const mesh of [grass, tallMesh, flowerMesh]) {
+      mesh.receiveShadow = true;
+      mesh.userData.dynamic = true;
+    }
+    // big cells: three draw calls per cell, and the distance cull still drops the far ones
+    return { groups: [chunkInstanced(grass, 32), chunkInstanced(tallMesh, 32), chunkInstanced(flowerMesh, 48)], raw: [grass, tallMesh, flowerMesh] };
+  }, [density, blocked]);
+  useEffect(() => () => {
+    for (const m of meshes?.raw ?? []) {
+      m.geometry.dispose();
+      (m.material as THREE.Material).dispose();
+    }
+  }, [meshes]);
+  return (
+    <group userData={{ dynamic: true }}>
+      {meshes?.groups.map((g, i) => <primitive key={i} object={g} />)}
+    </group>
+  );
+}
+
 /** How far a local point is outside the walkable area (0 inside). */
 const outside = (x: number, z: number) => Math.hypot(Math.max(WILD.minX - x, 0, x - WILD.maxX), Math.max(WILD.minZ - z, 0, z - WILD.maxZ));
 
 export function WildTerrain() {
   const grass = useGrassTexture();
+  const macro = useWildMacro();
   const { geometry, material } = useMemo(() => {
     const M = 34;
     const x0 = WILD.minX - M, x1 = WILD.maxX + M, z0 = WILD.minZ - M, z1 = WILD.maxZ + M;
@@ -108,10 +357,10 @@ export function WildTerrain() {
     g.computeVertexNormals();
     const t = grass.clone();
     t.needsUpdate = true;
-    t.repeat.set(40, 36);
-    const mat = new THREE.MeshToonMaterial({ map: t, vertexColors: true, gradientMap: getGradient(), color: '#FFFFFF' });
-    return { geometry: g, material: mat };
-  }, [grass]);
+    // the village's grass scale (its tile is ~8 × 6.6 m; here it was 4 m and read as a different, busier lawn)
+    t.repeat.set((x1 - x0) / 8, (z1 - z0) / 6.6);
+    return { geometry: g, material: wildGroundMaterial(t, macro) };
+  }, [grass, macro]);
   useEffect(() => () => {
     geometry.dispose();
     material.dispose();
@@ -233,6 +482,14 @@ export function CliffRock({ wl }: { wl: WildWall }) {
 // ── Undergrowth ───────────────────────────────────────────────────────────────
 
 /** Where nothing grows: trails, walls, the river, inside the cave, the camps' busy middles. */
+/** Where the village-style grass may not grow: as bare(), but the camps' yards are left to the dirt mask and the colliders. */
+function grassBare(x: number, z: number) {
+  if (distToTrail(x, z) < 1.05 || inWall(x, z, 0.4)) return true;
+  if (x > WILD_RIVER.x0 - 0.6 && x < WILD_RIVER.x1 + 0.6) return true;
+  if (inR(x, z, [CAVE.x0, CAVE.z0, CAVE.x1, CAVE.z1]) || inR(x, z, [OUTPOST.x0, OUTPOST.z0, OUTPOST.x1, OUTPOST.z1])) return true;
+  return x < WILD.minX + 0.4 || x > WILD.maxX - 0.4 || z < WILD.minZ + 0.4 || z > WILD.maxZ - 0.4;
+}
+
 function bare(x: number, z: number, trailPad = 1.3) {
   if (distToTrail(x, z) < trailPad) return true;
   if (inWall(x, z, 0.4)) return true;
@@ -260,7 +517,6 @@ function scatterIn(seed: number, n: number, rects: [number, number, number, numb
 const FOREST: [number, number, number, number][] = [[-28, -2, 3, 38], [-26, -38, 2, -22], [-48, -24, -41, 8]];
 const CHERRY: [number, number, number, number][] = [[-48, 8, -28, 38]];
 const MEADOWS: [number, number, number, number][] = [[10, -1, 27, 38], [11, -20, 22, -1], [40, -2, 48, 12]];
-const EVERYWHERE: [number, number, number, number][] = [[WILD.minX, WILD.minZ, WILD.maxX, WILD.maxZ]];
 
 /**
  * One instanced mesh of a small plant: its shape, its colours, where it grows. `fade`: split into cells that
@@ -319,17 +575,6 @@ function bushGeometry() {
   a.translate(0, 0.3, 0);
   return a;
 }
-function flowerGeometry() {
-  const stem = new THREE.CylinderGeometry(0.012, 0.012, 0.26, 4);
-  stem.translate(0, 0.13, 0);
-  const head = new THREE.SphereGeometry(0.06, 6, 4);
-  head.translate(0, 0.28, 0);
-  const g = mergeGeometries([stem.toNonIndexed(), head.toNonIndexed()].map((x) => {
-    x.deleteAttribute('uv');
-    return x;
-  }))!;
-  return g;
-}
 function mushroomGeometry() {
   const stem = new THREE.CylinderGeometry(0.04, 0.05, 0.16, 6);
   stem.translate(0, 0.08, 0);
@@ -341,32 +586,15 @@ function mushroomGeometry() {
     return x;
   }))!;
 }
-function tuftGeometry() {
-  const parts: THREE.BufferGeometry[] = [];
-  for (let k = 0; k < 5; k++) {
-    const g = new THREE.ConeGeometry(0.035, 0.4, 3);
-    g.translate(0, 0.2, 0);
-    g.rotateZ((k - 2) * 0.22);
-    g.rotateY(k * 1.3);
-    parts.push(g);
-  }
-  const m = mergeGeometries(parts.map((x) => {
-    x.deleteAttribute('uv');
-    return x;
-  }))!;
-  return m;
-}
 
 export function Undergrowth() {
-  const shapes = useMemo(() => ({ fern: fernGeometry(), bush: bushGeometry(), flower: flowerGeometry(), mushroom: mushroomGeometry(), tuft: tuftGeometry() }), []);
+  const shapes = useMemo(() => ({ fern: fernGeometry(), bush: bushGeometry(), mushroom: mushroomGeometry() }), []);
   const sets = useMemo(() => {
     const free = (pad: number) => (x: number, z: number) => !bare(x, z, pad);
     return {
       ferns: scatterIn(311, 420, [...FOREST, ...CHERRY], free(1.2)),
       bushes: scatterIn(313, 140, [...FOREST, ...CHERRY, ...MEADOWS], free(1.6)),
-      flowers: scatterIn(317, 420, [...MEADOWS, ...CHERRY], free(0.9)),
       mushrooms: scatterIn(331, 90, FOREST, free(1.0)),
-      tufts: scatterIn(337, 700, EVERYWHERE, free(0.8)),
     };
   }, []);
   useEffect(() => () => Object.values(shapes).forEach((g) => g.dispose()), [shapes]);
@@ -374,9 +602,9 @@ export function Undergrowth() {
     <group>
       <Instanced geometry={shapes.fern} items={sets.ferns} colors={['#4E8A3E', '#5E9A46', '#3F7A36']} scale={1.1} wind fade />
       <Instanced geometry={shapes.bush} items={sets.bushes} colors={['#4F7F3C', '#5E8F48', '#6A9A4E', '#4A7238']} scale={1.3} wind />
-      <Instanced geometry={shapes.flower} items={sets.flowers} colors={['#FFD54A', '#F49AB8', '#FFFFFF', '#C79BFF', '#FF8A5A', '#7FD3FF']} fade />
       <Instanced geometry={shapes.mushroom} items={sets.mushrooms} colors={['#D9483A', '#E8C27A', '#B07A4A', '#F2E6D8']} fade />
-      <Instanced geometry={shapes.tuft} items={sets.tufts} colors={['#6E9E48', '#7FAE52', '#5E8E40', '#93B860']} wind fade />
+      {/* grass, tall grass and flowers as in the village */}
+      <WildGrass />
     </group>
   );
 }

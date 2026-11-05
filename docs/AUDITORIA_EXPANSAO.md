@@ -1186,3 +1186,54 @@ A sombra de cada copa agora é desenhada pela versão leve dela, a mesma usada n
 - **Aparência:** conferida com capturas lado a lado, de dois ângulos, na praça e na rua do mercado. As sombras das árvores ficaram iguais; só os moradores tinham mudado de lugar.
 - **Testes:** `tests/shadowLod.test.ts`. As copas normais têm a cópia leve, com menos de 55% dos triângulos, e ela ocupa quase o mesmo lugar: até ~11% do raio, porque tem 6 tufos em vez de 8.
 - **Limite da medição:** o ganho de tempo na GPU não pôde ser medido nesta máquina (mesmo motivo do §19). O número confiável é a contagem de triângulos.
+
+## 26. Terras selvagens no estilo da vila: trilhas, grama, fogueira e barracas (2026-11-05)
+
+### Pedido
+"As estradas, pedras, fogo, barraca e grama das terras selvagens ainda estão muito feias e não seguem a estética dos demais cenários do jogo."
+
+### O que estava diferente da vila
+- **Trilhas:** faixas planas de cor única, com círculos nas juntas.
+- **Chão:** a cor do bioma multiplicava a textura de grama, que deixava tudo verde-oliva e chapado. A textura repetia a cada 4 m, metade da escala da vila.
+- **Grama:** 700 tufos de cones simples, espalhados ralos. O meio do acampamento (17 × 18 m) ficava sem nada.
+- **Fogo:** um cone liso, sem animação de chama.
+- **Barracas:** um prisma de 3 lados.
+
+### O que mudou
+- **Chão e trilhas** (`WildScenery.tsx`): o terreno usa o mesmo shader de terra da vila, agora compartilhado em `Ground.tsx` (`DIRT_MIX_GLSL`, `DIRT_GLSL`):
+  - borda irregular e úmida, dois tons, centro mais claro, grãos e pedrinhas;
+  - textura de grama na escala da vila (~8 m);
+  - manchas de claro/escuro e de tom quente na mesma escala da vila.
+- **Textura macro:** é uma textura de dados (B = trilha, A = quanto de grama). Ela não pode ser um canvas, que pré-multiplica o alfa e apagaria os outros canais onde não há grama.
+  - A distância até as trilhas é calculada só perto de cada trecho: **~10 s → ~0,4 s** para montar (medido na aba oculta).
+- **Trilhas:** passam pelas trilhas da região, pelos caminhos do Acampamento dos Espinhos, pelo meio dos dois acampamentos e pelo pátio do posto. As faixas planas antigas (`Trails`) saíram.
+- **Grama** (`WildGrass`): os mesmos tufos, capim alto e flores da vila (`Foliage.tsx`), com o mesmo vento, as mesmas manchas e a mesma densidade.
+  - Respeita o nível de qualidade (alta 100%, média 60%, baixa 30%).
+  - Como na vila, um raio da física de cima para baixo tira a grama de baixo de barracas, caixotes, mesas, troncos e pedras.
+  - Não cresce na terra batida, na areia do rio, na caverna nem no posto.
+- **Fogueira** (`world/Campfire.tsx`, nova, usada nas 4 fogueiras):
+  - anel de pedras de verdade (o shader de rocha);
+  - dois troncos cruzados com pontas queimadas e uma pirâmide de gravetos (madeira fundida em 2 malhas);
+  - brasas e brilho no chão;
+  - 3 camadas de chama macia que balança (shader com gradiente, aditivo) e faíscas subindo;
+  - apagada (`lit = false`): madeira carbonizada e cinza. O fogo dos Espinhos apaga quando o chefe é vencido.
+  - As pedras da roda de troncos dos Espinhos também viraram rochas.
+- **Barracas:** as 6 barracas de prisma viraram a barraca de lona do acampamento (laterais caídas, portas abertas, cordas, estacas). A abandonada usa a variante `torn` (mais baixa e tombada).
+
+### Verificação
+- **Capturas** (`tools/art-staging/wild_after_*.png`): acampamento da expedição, fogueira de perto, trilha, Acampamento dos Espinhos e acampamento abandonado, comparadas com a vila (`village_cmp_*.png`) no mesmo horário.
+- **Física:** `__audit.run()` sem nenhum problema (caminhos, NPCs, patrulhas, inimigos, objetos e portas).
+- **Testes:** `tests/wildGround.test.ts` (4 testes):
+  - o meio de toda trilha e caminho é terra;
+  - a campina longe das trilhas é grama;
+  - rio e caverna sem grama;
+  - a textura macro guarda terra e grama nos lugares certos, e o canal de brilho sobrevive onde não há grama.
+  - Suíte inteira: 590 testes passando.
+
+### Custo
+- **Grama:** contagem exata no jogo carregado.
+  - Antes: 700 tufos simples e 420 flores.
+  - Agora: 13,6 mil instâncias (≈303 mil triângulos no total), em 32 blocos que somem com a distância.
+  - A vila tem 9 mil instâncias (≈230 mil triângulos) numa área menor: densidade parecida.
+- **Fogueira acesa:** cerca de 2,9 mil triângulos (antes ~1,5 mil). As partes fixas entram no cenário fundido. Ficam 6 chamadas de desenho animadas (3 chamas, faíscas, brasas, brilho) no lugar de 1.
+- **Limite da medição:** a contagem da cena inteira por ponto (`__bench.calls`) variou muito entre duas medições seguidas sem mudança nenhuma (ex.: floresta 326 → 221 chamadas), por causa dos bichos andando e do carregamento dos modelos. Por isso a comparação confiável é a das peças acima, não o total da cena. O tempo de GPU não pôde ser medido nesta máquina (mesmo motivo do §19).
