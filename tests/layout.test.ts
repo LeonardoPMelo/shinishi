@@ -9,6 +9,8 @@ import { WEST_TREES, WEST_PATHS } from '../src/data/west';
 import { TRAIL_GATE, WILD_TRAILS, inWall } from '../src/data/wild';
 import { STELES } from '../src/data/story';
 import { MIRANTE } from '../src/data/world2';
+import { forestFloorSpots } from '../src/game/world/AncientGrove';
+import { CLEARING_DEER } from '../src/data/clearing';
 
 /**
  * Etapa 10: things in the way. The user saw, on a phone, the tree band growing all over the temple's puzzles;
@@ -45,6 +47,17 @@ describe('o cinturão de árvores não invade lugar nenhum', () => {
     ];
     const close = spots.flatMap((s) => things.filter((t) => Math.hypot(t.x - s.x, t.z - s.z) < 3).map((t) => `${t.id} @ ${s.x.toFixed(1)},${s.z.toFixed(1)}`));
     expect(close).toEqual([]);
+  });
+});
+
+describe('o chão do Bosque Antigo (pedras com musgo e samambaias sorteadas)', () => {
+  it('nenhuma pedra ou samambaia dentro de um cervo, de um morador ou de um objeto', () => {
+    const { rocks, ferns } = forestFloorSpots();
+    const deerHit = [...rocks, ...ferns].filter((b) => CLEARING_DEER.some((d) => Math.hypot(b.p[0] - d.x, b.p[2] - d.z) < 1.2 * b.s + 0.7 * d.s));
+    expect(deerHit).toEqual([]);
+    const things = [...WORLD_OBJECTS.map((o) => o.position), ...NPC_DEFINITIONS.map((n) => n.position)];
+    const thingHit = rocks.filter((b) => things.some((t) => Math.hypot(b.p[0] - t[0], b.p[2] - t[2]) < 1.2 * b.s + 0.6));
+    expect(thingHit).toEqual([]);
   });
 });
 

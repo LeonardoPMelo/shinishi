@@ -1287,3 +1287,78 @@ Pedido: "os cervos estão muito feios, refaça a modelagem de forma profissional
 - **Visibilidade:** os cervos só são desenhados de perto (`DistanceCull` na Clareira; a Campina só existe nas Terras Selvagens).
 - O tempo de GPU continua sem medição confiável nesta máquina (§19).
 
+## 28. Auditoria geral de estabilidade (2026-11-05)
+
+Pedido: "PROMPT MESTRE — AUDITORIA GERAL, IDENTIFICAÇÃO E CORREÇÃO DE BUGS". Nenhuma função nova. Os testes rodaram numa aba isolada do navegador interno: o save de lá é só de teste e não é o progresso da criança, que fica no aparelho dela.
+
+### A. Diagnóstico: o que foi examinado e como
+
+| Área | Verificação | Resultado |
+|---|---|---|
+| **Código** | `tsc` estrito, inclusive variáveis e parâmetros sem uso | 0 erros |
+| **Dados** | `__validate()`: toda missão, diálogo, objeto e desafio aponta para algo que existe | 0 referências quebradas |
+| **Vazamentos** | Busca por eventos registrados e nunca removidos, e por timers sem limpeza | Os 5 arquivos sem `removeEventListener` instalam uma vez só, com trava (teclado, controle, áudio, instalação do app, service worker). Os `setInterval` têm `clearInterval`. Nenhum vazamento |
+| **Console** | Erros durante a volta por toda a vila, os 4 interiores, as Terras Selvagens e as trocas de região | 0 erros |
+| **Física** | `__audit.run()`: caminhos, moradores, patrulhas, inimigos, objetos e portas | 0 problemas |
+| **Sobreposição de sólidos** | Novo teste ad hoc: cada par de colisores fixos que se atravessam mais de 8 cm (87 pares) | Os maiores, conferidos pela posição, são peças encostadas de propósito: os níveis da colina dos Jizō, os terraços do chá, a cerca sul com o portão e o terraço do Templo de Mikage com as pedras. **Os demais não foram investigados um a um** (pendência) |
+| **Visual** | 17 pontos da vila e dos bairros, os 4 interiores e 6 pontos das Terras Selvagens, fotografados e revisados | 2 defeitos reais (abaixo) e 2 falsos alarmes |
+| **Interface (celular, 375 × 812, toque)** | HUD, Missões, Mochila, Jornada, Mapa, Ajustes, loja, desafio e diálogo: nada fora da tela e nenhum texto cortado | Os painéis longos rolam dentro do painel, como devem. 1 defeito numa janela estreita sem toque |
+| **Salvamento** | Somar moedas, item e flag, conferir o `localStorage`, recarregar a página e conferir de novo | Tudo voltou igual |
+| **Primeiro minuto** | `__onb.firstMinute()` (jogador novo simulado) | Objetivo em 0,1 s, pegadas douradas em 1,4 s, morador em 3,1 s, diálogo em 4,2 s, missão aceita em 7,3 s |
+| **Desempenho** | `__bench.calls()` | Praça: 560 chamadas e 1,83 milhão de triângulos (antes: 526 e 1,87 milhão); mercado, rio e floresta também dentro da variação de sempre. Nenhuma regressão |
+| **Missões** | Testes que já existiam: toda missão pode ser iniciada pelo morador e concluída sem travar; a história inteira rodada com as ações do jogo | Passam |
+
+**Classificação dos problemas encontrados:**
+- Crítico: 0.
+- Alto: 0.
+- Médio: 1 (cerva dentro de pedra, que é um animal em lugar errado).
+- Baixo: 2 (barra de habilidades numa janela estreita; nome da barraca do Armazém).
+
+### B. Correções
+
+| # | Gravidade | Problema | Causa | Correção |
+|---|---|---|---|---|
+| 1 | Médio | Na Clareira dos Cervos, a mãe cerva da família perto do portão estava dentro de uma pedra grande com musgo. Já acontecia antes de os cervos crescerem (§27); ficou mais visível depois | O chão do Bosque Antigo sorteia 22 pedras e 60 samambaias (`ForestFloor`) evitando trilhas, riacho, campina e saliências, mas **não** os cervos, os moradores e os objetos. A primeira correção, que só evitava os cervos, fez o sorteio jogar outra pedra colada na Batedora Kaze | O sorteio (`forestFloorSpots`, agora exportado em `AncientGrove.tsx`) também deixa livre a área de cada cervo (2 m × tamanho), de cada morador e de cada objeto do jogo (2,2 m). Teste novo em `tests/layout.test.ts`, que falha com o código antigo |
+| 2 | Baixo | Numa janela estreita sem toque (menos de 400 px), a barra de habilidades saía 27 px pela esquerda e cortava o primeiro botão. **No celular não acontece:** com toque, a barra dá lugar aos botões de toque | A regra "esconder abaixo de 760 px" vinha antes da regra base e por isso nunca valia: era código morto | A regra morta saiu. A barra agora cabe na tela: ocupa no máximo a largura da janela e quebra para uma segunda fileira (`styles.css`). Conferido a 375 px: os 6 botões dentro da tela |
+
+### Falsos alarmes (verificados e mantidos como estão)
+- **Caixote em cima do toldo da barraca de frutas:** é o baú secreto da rota pelos caixotes (`CrateSteps`, com brilho dourado). É de propósito.
+- **Objetos "acima do chão"** na comparação de alturas: as patinhas douradas e as argolas flutuam de propósito, e cada objeto tem o próprio corpo sólido. A medida não serve para achar defeito e foi descartada.
+- **Missão sem caixa de acompanhamento** na simulação do primeiro minuto: a caixa só aparece quando o diálogo fecha, e a medição foi feita com o diálogo ainda aberto.
+
+### C. Testes executados
+- Suíte inteira: **595 testes passando** (594 + 1 novo).
+- `tsc` sem erros e build de produção sem erros.
+- No jogo, numa aba isolada:
+  - física (`__audit.run`);
+  - console;
+  - fotos de todas as regiões;
+  - interfaces no tamanho de celular;
+  - salvar e recarregar;
+  - primeiro minuto;
+  - desempenho.
+- Cada correção foi conferida no jogo:
+  - foto da Clareira depois da correção;
+  - recálculo do sorteio: 0 pedras dentro de cervos e 0 coladas em moradores ou objetos;
+  - a barra medida a 375 px.
+
+### D. Pendências e limitações
+- **Testes de colisão andando** (`__qa.walls`, `bridge` e `camera`): não terminaram. Eles esperam o relógio do navegador, que quase para com o painel escondido. Os mesmos pontos já tinham passado nas etapas anteriores; desta vez não foram repetidos.
+- **Partida completa à mão, com toque de verdade e controle físico:** não foi possível aqui. As missões foram verificadas pelos testes automáticos da campanha inteira, não jogadas uma a uma.
+- **Tempo de GPU e FPS reais:** sem medição confiável nesta máquina com o painel escondido (§19).
+- **Sugestão (não implementada, é mudança de conteúdo):** a barraca do Armazém do Boku usa a placa pintada "Frutas da Vila" e vende frutas no balcão, mas a loja vende equipamento. Trocar o nome ou as mercadorias é decisão de conteúdo.
+- **Sons sintetizados:** continuam marcados como provisórios (pendência antiga).
+- **Sobreposição de colisores:** dos 87 pares de colisores fixos que se atravessam, só os maiores foram conferidos. O restante fica para uma próxima rodada, com fotos de cada par.
+
+### E. Estado final
+O jogo abre, salva, carrega e troca de região sem erros. A física está sem bloqueios.
+
+**Validado nesta rodada:**
+- vila, bairros, Bambuzal, Bosque Antigo, Clareira, Templo de Mikage e Templo dos Enigmas;
+- os 4 interiores;
+- as Terras Selvagens;
+- os painéis no celular;
+- o salvamento.
+
+**Ainda precisa de teste num aparelho de verdade:** o toque, o controle físico e o FPS.
+

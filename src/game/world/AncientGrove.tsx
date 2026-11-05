@@ -11,6 +11,8 @@ import { usePondMaterial } from './EastDistrict';
 import { FenceLine, DistrictGate } from './districtParts';
 import { DistanceCull } from '../DistanceCull';
 import { CLEARING_DEER, EXIT_GATE } from '../../data/clearing';
+import { WORLD_OBJECTS } from '../../data/world';
+import { NPC_DEFINITIONS } from '../../data/npcs';
 import { DeerModel, DEER_SIZE, deerKind, deerModelsReady, playDeerClip, type DeerRig } from './DeerModel';
 import { playerPosition } from '../systems/playerState';
 import {
@@ -131,21 +133,34 @@ function Cedars() {
   );
 }
 
+/** Where the villagers stand and the things the cat uses are (the forest floor keeps clear of them). */
+const KEEP_CLEAR: [number, number][] = [
+  ...WORLD_OBJECTS.map((o) => [o.position[0], o.position[2]] as [number, number]),
+  ...NPC_DEFINITIONS.map((n) => [n.position[0], n.position[2]] as [number, number]),
+];
+
+/** The forest floor's mossy boulders and ferns (seeded: the same every time). */
+export function forestFloorSpots() {
+  const r = seeded(2121);
+  const rocks: { p: [number, number, number]; s: number; rot: number }[] = [];
+  const ferns: { p: [number, number, number]; s: number; rot: number }[] = [];
+  for (let i = 0; i < 140 && (rocks.length < 22 || ferns.length < 60); i++) {
+    const x = -18 + r() * 36;
+    const z = 41 + r() * 22;
+    if (!southFree(x, z, 0)) continue;
+    // never under a deer, a villager or something the cat uses (a boulder came up inside the mother of the
+    // family by the gate)
+    if (CLEARING_DEER.some((d) => Math.hypot(x - d.x, z - d.z) < 2.0 * d.s)) continue;
+    if (KEEP_CLEAR.some(([kx, kz]) => Math.hypot(x - kx, z - kz) < 2.2)) continue;
+    if (rocks.length < 22 && i % 3 === 0) rocks.push({ p: [x, 0, z], s: 0.35 + r() * 0.5, rot: r() * 6 });
+    else if (ferns.length < 60) ferns.push({ p: [x, 0, z], s: 0.25 + r() * 0.2, rot: r() * 6 });
+  }
+  return { rocks, ferns };
+}
+
 /** Mossy boulders and ferns between the cedars (static). */
 function ForestFloor() {
-  const { rocks, ferns } = useMemo(() => {
-    const r = seeded(2121);
-    const rocks: { p: [number, number, number]; s: number; rot: number }[] = [];
-    const ferns: { p: [number, number, number]; s: number; rot: number }[] = [];
-    for (let i = 0; i < 140 && (rocks.length < 22 || ferns.length < 60); i++) {
-      const x = -18 + r() * 36;
-      const z = 41 + r() * 22;
-      if (!southFree(x, z, 0)) continue;
-      if (rocks.length < 22 && i % 3 === 0) rocks.push({ p: [x, 0, z], s: 0.35 + r() * 0.5, rot: r() * 6 });
-      else if (ferns.length < 60) ferns.push({ p: [x, 0, z], s: 0.25 + r() * 0.2, rot: r() * 6 });
-    }
-    return { rocks, ferns };
-  }, []);
+  const { rocks, ferns } = useMemo(forestFloorSpots, []);
   return (
     <>
       {rocks.map((b, i) => (

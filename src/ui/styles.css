@@ -852,7 +852,6 @@ button { font-family: var(--body); }
   .hud-info { min-width: 110px; }
   .hud-mission { top: 76px; width: min(250px, calc(100vw - 28px)); padding: 8px 12px; }
   .hud-btn small { display: none; }
-  .ability-bar { display: none; }
   .log-layout, .inv-layout { grid-template-columns: 1fr; }
   .challenge-wrap { grid-template-columns: 1fr; }
   .challenge-cat { display: none; }
@@ -933,6 +932,11 @@ button { font-family: var(--body); }
   z-index: 50;
   display: flex;
   gap: 8px;
+  /* a narrow window without touch (a phone's own touch screen hides the bar: body.touch-ui): the buttons
+     wrap upward instead of running off the left edge (a "hide below 760 px" rule never applied, being earlier) */
+  max-width: calc(100vw - 28px);
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
 }
 .ability {
   position: relative;
