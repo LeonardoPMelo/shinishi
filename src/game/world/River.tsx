@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { Toon, Ink, windTime } from '../materials';
@@ -10,32 +9,8 @@ const RIVER_LEN = 80;
 const RIVER_X = -20;
 import { StoneLantern } from './Props';
 import { Asset } from '../assets/AssetModel';
-
-function useWaterTexture(stretch: number) {
-  return useMemo(() => {
-    const c = document.createElement('canvas');
-    c.width = 128;
-    c.height = 128;
-    const ctx = c.getContext('2d')!;
-    ctx.fillStyle = '#4FA9D6';
-    ctx.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 26; i++) {
-      ctx.strokeStyle = i % 3 ? 'rgba(255,255,255,0.35)' : 'rgba(30,110,170,0.35)';
-      ctx.lineWidth = 2 + (i % 2);
-      const y = (i * 37) % 128;
-      const x = (i * 53) % 128;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.quadraticCurveTo(x + 10, y - 4, x + 22, y);
-      ctx.stroke();
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(stretch, 1);
-    return t;
-  }, [stretch]);
-}
+import { Cascade } from './Cascade';
+import { Rock } from './Rock';
 
 /** Stylized toon water: shallow edges, deep middle, drifting foam streaks, shore foam and glints. */
 function useWaterMaterial() {
@@ -200,41 +175,33 @@ function Bridge() {
   );
 }
 
+/** Boulders round the waterfall's rock (the water falls in front of the middle one's gap, z -1.2..1.2). */
+const FALL_ROCKS: { p: [number, number, number]; s: [number, number, number]; rot: number; moss?: boolean }[] = [
+  { p: [-0.6, 0.7, -2.4], s: [0.9, 0.8, 1.2], rot: 0.3 },
+  { p: [-0.5, 0.6, 2.5], s: [0.95, 0.7, 1.1], rot: -0.4 },
+  { p: [-0.4, 2.2, -2.6], s: [0.8, 1.0, 1.0], rot: 1.1 },
+  { p: [-0.3, 2.4, 2.7], s: [0.85, 1.1, 0.9], rot: 2.0 },
+  { p: [-0.2, 3.7, -2.0], s: [0.9, 0.7, 1.3], rot: 0.6 },
+  { p: [-0.1, 3.8, 2.1], s: [0.9, 0.7, 1.2], rot: -0.9 },
+  { p: [0.4, 4.45, -1.9], s: [1.5, 0.35, 1.9], rot: 0.2, moss: true },
+  { p: [0.4, 4.45, 1.9], s: [1.5, 0.35, 1.9], rot: -0.3, moss: true },
+  { p: [0.9, 4.5, 0], s: [1.3, 0.3, 1.4], rot: 0.9, moss: true },
+];
+
+/** The rock the river falls from, at its east end (the water itself: Cascade.tsx). */
 function Waterfall() {
-  const tex = useWaterTexture(1);
-  const fall = useMemo(() => {
-    const t = tex.clone();
-    t.needsUpdate = true;
-    t.repeat.set(1, 2);
-    return t;
-  }, [tex]);
-  useFrame((_s, d) => {
-    fall.offset.y += d * 1.6;
-  });
   return (
     <group position={[18.2, 0, RIVER.z]}>
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[1.6, 2.4, 3.6]} position={[0.6, 2.4, 0]} />
       </RigidBody>
-      <mesh position={[0.6, 2.2, 0]} castShadow>
-        <boxGeometry args={[3.2, 4.4, 7.2]} />
-        <Toon color="#8E8173" />
-        <Ink thickness={0.04} />
-      </mesh>
-      <mesh position={[0.3, 4.5, 0]}>
-        <boxGeometry args={[3.6, 0.3, 7.6]} />
-        <Toon color="#6E9E5A" />
-      </mesh>
-      <mesh position={[-1.05, 2.2, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[2.6, 4.4]} />
-        <meshBasicMaterial map={fall} transparent opacity={0.92} />
-      </mesh>
-      {[-0.9, 0, 0.9].map((z, i) => (
-        <mesh key={i} position={[-1.3, 0.15, z]} scale={[1, 0.5, 1]}>
-          <sphereGeometry args={[0.45, 10, 8]} />
-          <meshBasicMaterial color="#EAF7FF" transparent opacity={0.85} />
-        </mesh>
+      {/* natural rock (a flat box read as a brown wall): one big chiseled rock, boulders round its face and a
+          mossy cap; the collider is the same box as before */}
+      <Rock variant={2} kind="boulder" position={[0.7, 2.1, 0]} scale={[1.75, 2.35, 3.7]} color="#8E8173" castShadow receiveShadow contact={false} />
+      {FALL_ROCKS.map((r, i) => (
+        <Rock key={i} variant={i % 6} kind={r.moss ? 'flat' : 'boulder'} moss={r.moss} position={r.p} scale={r.s} rotation={[0, r.rot, 0]} color={i % 2 ? '#857A6C' : '#968A7A'} castShadow receiveShadow contact={r.p[1] < 0.6} />
       ))}
+      <Cascade position={[-1.05, 4.4, 0]} yaw={-Math.PI / 2} height={4.35} width={2.4} bulge={0.45} mist={0.8} />
     </group>
   );
 }

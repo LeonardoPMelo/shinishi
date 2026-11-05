@@ -8,6 +8,7 @@ import { SakuraTree, MapleTree } from './Props';
 import { Rock } from './Rock';
 import { TerraceBox, StepBlock } from './districtParts';
 import { StaticMerge } from '../StaticMerge';
+import { Cascade } from './Cascade';
 import { WildTerrain, Mountains, CliffRock, Undergrowth, WoodsDetail, RiverBanks } from './WildScenery';
 import { WildCamps, WildCampsLife } from './WildCamps';
 import { WildCave, WildCaveLife } from './WildCave';
@@ -182,48 +183,9 @@ function River() {
 const STONE_DATA = { surface: 'stone' };
 const WOOD_DATA = { surface: 'wood' };
 
-/** The waterfall at the north end: a scrolling sheet of water over the cliff, foam and spray at its foot. */
+/** The waterfall at the north end, over the 8 m cliff into the river (Cascade.tsx). */
 function Waterfall() {
-  const tex = useMemo(() => {
-    const c = document.createElement('canvas');
-    c.width = 64;
-    c.height = 256;
-    const g = c.getContext('2d')!;
-    g.fillStyle = '#8FD0EC';
-    g.fillRect(0, 0, 64, 256);
-    for (let i = 0; i < 70; i++) {
-      g.fillStyle = `rgba(255,255,255,${0.25 + Math.random() * 0.5})`;
-      g.fillRect(Math.random() * 64, Math.random() * 256, 1 + Math.random() * 3, 12 + Math.random() * 40);
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(3, 1);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  }, []);
-  useFrame((_s, d) => {
-    tex.offset.y += d * 0.9;
-  });
-  const foam = useRef<THREE.Group>(null);
-  useFrame(({ clock }) => {
-    if (foam.current) foam.current.children.forEach((m, i) => m.scale.setScalar(0.8 + 0.25 * Math.sin(clock.elapsedTime * 3 + i * 1.7)));
-  });
-  return (
-    <group>
-      <mesh position={[6.5, 4, -38.5]}>
-        <planeGeometry args={[5.8, 8]} />
-        <meshBasicMaterial map={tex} transparent opacity={0.88} />
-      </mesh>
-      <group ref={foam}>
-        {[3.9, 5.2, 6.5, 7.8, 9.1].map((x) => (
-          <mesh key={x} position={[x, 0.15, -37.9]}>
-            <sphereGeometry args={[0.55, 10, 8]} />
-            <meshBasicMaterial color="#F4FBFF" transparent opacity={0.75} />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
+  return <Cascade position={[6.5, 8, -38.45]} height={8} width={5.2} bulge={0.9} mist={1.2} />;
 }
 
 /** The rope bridge: two end landings, and the middle only once the Corda Ninja ties it. */

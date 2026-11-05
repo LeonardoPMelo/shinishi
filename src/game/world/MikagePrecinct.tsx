@@ -15,6 +15,7 @@ import { emit } from '../../systems/events';
 import { press, brokenRule } from '../../systems/orderPuzzle';
 import { useSpot } from '../systems/training';
 import { playerPosition } from '../systems/playerState';
+import { Cascade } from './Cascade';
 import {
   AXIS_X, PRECINCT_WALL, GREAT_GATE, TERRACE, STAIRS, RESIDENCE, RESIDENCE_FRONT, TEMPLE_POND, PLUNGE, ARCH_BRIDGE,
   SPRING, WATERFALL, NICHE, BELL, ARCHIVE, TOWER, TOWER_STEPS, BAMBOO_GROVE, GUARDIANS, GUARDIAN_LOOK,
@@ -1215,11 +1216,8 @@ function Water() {
     t.repeat.set(1, 0.5);
     return t;
   }, [fall]);
-  const foam = useRef<THREE.Group>(null);
-  useFrame(({ clock }, d) => {
-    fall.offset.y += d * 1.1;
+  useFrame((_s, d) => {
     channel.offset.y += d * 0.5;
-    foam.current?.children.forEach((m, i) => m.scale.setScalar(0.75 + 0.25 * Math.sin(clock.elapsedTime * 3 + i * 1.9)));
   });
   return (
     <group userData={{ dynamic: true }}>
@@ -1236,18 +1234,8 @@ function Water() {
         <planeGeometry args={[0.9, Math.abs(TERRACE.z1 - SPRING.z) - 0.1]} />
         <meshBasicMaterial map={channel} transparent opacity={0.9} />
       </mesh>
-      <mesh position={[WATERFALL.x, H / 2 + 0.02, TERRACE.z1 + 0.08]}>
-        <planeGeometry args={[WATERFALL.w, H + 0.05]} />
-        <meshBasicMaterial map={fall} transparent opacity={0.82} side={THREE.DoubleSide} />
-      </mesh>
-      <group ref={foam}>
-        {[-0.4, 0, 0.4].map((u) => (
-          <mesh key={u} position={[WATERFALL.x + u, 0.12, TERRACE.z1 + 0.35]}>
-            <sphereGeometry args={[0.3, 10, 8]} />
-            <meshBasicMaterial color="#F4FBFF" transparent opacity={0.7} />
-          </mesh>
-        ))}
-      </group>
+      {/* the sheet over the terrace's edge, in front of the niche (thin and see-through: the niche shows behind) */}
+      <Cascade position={[WATERFALL.x, H + 0.01, TERRACE.z1 + 0.06]} height={H} width={WATERFALL.w} bulge={0.16} mist={0.35} opacity={0.82} />
       <Sparkles count={14} scale={[1.6, 1.2, 0.8]} position={[WATERFALL.x, 0.6, TERRACE.z1 + 0.5]} size={2.5} speed={0.6} color="#EAF8FF" opacity={0.8} />
     </group>
   );

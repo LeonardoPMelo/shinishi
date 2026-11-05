@@ -1097,3 +1097,32 @@ Os oito tipos de bicho eram montados no código com esferas, cones e caixas. As 
 
 ### Fica para depois
 A cachoeira ainda é um plano reto com listras (vista nas capturas do paredão norte).
+
+## 23. As cachoeiras (2026-11-05)
+
+### Antes
+As três cachoeiras eram planos retos com listras brancas rolando e bolas de espuma em fila:
+- a das terras selvagens, com 8 m;
+- a do rio da vila, com 4,4 m;
+- a do terraço do Templo de Mikage, com 1,6 m.
+
+A rocha da cachoeira da vila era uma caixa marrom lisa.
+
+### Agora: `world/Cascade.tsx`, um componente para as três
+- **Lâmina d'água:**
+  - curva para fora ao cair e alarga um pouco embaixo;
+  - pintada por um shader com duas camadas de fios d'água descendo em velocidades diferentes, que se esticam conforme a água acelera;
+  - espuma na borda e no pé, laterais suaves e a neblina da cena.
+- **Espuma no pé:** bolhas brancas de tamanhos e lugares variados, fervendo cada uma no seu ritmo. São sem luz própria: iluminadas pelo pôr do sol, viravam "travesseiros" cor-de-rosa.
+- **Bruma:** partículas que sobem, se espalham e se desfazem.
+- **Anéis:** ondas que se abrem na água ao pé da queda.
+- **Custo:** 4 desenhos por cachoeira, qualquer que seja o tamanho.
+- **Descartado:** um rolo branco na borda parecia um cano; a faixa de espuma do próprio shader já faz esse papel.
+- **Rocha da cachoeira da vila:** uma pedra lascada grande com a superfície de rocha natural, pedras em volta da face e um topo com musgo. A colisão é a mesma de antes.
+- **Templo:** a lâmina é fina e transparente, e o nicho com o baú continua visível atrás dela.
+
+### Conferido
+- **Capturas:** antes e depois das três cachoeiras, de longe e de perto.
+- **Auditoria física:** zero problemas.
+- **Console:** sem erros.
+- **Testes:** `tests/cascade.test.ts`: a lâmina vai da borda ao pé, abre para fora e alarga embaixo. 583 testes passando.
