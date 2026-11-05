@@ -1237,3 +1237,53 @@ A sombra de cada copa agora é desenhada pela versão leve dela, a mesma usada n
   - A vila tem 9 mil instâncias (≈230 mil triângulos) numa área menor: densidade parecida.
 - **Fogueira acesa:** cerca de 2,9 mil triângulos (antes ~1,5 mil). As partes fixas entram no cenário fundido. Ficam 6 chamadas de desenho animadas (3 chamas, faíscas, brasas, brilho) no lugar de 1.
 - **Limite da medição:** a contagem da cena inteira por ponto (`__bench.calls`) variou muito entre duas medições seguidas sem mudança nenhuma (ex.: floresta 326 → 221 chamadas), por causa dos bichos andando e do carregamento dos modelos. Por isso a comparação confiável é a das peças acima, não o total da cena. O tempo de GPU não pôde ser medido nesta máquina (mesmo motivo do §19).
+
+## 27. Cervos refeitos no Blender: modelagem, esqueleto e animação (2026-11-05)
+
+Pedido: "os cervos estão muito feios, refaça a modelagem de forma profissional". Os 12 cervos do jogo (7 na Clareira dos Cervos, 5 na Campina das Ervas) eram montados com esferas e cilindros soltos, com o pescoço e as pernas girando como peças duras.
+
+### O que mudou
+- **Modelos novos** feitos por script no Blender 5.2 (`tools/blender/build_fauna.py`), no mesmo processo dos bichos inimigos (`build_enemies.py`, cujas funções foram reaproveitadas):
+  - `fauna_cervo.glb`: macho com chifres ramificados (haste, ponta da testa e duas pontas no alto);
+  - `fauna_cerva.glb`: fêmea, pescoço mais fino, sem chifres;
+  - `fauna_filhote.glb`: filhote com cabeça, olhos e orelhas maiores e mais pintas (feito no tamanho adulto; o jogo reduz pela escala de cada um).
+- **Anatomia:** corpo, pescoço e pernas são uma peça só, esculpida (sem emendas). Peito fundo e cintura fina. Pernas com ombro, cotovelo, joelho, canela fina, boleto e casco fendido (dois dedos e as unhas de trás). Atrás: coxa cheia, joelho para a frente e jarrete para trás. Cabeça em cunha com focinho claro, queixo branco, anel claro em volta dos olhos grandes e brilhantes e nariz escuro com narinas. Orelhas grandes em concha.
+- **Pelagem de cervo-sika:** risca escura no dorso, fileiras de pintas brancas, barriga creme, garupa branca com borda escura, rabo branco com risca escura e tufo branco na pata traseira.
+- **Esqueleto:** corpo, pescoço, cabeça, duas peças por perna (joelho e jarrete dobram de verdade), rabo em duas partes e orelhas.
+- **Animações:**
+  - parado: respira, olha em volta, mexe a orelha e o rabo;
+  - pastando: cabeça na grama, mastigando, patas da frente abertas;
+  - andando: passo em quatro tempos;
+  - correndo: galope com salto e rabo levantado;
+  - alerta: cabeça alta, orelhas para a frente, rabo erguido e uma batida da pata.
+- **No jogo** (`world/DeerModel.tsx`):
+  - na Clareira, os cervos alternam entre pastar e olhar em volta, e ficam em alerta quando o gato chega perto;
+  - na Campina, seguem a lógica de antes (`systems/wildlife.ts`): pastam, andam, ficam em alerta antes de fugir, correm e voltam devagar;
+  - os cervos ficaram maiores que o gato (antes tinham quase a altura dele);
+  - se os arquivos faltarem, o jogo desenha os cervos antigos.
+- **Compressão:** `tools/blender/compress_fauna.sh` (simplificação e meshopt, com o gltf-transform do cache local) deixa cada arquivo entre 130 e 140 KB.
+
+### Verificação
+- **Imagens do Blender** (`tools/art-staging/fauna/`): frente, três-quartos, lado, costas e cada animação, revisadas e corrigidas três vezes:
+  - pernas que pareciam coladas viraram uma peça só;
+  - a cabeça cresceu e o pescoço encurtou;
+  - o vinco do pescoço ao pastar foi corrigido;
+  - as pernas dobravam demais na corrida;
+  - a orelha ficava "de prato" ao pastar.
+- **Imagens no jogo** (`tools/art-staging/cervo_*.png`): a Clareira com os cervos pastando e em alerta; a Campina com a manada pastando, em alerta e fugindo do gato.
+- **Física:** `__audit.run()` sem nenhum problema.
+- **Testes:** `tests/deerModels.test.ts` (4 testes):
+  - catálogo e tamanho dos arquivos;
+  - esqueleto, as 5 animações e os materiais;
+  - só o macho tem chifres;
+  - a contagem de filhotes da pergunta da Batedora Kaze não mudou;
+  - cada estado escolhe a animação certa.
+  - Suíte inteira: 594 testes passando.
+
+### Custo
+- **Por cervo:** 12,2 a 13,5 mil triângulos, mais o contorno. Antes era de 2 a 3 mil.
+- **Chamadas de desenho:** cerca de 5 por cervo. Antes eram de 15 a 17.
+- **Na Clareira (7 cervos):** de cerca de 114 para cerca de 36 chamadas de desenho, mas com mais triângulos (≈150 mil, com contorno).
+- **Visibilidade:** os cervos só são desenhados de perto (`DistanceCull` na Clareira; a Campina só existe nas Terras Selvagens).
+- O tempo de GPU continua sem medição confiável nesta máquina (§19).
+

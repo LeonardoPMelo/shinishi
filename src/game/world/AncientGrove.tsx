@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
 import { Sparkles } from '@react-three/drei';
@@ -11,6 +11,8 @@ import { usePondMaterial } from './EastDistrict';
 import { FenceLine, DistrictGate } from './districtParts';
 import { DistanceCull } from '../DistanceCull';
 import { CLEARING_DEER, EXIT_GATE } from '../../data/clearing';
+import { DeerModel, DEER_SIZE, deerKind, deerModelsReady, playDeerClip, type DeerRig } from './DeerModel';
+import { playerPosition } from '../systems/playerState';
 import {
   SOUTH_FENCE, SOUTH_GATE, STREAM, LOG_BRIDGE, STREAM_STONES, ANCIENT, MEADOW, LEDGES, GROVE_TORII, cedarSpots, southFree,
 } from '../../data/south';
@@ -438,8 +440,48 @@ function FairyRing() {
   );
 }
 
-/** A small family of sika deer: they graze (head down), look up, and graze again. */
+/**
+ * A small family of sika deer (world/DeerModel.tsx, the Blender models): they graze, lift their heads to look
+ * round, and graze again; when the cat comes close they stop and watch it, the white tail up.
+ */
 function Deer() {
+  if (!deerModelsReady()) return <ProceduralDeer />;
+  return (
+    <Suspense fallback={null}>
+      <ModelDeer />
+    </Suspense>
+  );
+}
+
+function ModelDeer() {
+  const herd = CLEARING_DEER;
+  const rigs = useRef<(DeerRig | null)[]>([]);
+  const ready = useMemo(() => herd.map((_, i) => (r: DeerRig) => (rigs.current[i] = r)), [herd]);
+  useFrame(({ clock }, raw) => {
+    const dt = Math.min(raw, 0.05);
+    herd.forEach((h, i) => {
+      const rig = rigs.current[i];
+      if (!rig) return;
+      const near = Math.hypot(playerPosition.x - h.x, playerPosition.z - h.z) < 3.2;
+      const look = (clock.elapsedTime * 0.08 + h.phase / 3) % 1 > 0.68;
+      playDeerClip(rig, near ? 'alert' : look ? 'idle' : 'graze', 0.9 + (i % 3) * 0.08, (h.phase / 3) % 1);
+      rig.mixer.update(dt);
+    });
+  });
+  return (
+    <group userData={{ dynamic: true }}>
+      {herd.map((h, i) => (
+        // the old deer faced +x; the models face +z
+        <group key={i} position={[h.x, 0, h.z]} rotation={[0, h.rot + Math.PI / 2, 0]} scale={h.s * DEER_SIZE}>
+          <DeerModel kind={deerKind(h.s, i === 0)} onReady={ready[i]} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/** The deer drawn from primitives, while the models are not in the build. */
+function ProceduralDeer() {
   const group = useRef<THREE.Group>(null);
   // the meadow herd and the family by the gate (the scout's counting question uses the same list)
   const herd = CLEARING_DEER;

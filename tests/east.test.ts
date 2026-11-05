@@ -128,8 +128,9 @@ describe('Bairro das Glicínias: missão', () => {
 describe('modelos leves (LOD) dos moradores', () => {
   it('todo modelo de morador tem a cópia leve usada de longe', () => {
     const dir = resolve(__dirname, '../public/assets/models/characters');
-    // (the wild lands' creatures, enemy_*.glb, have no light copy: past the fog they are not drawn at all)
-    const full = readdirSync(dir).filter((f) => f.endsWith('.glb') && !f.startsWith('enemy_'));
+    // (the wild lands' creatures, enemy_*.glb, have no light copy: past the fog they are not drawn at all; nor do
+    // the deer, fauna_*.glb, which a DistanceCull hides from across the map)
+    const full = readdirSync(dir).filter((f) => f.endsWith('.glb') && !f.startsWith('enemy_') && !f.startsWith('fauna_'));
     for (const f of full) expect(existsSync(resolve(dir, 'lod', f)), f).toBe(true);
   });
 });

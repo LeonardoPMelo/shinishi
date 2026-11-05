@@ -59,6 +59,10 @@ export const ASSETS = {
   enemy_doninha: { folder: 'characters', collider: 'none', description: 'Doninha ninja: corpo comprido, faixa preta e cachecol vermelho esvoaçante' },
   enemy_arqueira: { folder: 'characters', collider: 'none', description: 'Raposa arqueira: raposa cinza com arco nas costas e aljava de pinhas' },
   enemy_chefe: { folder: 'characters', collider: 'none', description: 'Chefe Espinho: ouriço grande de espinhos dourados, coroa de espinhos e manto vermelho' },
+  // the deer of the Clareira dos Cervos and the Campina das Ervas (tools/blender/build_fauna.py; world/DeerModel.tsx)
+  fauna_cervo: { folder: 'characters', collider: 'none', description: 'Cervo-sika macho: chifres ramificados, pintas brancas, garupa branca' },
+  fauna_cerva: { folder: 'characters', collider: 'none', description: 'Cerva-sika: pintas brancas em fileiras, orelhas grandes, sem chifres' },
+  fauna_filhote: { folder: 'characters', collider: 'none', description: 'Filhote de cervo: cabeça e orelhas grandes, mais pintas' },
   tsubaki: { folder: 'characters', collider: 'none', description: 'Guardiã do templo: hakama vermelha, camélia e naginata de madeira' },
   goro: { folder: 'characters', collider: 'none', description: 'Urso da fonte termal: casaco happi azul-petróleo, faixa na testa e bigode' },
   hinoki: { folder: 'characters', collider: 'none', description: 'Guardiã do Bosque Antigo: tigrada marrom, manto musgo, sobrancelhas e cajado' },
