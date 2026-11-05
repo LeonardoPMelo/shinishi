@@ -1126,3 +1126,43 @@ A rocha da cachoeira da vila era uma caixa marrom lisa.
 - **Auditoria física:** zero problemas.
 - **Console:** sem erros.
 - **Testes:** `tests/cascade.test.ts`: a lâmina vai da borda ao pé, abre para fora e alarga embaixo. 583 testes passando.
+
+## 24. Bichos mais vivos: orelhas, deformação e quatro animações novas (2026-11-05)
+
+### No Blender (`tools/blender/build_enemies.py`)
+- **Orelhas com osso próprio** (`ear.L` / `ear.R`), em todos os bichos menos no espírito, que não tem orelhas:
+  - mexem uma de cada vez quando o bicho está parado;
+  - balançam ao andar e deitam para trás ao correr;
+  - ficam achatadas e abertas no preparo;
+  - ficam em pé quando o bicho está alerta;
+  - caem quando ele está tonto ou dormindo.
+- **Deformação:** o corpo se encolhe no preparo e se estica no bote. É uma escala no osso do corpo, dada em eixos do mundo e convertida para os eixos de cada osso.
+- **Animações novas:**
+
+  | Animação | Quando | O que faz | Quantas vezes |
+  |---|---|---|---|
+  | alerta | Viu o gato | Na ponta das patas, cabeça alta, cauda dura, orelhas em pé; a pose respira | Em ciclo |
+  | golpe | Levou um golpe | Jogado para trás e para cima, achatado, cabeça sacudida | Uma vez |
+  | desmaio | Foi derrotado | Tomba de lado com as patas duras, enquanto o jogo o encolhe na fumaça | Uma vez, segurando o último quadro |
+  | farejar | Parado ou procurando | Nariz no chão, cheirando | Em ciclo |
+
+- **Total:** 11 animações por bicho. Os arquivos ficaram com 86 a 167 KB, cerca de 1,16 MB os oito.
+- **Testado e descartado:** remover quadros redundantes (`resample`) deixou os arquivos maiores, porque o meshopt já comprime melhor animação regular.
+
+### No jogo (`world/EnemyModel.tsx`)
+- **Estado → animação:**
+  - parado depois de ver o gato (alerta, ou perseguindo mas parado) → alerta;
+  - procurando o que ouviu → farejar;
+  - derrotado → desmaio (antes era a animação de tonto).
+- **Golpe:** quando o brilho branco do golpe acende, o tranco toca por 0,4 s por cima de qualquer animação, menos o desmaio.
+- **Parado:** de vez em quando o bicho para e fareja o chão (a primeira vez entre 4 e 10 s, por 1,6 s; depois a cada 6 a 14 s), para que nunca fique como estátua.
+
+### Conferido
+- **Poses no Blender:** preparo, ataque, alerta, golpe, desmaio e farejar, na raposa e no javali.
+- **Em jogo** (300 quadros, 20 bichos):
+  - cada estado tocou a animação certa;
+  - o golpe disparou o tranco e a derrota disparou o desmaio;
+  - nenhum erro.
+- **Testes:**
+  - `tests/enemyModels.test.ts`: as 11 animações e os ossos das orelhas em cada arquivo, o novo mapa de estados, o tranco e o farejar de vez em quando;
+  - 584 testes passando.

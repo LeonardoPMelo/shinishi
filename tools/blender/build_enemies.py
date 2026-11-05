@@ -12,8 +12,8 @@ The raw GLBs go to --out; tools/blender/compress_enemies.sh puts the compressed 
 Contract with the game (world/EnemyModel.tsx):
   * Blender: Z up, faces -Y, feet on z = 0. glTF/three.js: Y up, faces +Z. 1 unit = 1 meter.
   * One skinned mesh (one primitive per material) on bones: root body head leg.FL leg.FR leg.BL leg.BR tail.1 tail.2
-    (the spirit has no legs).
-  * Clips: idle, walk, run, windup, attack, stunned, sleep (all loop; attack is one lunge and back).
+    ear.L ear.R (the spirit has no legs and no ears). The body bone also scales (squash and stretch).
+  * Clips: idle, walk, run, windup, attack, stunned, sleep, alert, sniff (loops); attack, hit, faint (once).
   * Materials by name, as the villagers': fur (toon, outlined), cloth (outlined), leather (outlined), metal, pad,
     wood, eye, gloss. Colors are vertex colors.
   * The game still owns the windup shake, the hit flash, the red glow, the defeat shrink and the marks overhead.
@@ -54,6 +54,15 @@ def smooth(e0, e1, x):
 
 # ── Geometry helpers ─────────────────────────────────────────────────────────────
 PARTS = []  # (object, weights) — weights: bone name, or fn(world_co) -> {bone: w}
+EARS = []  # (bone, base, tip): ears ride their own bones (they twitch, flatten, perk up and droop)
+
+
+def ear_bone(base, tip):
+    """Registers an ear's bone (ear.L on +x, ear.R on -x) from its base toward its tip; returns its name."""
+    name = 'ear.L' if base[0] > 0 else 'ear.R'
+    if not any(e[0] == name for e in EARS):
+        EARS.append((name, tuple(base), tuple(tip)))
+    return name
 
 
 def part(obj, mat, color, bone):
@@ -303,6 +312,8 @@ def along(points, bones):
 
 
 X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
+# clips played once from start to end (the game holds the last frame of hit and faint)
+ONE_SHOT = ('attack', 'hit', 'faint')
 LEGS = ('leg.FL', 'leg.FR', 'leg.BL', 'leg.BR')
 
 
@@ -322,7 +333,8 @@ def tail_wag(p, t, amp, speed=1.0, up=0.0):
 
 
 def clips(cfg):
-    """The seven clips, built from the creature's own numbers (leg swing, bob, how it lunges)."""
+    """The eleven clips, built from the creature's own numbers (leg swing, bob, how it lunges), with the ears and
+    the squash and stretch added on top (finish)."""
     legs = cfg.get('legs', True)
     a = cfg.get('swing', 0.45)
     lunge = cfg.get('lunge', 0.25)
@@ -440,15 +452,138 @@ def clips(cfg):
             add(p, bn, X, 0.3)
         return p
 
-    return [('idle', idle, 60), ('walk', walk, 24), ('run', run, 16), ('windup', windup, 30),
-            ('attack', attack, 18), ('stunned', stunned, 36), ('sleep', sleep, 72)]
+    def alert(t):
+        # it has seen something: up on its toes, head high, tail stiff, ears pricked (a held pose that breathes)
+        p = {}
+        s = math.sin(2 * math.pi * t)
+        loc(p, 'body', (0, 0.02, 0.025 + 0.004 * s))
+        add(p, 'body', X, -0.06)
+        add(p, 'head', X, -0.2 + 0.03 * s)
+        add(p, 'head', Z, 0.1 * math.sin(2 * math.pi * t * 0.5))
+        if legs:
+            for bn in ('leg.FL', 'leg.FR'):
+                add(p, bn, X, -0.06)
+        for i, bn in enumerate(('tail.1', 'tail.2')):
+            add(p, bn, X, -0.55 - 0.15 * i)
+            add(p, bn, Z, 0.05 * s)
+        return p
+
+    def hit(t):
+        # struck: thrown back and up, squashed, the head shaken (once)
+        p = {}
+        k = math.sin(math.pi * min(1.0, t * 1.4)) * (1 - smooth(0.7, 1.0, t))
+        loc(p, 'body', (0, 0.12 * k, 0.05 * k))
+        add(p, 'body', X, -0.22 * k)
+        add(p, 'head', X, -0.3 * k)
+        add(p, 'head', Y, 0.22 * math.sin(4 * math.pi * t) * k)
+        p.setdefault('body', {})['scale'] = (1 + 0.1 * k, 1 - 0.04 * k, 1 - 0.12 * k)
+        if legs:
+            for bn in ('leg.FL', 'leg.FR'):
+                add(p, bn, X, -0.4 * k)
+            for bn in ('leg.BL', 'leg.BR'):
+                add(p, bn, X, 0.25 * k)
+        tail_wag(p, t, 0.0, up=0.7 * k)
+        return p
+
+    def faint(t):
+        # beaten: it keels over onto its side, legs stiff, and lies there (the game shrinks it into the smoke)
+        p = {}
+        k = smooth(0.0, 0.55, t)
+        bounce = math.sin(math.pi * smooth(0.5, 0.8, t)) * 0.04
+        loc(p, 'body', (0, 0, -sink * 0.8 * k + bounce))
+        add(p, 'body', Y, 1.35 * k)
+        add(p, 'head', X, 0.3 * k)
+        add(p, 'head', Y, 0.25 * k)
+        if legs:
+            for bn, sgn in zip(LEGS, (1, -1, 1, -1)):
+                add(p, bn, X, (-0.35 if bn.startswith('leg.F') else 0.35) * k)
+                add(p, bn, Y, sgn * 0.25 * k)
+        for i, bn in enumerate(('tail.1', 'tail.2')):
+            add(p, bn, X, 0.4 * k)
+        return p
+
+    def sniff(t):
+        # nose to the ground, sniffing, a step this way and that (something to do between rounds)
+        p = {}
+        down = smooth(0.0, 0.2, t) * (1 - smooth(0.8, 1.0, t))
+        loc(p, 'body', (0, 0, -0.02 * down))
+        add(p, 'body', X, 0.1 * down)
+        add(p, 'head', X, (0.45 + 0.05 * math.sin(2 * math.pi * t * 9)) * down)
+        add(p, 'head', Z, 0.2 * math.sin(2 * math.pi * t * 1.5) * down)
+        if legs:
+            for bn in ('leg.FL', 'leg.FR'):
+                add(p, bn, X, 0.12 * down)
+        tail_wag(p, t, 0.3, speed=2)
+        return p
+
+    def ears(p, back=0.0, out=0.0, twitch=(0.0, 0.0)):
+        for bn, sgn, tw in (('ear.L', 1, twitch[0]), ('ear.R', -1, twitch[1])):
+            add(p, bn, X, -back)
+            add(p, bn, Y, sgn * (out + tw))
+
+    def blip(t, a, b):
+        return math.sin(math.pi * smooth(a, b, t)) if a <= t <= b else 0.0
+
+    def lunge_k(t):
+        return (math.sin(math.pi * min(1.0, t * 1.6)) if t < 0.62 else 0.0) * (1 - smooth(0.62, 1.0, t))
+
+    def finish(name, t, p):
+        # the ears and the squash, on top of each clip
+        if name == 'idle':
+            ears(p, twitch=(0.45 * blip(t, 0.55, 0.62), 0.45 * blip(t, 0.2, 0.26)))
+        elif name == 'walk':
+            ears(p, back=0.12 * math.sin(4 * math.pi * t))
+        elif name == 'run':
+            ears(p, back=0.55 + 0.1 * math.sin(2 * math.pi * t))
+        elif name == 'windup':
+            ears(p, back=0.85, out=0.25)
+            p.setdefault('body', {})['scale'] = (1.06, 1.04, 0.9)
+        elif name == 'attack':
+            e = lunge_k(t)
+            ears(p, back=0.65 * e + 0.3)
+            p.setdefault('body', {})['scale'] = (1 - 0.06 * e, 1 + 0.12 * e, 1 - 0.04 * e)
+        elif name == 'stunned':
+            ears(p, back=-0.2, out=0.55 + 0.15 * math.sin(4 * math.pi * t))
+        elif name == 'sleep':
+            ears(p, back=0.4, out=0.6)
+        elif name == 'alert':
+            ears(p, back=-0.25, out=-0.1, twitch=(0.3 * blip(t, 0.4, 0.48), 0.3 * blip(t, 0.75, 0.83)))
+        elif name == 'hit':
+            ears(p, back=0.8 * math.sin(math.pi * min(1.0, t * 1.4)))
+        elif name == 'faint':
+            ears(p, out=0.8 * smooth(0.0, 0.55, t))
+        elif name == 'sniff':
+            ears(p, back=-0.2, twitch=(0.35 * blip(t, 0.3, 0.36), 0.35 * blip(t, 0.62, 0.68)))
+        return p
+
+    out = [('idle', idle, 60), ('walk', walk, 24), ('run', run, 16), ('windup', windup, 30),
+           ('attack', attack, 18), ('stunned', stunned, 36), ('sleep', sleep, 72),
+           ('alert', alert, 40), ('hit', hit, 12), ('faint', faint, 30), ('sniff', sniff, 48)]
+    return [(n, (lambda t, f=f, n=n: finish(n, t, f(t))), fr) for n, f, fr in out]
+
+
+class Poser(rig.Poser):
+    """build_rig's poser plus scale: pose[bone]['scale'] = (x, y, z) in world axes (x across, y along, z up)."""
+
+    def key(self, frame, pose):
+        super().key(frame, pose)
+        for name in self.names:
+            pb = self.arm.pose.bones[name]
+            sc = pose.get(name, {}).get('scale')
+            if sc:
+                m = self.rest[name]
+                # each local axis takes the world scales by how much it points along them
+                pb.scale = Vector([sum(m.col[i][k] ** 2 * sc[k] for k in range(3)) for i in range(3)])
+            else:
+                pb.scale = Vector((1, 1, 1))
+            pb.keyframe_insert('scale', frame=frame)
 
 
 def rig_and_export(name, cfg, bones):
     arm = armature(name, bones)
     skin_all('creature', arm)
     bpy.context.scene.render.fps = rig.FPS
-    poser = rig.Poser(arm)
+    poser = Poser(arm)
     ad = arm.animation_data_create()
     actions = {}
     for cname, fn, frames in clips(cfg):
@@ -456,7 +591,7 @@ def rig_and_export(name, cfg, bones):
         act.use_fake_user = True
         ad.action = act
         for f in range(frames + 1):
-            poser.key(f, fn((f / frames) % 1.0 if cname != 'attack' else f / frames))
+            poser.key(f, fn((f / frames) % 1.0 if cname not in ONE_SHOT else f / frames))
         actions[cname] = act
         track = ad.nla_tracks.new()
         track.name = cname
@@ -535,7 +670,7 @@ def build_fox(cfg):
         b = hc + Vector((s_ * 0.09, 0.03, 0.1))
         tip = hc + Vector((s_ * 0.16, 0.07, 0.3))
         part(cone('ear', b, tip, 0.07, 0.006, segs=12), 'fur',
-             lambda co, n, b=b, tip=tip: dark if (co - b).length / (tip - b).length > 0.72 else (cream if n.y < -0.35 else fur), 'head')
+             lambda co, n, b=b, tip=tip: dark if (co - b).length / (tip - b).length > 0.72 else (cream if n.y < -0.35 else fur), ear_bone(b, tip))
     tail = [(0, 0.27, 0.5), (0, 0.5, 0.62), (0, 0.66, 0.78)]
     tl = blob('tail', chain(tail, [0.07, 0.12, 0.08], 0.03), voxel=0.012)
     part(tl, 'fur', lambda co, n: mix(fur, cream, smooth(0.6, 0.7, co.y)), along(tail, ['tail.1', 'tail.2']))
@@ -599,7 +734,8 @@ def hedgehog_body(cfg, s=1.0):
     nose(head, hc + S((0, -0.22, -0.03)), (0, -1, 0.1), 0.03 * s, (0.12, 0.08, 0.09))
     mask_band(head, hc, hc.z + 0.1 * s, C(cfg['band']), height=0.04 * s, tilt=-0.2)
     for sx in (1, -1):
-        part(ell('ear', hc + S((sx * 0.12, 0.04, 0.12)), tuple(S((0.04, 0.025, 0.045))), segs=10, rings=8), 'fur', face, 'head')
+        ec = hc + S((sx * 0.12, 0.04, 0.12))
+        part(ell('ear', ec, tuple(S((0.04, 0.025, 0.045))), segs=10, rings=8), 'fur', face, ear_bone(ec - S((0, 0, 0.03)), ec + S((sx * 0.02, 0, 0.06))))
     spots = [S((0.13, -0.14))[:2], S((-0.13, -0.14))[:2], S((0.14, 0.16))[:2], S((-0.14, 0.16))[:2]]
     spots = [(x, y) for x, y in spots]
     leg_parts(spots, 0.14 * s, 0.045 * s, 0.03 * s, C('#5A4434'), C('#3A2A22'))
@@ -657,7 +793,8 @@ def build_boar(cfg):
         part(ell('nostril', sn + Vector((sx * 0.05, -0.01, 0.0)), (0.025, 0.012, 0.035)), 'pad', (0.25, 0.15, 0.15), 'head')
         t0 = hc + Vector((sx * 0.14, -0.32, -0.12))
         part(tube('tusk', [t0, t0 + Vector((sx * 0.04, -0.05, 0.06)), t0 + Vector((sx * 0.03, -0.06, 0.16))], [0.035, 0.026, 0.006], segs=8), 'pad', C('#F4EAD8'), 'head')
-        part(cone('ear', hc + Vector((sx * 0.2, 0.05, 0.2)), hc + Vector((sx * 0.3, 0.12, 0.34)), 0.07, 0.01, segs=8), 'fur', dark, 'head')
+        eb, et = hc + Vector((sx * 0.2, 0.05, 0.2)), hc + Vector((sx * 0.3, 0.12, 0.34))
+        part(cone('ear', eb, et, 0.07, 0.01, segs=8), 'fur', dark, ear_bone(eb, et))
     eye(head, hc + Vector((0.15, -0.08, 0.1)), (0.75, -1, 0.25), 0.06, 0.055, C('#7A3A2A'), lid=fur)
     eye(head, hc + Vector((-0.15, -0.08, 0.1)), (-0.75, -1, 0.25), 0.06, 0.055, C('#7A3A2A'), lid=fur)
     # bristles along the spine, and the stone plates
@@ -695,7 +832,8 @@ def build_badger(cfg):
     eye(head, hc + Vector((-0.09, -0.02, 0.03)), (-0.5, -1, 0.15), 0.04, 0.038, C('#F2E27A'), lid=black)
     nose(head, hc + Vector((0, -0.25, -0.05)), (0, -1, 0.1), 0.035, (0.1, 0.08, 0.09))
     for sx in (1, -1):
-        part(ell('ear', hc + Vector((sx * 0.17, 0.06, 0.1)), (0.05, 0.03, 0.045), segs=10, rings=8), 'fur', black, 'head')
+        ec = hc + Vector((sx * 0.17, 0.06, 0.1))
+        part(ell('ear', ec, (0.05, 0.03, 0.045), segs=10, rings=8), 'fur', black, ear_bone(ec - Vector((0, 0, 0.03)), ec + Vector((sx * 0.02, 0, 0.06))))
     # helmet: a dome with a rim and a little crest
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=10, radius=1.0)
@@ -738,7 +876,8 @@ def build_weasel(cfg):
     nose(head, hc + Vector((0, -0.2, -0.02)), (0, -1, 0.1), 0.02, (0.12, 0.08, 0.09))
     mask_band(head, hc, hc.z + 0.085, C('#1E1A22'), height=0.03, tilt=-0.2)
     for sx in (1, -1):
-        part(ell('ear', hc + Vector((sx * 0.09, 0.05, 0.1)), (0.04, 0.02, 0.04), segs=10, rings=8), 'fur', dark, 'head')
+        ec = hc + Vector((sx * 0.09, 0.05, 0.1))
+        part(ell('ear', ec, (0.04, 0.02, 0.04), segs=10, rings=8), 'fur', dark, ear_bone(ec - Vector((0, 0, 0.03)), ec + Vector((sx * 0.02, 0, 0.05))))
     # the scarf round the neck and its two tails flying behind
     nc = Vector((0, -0.38, 0.42))
     bm = base.ring_on_surface(body, nc, (0, -0.6, 0.8), [-0.03, 0.03], outward=0.012, steps=32, max_r=0.4)
@@ -801,7 +940,7 @@ def render(name, arm=None, actions=None):
     if not arm:
         base.render_views(cam, f'enemy_{name}', target=(0, -0.05, top), dist=dist, views={'front': -90, 'tq': -55, 'side': 0, 'back': 120}, height=0.35)
         return
-    for clip, frame in (('idle', 0), ('walk', 6), ('windup', 8), ('attack', 6), ('stunned', 9), ('sleep', 10)):
+    for clip, frame in (('idle', 0), ('walk', 6), ('windup', 8), ('attack', 6), ('stunned', 9), ('sleep', 10), ('alert', 5), ('hit', 4), ('faint', 30), ('sniff', 12)):
         rig.set_pose(arm, actions[clip], frame)
         base.render_views(cam, f'epose_{name}_{clip}', target=(0, -0.05, top), dist=dist, views={'tq': -55}, height=0.35)
     rig.clear_pose(arm)
@@ -813,7 +952,8 @@ def main():
         cfg = KINDS[name]
         base.reset_scene()
         PARTS.clear()
-        bones = cfg['build'](cfg)
+        EARS.clear()
+        bones = cfg['build'](cfg) + [(bn, b, t, 'head') for bn, b, t in EARS]
         if STAGE == 'model':
             render(name)
             continue

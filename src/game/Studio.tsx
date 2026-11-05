@@ -11,7 +11,7 @@ import type { EnemyKind } from '../systems/combat';
 const params = new URLSearchParams(window.location.search);
 const CAST: AssetName[] = ['mestre_lotus', 'kiko', 'liria', 'sora', 'taro', 'luna', 'boku', 'hana', 'mestre_kuma', 'roku', 'neko', 'tanuki', 'kuro', 'mochi', 'bigodes', 'pipo', 'kaito', 'tsubaki', 'fuji', 'goro', 'hinoki'];
 const LINEUP = params.get('studio') === 'cast' ? (params.get('only')?.split(',') as AssetName[] | undefined) ?? CAST : null;
-/** ?studio=enemies lines up the wild lands' creatures (or ?studio=enemies&only=raposa,chefe); __studio.clip('walk'). */
+/** ?studio=enemies lines up the wild lands' creatures (or ?studio=enemies&only=raposa,chefe); __studio.clip('walk'), any of ENEMY_CLIPS. */
 const ENEMY_KINDS: EnemyKind[] = ['ourico', 'raposa', 'doninha', 'arqueira', 'texugo', 'espirito', 'javali', 'chefe'];
 const BEASTS = params.get('studio') === 'enemies' ? (params.get('only')?.split(',') as EnemyKind[] | undefined) ?? ENEMY_KINDS : null;
 const beastRigs = new Map<EnemyKind, EnemyRig>();

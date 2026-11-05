@@ -13,7 +13,7 @@ import type { EnemyKind } from '../../systems/combat';
  * the creature's own (the hit flash and the windup glow light one creature, not every fox).
  */
 
-export const ENEMY_CLIPS = ['idle', 'walk', 'run', 'windup', 'attack', 'stunned', 'sleep'] as const;
+export const ENEMY_CLIPS = ['idle', 'walk', 'run', 'windup', 'attack', 'stunned', 'sleep', 'alert', 'hit', 'faint', 'sniff'] as const;
 export type EnemyClip = (typeof ENEMY_CLIPS)[number];
 
 export interface EnemyRig {
@@ -24,6 +24,11 @@ export interface EnemyRig {
   /** Every material (the spirit fades all of them). */
   all: THREE.Material[];
   clip: EnemyClip | null;
+  /** Until when the hit recoil plays over whatever it was doing (clock seconds). */
+  hitUntil: number;
+  /** Standing about: when it next stops to sniff the ground, and until when it sniffs. */
+  sniffAt: number;
+  sniffUntil: number;
 }
 
 export const enemyAsset = (kind: EnemyKind) => `enemy_${kind}` as AssetName;
@@ -31,10 +36,35 @@ export const enemyAsset = (kind: EnemyKind) => `enemy_${kind}` as AssetName;
 /** Which clip a creature in this state plays (moving: how fast it really went this frame, m/s). */
 export function clipFor(mode: string, moving: number, walk: number, run: number): EnemyClip {
   if (mode === 'sleep' || mode === 'calm') return 'sleep';
-  if (mode === 'stunned' || mode === 'defeated') return 'stunned';
+  if (mode === 'defeated') return 'faint';
+  if (mode === 'stunned') return 'stunned';
   if (mode === 'windup') return 'windup';
   if (mode === 'attack') return 'attack';
   if (moving > 0.15) return moving > (Math.max(walk, 0.5) + run) / 2 ? 'run' : 'walk';
+  // standing: on its toes when it has seen the cat, nose down when it heard something and is searching
+  if (mode === 'alert' || mode === 'chase') return 'alert';
+  if (mode === 'distracted') return 'sniff';
+  return 'idle';
+}
+
+/**
+ * The clip on top of the state's: the recoil when struck (a moment, over anything but fainting), and now and
+ * then a sniff of the ground while it stands about (so a creature at rest is never a statue).
+ */
+export function pickClip(rig: EnemyRig, base: EnemyClip, now: number, struck: boolean): EnemyClip {
+  if (struck && base !== 'faint') rig.hitUntil = now + 0.4;
+  if (now < rig.hitUntil && base !== 'faint') return 'hit';
+  if (base !== 'idle') {
+    rig.sniffUntil = 0;
+    return base;
+  }
+  if (now < rig.sniffUntil) return 'sniff';
+  if (rig.sniffAt === 0) rig.sniffAt = now + 4 + Math.random() * 6;
+  if (now >= rig.sniffAt) {
+    rig.sniffUntil = now + 1.6;
+    rig.sniffAt = now + 1.6 + 6 + Math.random() * 8;
+    return 'sniff';
+  }
   return 'idle';
 }
 
@@ -68,10 +98,15 @@ export function EnemyModel({ kind, onReady }: { kind: EnemyKind; onReady: (rig: 
     for (const c of gltf.animations) {
       if (!(ENEMY_CLIPS as readonly string[]).includes(c.name)) continue;
       const a = mixer.clipAction(c);
+      // once and hold the last frame: the recoil, and keeling over when beaten
+      if (c.name === 'hit' || c.name === 'faint') {
+        a.setLoop(THREE.LoopOnce, 1);
+        a.clampWhenFinished = true;
+      }
       actions[c.name as EnemyClip] = a;
     }
     const lit = Object.values(mats).filter((m): m is THREE.MeshToonMaterial => (m as THREE.MeshToonMaterial).isMeshToonMaterial);
-    const rig: EnemyRig = { mixer, actions, lit, all: Object.values(mats), clip: null };
+    const rig: EnemyRig = { mixer, actions, lit, all: Object.values(mats), clip: null, hitUntil: 0, sniffAt: 0, sniffUntil: 0 };
     return { root, rig, mats };
   }, [gltf, kind]);
 
@@ -94,6 +129,6 @@ export function playClip(rig: EnemyRig, clip: EnemyClip, timeScale = 1) {
   if (rig.clip === clip) return;
   const prev = rig.clip ? rig.actions[rig.clip] : undefined;
   next.reset().setEffectiveWeight(1).play();
-  if (prev) prev.crossFadeTo(next, clip === 'attack' || clip === 'windup' ? 0.1 : 0.2, false);
+  if (prev) prev.crossFadeTo(next, clip === 'attack' || clip === 'windup' || clip === 'hit' ? 0.08 : clip === 'alert' ? 0.12 : 0.2, false);
   rig.clip = clip;
 }

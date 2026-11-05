@@ -23,7 +23,7 @@ import { useSpot, useIconTexture } from '../systems/training';
 import { interactFallback } from '../systems/interaction';
 import { press } from '../systems/input';
 import { assetFileExists } from '../assets/catalog';
-import { EnemyModel, clipFor, enemyAsset, playClip, type EnemyRig } from './EnemyModel';
+import { EnemyModel, clipFor, enemyAsset, pickClip, playClip, type EnemyRig } from './EnemyModel';
 
 /**
  * The creatures of the wild lands (Etapa 7 da expansão). Their minds are systems/combat.ts (unit-tested); this
@@ -494,7 +494,7 @@ function Creature({ e, register }: { e: Enemy; register: (id: string, g: Creatur
   );
 }
 
-interface CreatureRefs { root: THREE.Group; body: THREE.Group; marks: THREE.Group; bar: THREE.Mesh; skin: THREE.MeshToonMaterial; rig: { current: EnemyRig | null }; legs?: THREE.Object3D[]; last?: { x: number; z: number } }
+interface CreatureRefs { root: THREE.Group; body: THREE.Group; marks: THREE.Group; bar: THREE.Mesh; skin: THREE.MeshToonMaterial; rig: { current: EnemyRig | null }; legs?: THREE.Object3D[]; last?: { x: number; z: number }; flashWas?: number }
 
 // ── The fight ─────────────────────────────────────────────────────────────────
 
@@ -736,7 +736,10 @@ export function Enemies() {
       // the model: its clip follows the state, the step follows the real speed
       const rig = g.rig.current;
       if (rig) {
-        const clip = clipFor(e.mode, moved, spec.walk, spec.run);
+        // struck this frame: the flash has just come on
+        const struck = e.flash > 0 && !(g.flashWas ?? 0);
+        g.flashWas = e.flash;
+        const clip = pickClip(rig, clipFor(e.mode, moved, spec.walk, spec.run), t, struck);
         const scale = clip === 'walk' ? THREE.MathUtils.clamp(moved / Math.max(spec.walk, 0.8), 0.6, 1.8)
           : clip === 'run' ? THREE.MathUtils.clamp(moved / spec.run, 0.7, 1.6)
             : clip === 'attack' && spec.attack.kind === 'charge' ? 0.6 / spec.attack.time : 1;
