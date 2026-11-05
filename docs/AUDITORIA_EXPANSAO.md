@@ -1362,3 +1362,40 @@ O jogo abre, salva, carrega e troca de região sem erros. A física está sem bl
 
 **Ainda precisa de teste num aparelho de verdade:** o toque, o controle físico e o FPS.
 
+## 29. Arte nova do menu e das comemorações (Gemini, 2026-11-05)
+
+Pedido: "utilize o Gemini para criar imagens melhores para os menus e comemorações". As 6 imagens antigas eram renders do próprio jogo: pelo granulado, recorte serrilhado e rosto parado.
+
+### Como foram feitas
+- **Ferramenta:** Gemini (gemini.google.com), na conta do usuário, aberto no navegador do app. O usuário fez o login, e o download dos 6 arquivos foi autorizado por ele.
+- **Pedidos:** em `tools/art-staging/gemini/PROMPTS.md`. Todos na mesma conversa, para o personagem sair igual nas 6:
+  - estilo de filme de animação 3D;
+  - o Shinichi descrito em detalhe: branco com manchas escuras, olhos verdes, bandana com a placa da **pata**, coleira, bolsa e faixas nos braços;
+  - sem texto e sem símbolos de outros animes.
+- **A referência visual não foi junto:** o navegador do app não anexa arquivos, então a descrição em texto bastou. O resultado bate com o modelo do jogo.
+- **Tratamento:**
+  - reduzidas para o tamanho de uso e salvas em WebP;
+  - o fundo branco das duas figuras recortadas (correndo e pensando) foi tirado com um preenchimento a partir da borda, com borda suave (`tools/art-staging/gemini/cut.py`), e o pelo branco ficou intacto;
+  - nenhuma marca d'água nos cantos.
+
+| Arquivo | Onde aparece | Antes | Agora |
+|---|---|---|---|
+| `hero-vila.webp` | Fundo do menu inicial | Render 1600 × 900, 183 KB | Ilustração 1920 × 1072, 128 KB |
+| `comemoracao.webp` | Missão concluída | Render 600 × 800, 72 KB | 900 × 1205, 83 KB |
+| `pausa-cochilo.webp` | Pausa | Render 1200 × 675, 100 KB | 1280 × 714, 68 KB |
+| `portrait.webp` | HUD, save e diálogos | Render 512², 53 KB | 512², 24 KB |
+| `run-cut.webp` | Tela de carregamento | Recorte 422 × 420, 36 KB | 557 × 560, 52 KB |
+| `thinking-cut.webp` | Desafios de matemática | Recorte 525 × 720, 82 KB | 516 × 760, 58 KB |
+
+Somadas, ficaram menores que as antigas: 413 KB contra 526 KB.
+
+### Enquadramento (`styles.css`)
+- **Menu:** a imagem fica presa a 72% da largura, para o Shinichi continuar visível em telas mais estreitas que 16:9.
+- **Pausa:** `cover` a 75% da altura, para o cochilo e a almofada aparecerem inteiros.
+- **Comemoração:** 35% da altura, para pegar o salto inteiro.
+- **Desafio:** o desbotado de baixo ficou mais curto (92%), porque agora o gato aparece de corpo inteiro.
+- **Conferido:** simulei os recortes nos tamanhos reais (1024 × 768, celular 375 × 812, caixa de pausa 420 × 220, coluna da comemoração e retrato no círculo).
+- **Não conferido:** a captura de tela do navegador não funcionou com o painel escondido. Os tamanhos das caixas vieram do CSS.
+
+A arte de aniversário (`birthday.webp`, com o nome da criança) não mudou e continua fora do repositório.
+

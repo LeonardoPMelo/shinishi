@@ -86,7 +86,8 @@ button { font-family: var(--body); }
 .menu-art {
   position: absolute;
   inset: 0;
-  background: url('/assets/ui/hero-vila.webp') center / cover no-repeat;
+  /* Shinichi stands right of centre (Gemini art): narrower screens keep him in view */
+  background: url('/assets/ui/hero-vila.webp') 72% center / cover no-repeat;
   animation: kenburns 24s ease-in-out infinite alternate;
 }
 .menu-art::after {
@@ -392,7 +393,7 @@ button { font-family: var(--body); }
 }
 .pause-art {
   height: 220px;
-  background: url('/assets/ui/pausa-cochilo.webp') 51% 40% / 135% auto no-repeat;
+  background: url('/assets/ui/pausa-cochilo.webp') 50% 75% / cover no-repeat;
   border-bottom: 3px solid var(--ink);
 }
 .pause-box h2 {
@@ -551,8 +552,8 @@ button { font-family: var(--body); }
   width: 100%;
   display: block;
   filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.35));
-  -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 92%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 92%, transparent 100%);
 }
 .thought {
   position: absolute;
@@ -703,7 +704,7 @@ button { font-family: var(--body); }
 }
 .celebrate-art {
   min-height: 420px;
-  background: url('/assets/ui/comemoracao.webp') center 12% / cover no-repeat;
+  background: url('/assets/ui/comemoracao.webp') center 35% / cover no-repeat;
   border-right: 3px solid var(--ink);
 }
 .celebrate-body {
@@ -1193,7 +1194,7 @@ kbd {
 
 /* the birthday art carries the child's name: it stays on this computer, out of the public repository and
    site (.gitignore). Where it is missing, the regular celebration art underneath shows instead. */
-.celebrate-art.birthday { background-image: url('/assets/ui/birthday.webp'), url('/assets/ui/comemoracao.webp'); background-position: center 18%, center 12%; }
+.celebrate-art.birthday { background-image: url('/assets/ui/birthday.webp'), url('/assets/ui/comemoracao.webp'); background-position: center 18%, center 35%; }
 .celebrate-lesson { background: #E6F2FF; border: 2px solid var(--sky); border-radius: 12px; padding: 10px 12px; color: #2C4A80 !important; }
 .celebrate-name { font-family: var(--title); font-size: 1.3rem; letter-spacing: 1px; color: var(--orange) !important; }
 .menu-reset { align-self: center; color: #F4E6CF; }

@@ -8,7 +8,7 @@
  *    4-byte partial answer once got stored as a whole model and broke the game on GitHub Pages (v1).
  * Bump VERSION to drop every old cache.
  */
-const VERSION = 'shinichi-v18'; // v18: auditoria geral (pedras do bosque, barra de habilidades)
+const VERSION = 'shinichi-v19'; // v19: arte nova do menu e das comemorações (Gemini)
 const SHELL = ['./', './index.html', './manifest.webmanifest', './paw.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
