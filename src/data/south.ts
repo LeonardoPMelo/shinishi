@@ -12,8 +12,25 @@ export const SOUTH_FENCE = { minX: -19.2, maxX: 19.2, maxZ: 64.0 };
 /** The gap in the village's south fence (behind the training forest). */
 export const SOUTH_GATE = { x: -2, z: 39.8, halfWidth: 1.5 };
 
-/** A stream across the whole forest (west → east), narrow enough to jump, with a log and stones. */
+/** A stream across the forest (west → east), narrow enough to jump, with a log and stones. It rises at a spring
+ *  under a mossy outcrop by the west fence and ends in a lily pond in the east (it used to run fence to fence). */
 export const STREAM = { z: 48.0, halfWidth: 0.8 };
+/** The spring: a round pool at the foot of the outcrop (rockX), fed by a little fall from a cleft in the rock. */
+export const SPRING = { x: -16.2, z: 48.0, r: 1.15, rockX: -17.9 };
+/** The lily pond the stream runs into. */
+export const GROVE_POND = { x: 15.2, z: 48.4, rx: 2.5, rz: 1.8 };
+/** The stream's open water runs from the spring pool to the pond. */
+export const STREAM_X0 = SPRING.x;
+export const STREAM_X1 = GROVE_POND.x;
+
+/** Within `pad` m of the grove's water: the spring pool, the stream and the pond. */
+export function nearGroveWater(x: number, z: number, pad = 0) {
+  if (Math.abs(z - STREAM.z) < STREAM.halfWidth + pad && x > STREAM_X0 - pad && x < STREAM_X1 + pad) return true;
+  if (Math.hypot(x - SPRING.x, z - SPRING.z) < SPRING.r + pad) return true;
+  const ex = (x - GROVE_POND.x) / (GROVE_POND.rx + pad);
+  const ez = (z - GROVE_POND.z) / (GROVE_POND.rz + pad);
+  return ex * ex + ez * ez < 1;
+}
 export const LOG_BRIDGE = { x: 2.4, z0: 46.4, z1: 49.6, h: 0.32, halfWidth: 0.38 };
 export const STREAM_STONES: Vec3[] = [[-9.0, 0, 47.5], [-9.4, 0, 48.6]];
 
@@ -72,7 +89,9 @@ export function southPathDistance(x: number, z: number) {
 export function southFree(x: number, z: number, margin: number) {
   if (z < 40.4 + margin * 0.5) return false;
   if (southPathDistance(x, z) < 1.4 + margin) return false;
-  if (Math.abs(z - STREAM.z) < STREAM.halfWidth + 0.4 + margin * 0.4) return false;
+  if (nearGroveWater(x, z, 0.4 + margin * 0.4)) return false;
+  // the spring's rock outcrop
+  if (Math.abs(x - SPRING.rockX) < 1.7 + margin && Math.abs(z - SPRING.z) < 2.0 + margin) return false;
   if (Math.hypot(x - ANCIENT.x, z - ANCIENT.z) < ANCIENT.mound + 1.0 + margin) return false;
   if (Math.hypot(x - MEADOW.x, z - MEADOW.z) < MEADOW.r + 0.8 + margin) return false;
   if (LEDGES.some((l) => Math.hypot(x - l.x, z - l.z) < l.r + 0.9 + margin)) return false;
@@ -98,10 +117,10 @@ export function cedarSpots(): { x: number; z: number; s: number; seed: number }[
   return out;
 }
 
-/** In the stream's water (the log and the stones excluded). */
+/** In the grove's water: spring pool, stream or pond (the log and the stones excluded). */
 export function inStream(x: number, z: number) {
-  if (z < 40.4 || Math.abs(z - STREAM.z) > STREAM.halfWidth) return false;
-  if (Math.abs(x - LOG_BRIDGE.x) < LOG_BRIDGE.halfWidth + 0.1) return false;
+  if (z < 40.4 || !nearGroveWater(x, z)) return false;
+  if (Math.abs(x - LOG_BRIDGE.x) < LOG_BRIDGE.halfWidth + 0.1 && Math.abs(z - STREAM.z) <= STREAM.halfWidth) return false;
   return !STREAM_STONES.some(([sx, , sz]) => Math.hypot(x - sx, z - sz) < 0.55);
 }
 

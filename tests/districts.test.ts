@@ -5,7 +5,7 @@ import {
 } from '../src/data/west';
 import {
   SOUTH, SOUTH_GATE, STREAM, LOG_BRIDGE, STREAM_STONES, ANCIENT, HUG, HUG_CATS, MEADOW, LEDGES, MOSS, HINOKI,
-  cedarSpots, southPathDistance, inStream,
+  cedarSpots, southPathDistance, inStream, SPRING, GROVE_POND, SOUTH_PATHS, southFree,
 } from '../src/data/south';
 import { WALK_RECTS, clampToRegions } from '../src/data/regions';
 import { EAST_GATE } from '../src/data/east';
@@ -127,6 +127,23 @@ describe('Bosque Antigo', () => {
     expect(inStream(LOG_BRIDGE.x, STREAM.z)).toBe(false);
     for (const [x, , z] of STREAM_STONES) expect(inStream(x, z)).toBe(false);
     expect(inStream(-14, STREAM.z)).toBe(true);
+  });
+
+  it('o riacho tem começo e fim: nasce numa fonte e deságua num lago, longe das cercas', () => {
+    // it used to run from fence to fence, with no source and no end
+    expect(inStream(SOUTH.minX + 0.5, STREAM.z)).toBe(false);
+    expect(inStream(SOUTH.maxX - 0.5, STREAM.z)).toBe(false);
+    expect(inStream(SPRING.x, SPRING.z)).toBe(true);
+    expect(inStream(GROVE_POND.x, GROVE_POND.z + GROVE_POND.rz * 0.8)).toBe(true);
+    expect(SPRING.rockX - 1).toBeGreaterThan(SOUTH.minX - 0.6);
+    expect(GROVE_POND.x + GROVE_POND.rx).toBeLessThan(SOUTH.maxX);
+    // no trail goes into the pond or the spring, and no cedar grows in them
+    for (const line of SOUTH_PATHS) for (const [x, z] of line) {
+      expect(Math.hypot(x - SPRING.x, z - SPRING.z) > SPRING.r + 0.5, `${x},${z}`).toBe(true);
+      expect(((x - GROVE_POND.x) / (GROVE_POND.rx + 0.5)) ** 2 + ((z - GROVE_POND.z) / (GROVE_POND.rz + 0.5)) ** 2 > 1, `${x},${z}`).toBe(true);
+    }
+    for (const c of cedarSpots()) expect(southFree(c.x, c.z, 0)).toBe(true);
+    expect(cedarSpots().some((c) => inStream(c.x, c.z))).toBe(false);
   });
 
   it('as pedras do leste sobem um pulo por vez (até 0,7 m) e o último musgo fica no topo', () => {

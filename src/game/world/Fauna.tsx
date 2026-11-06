@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { RIVER } from '../../data/world';
 import { POND, EAST_PLAZA } from '../../data/east';
 import { ONSEN, CLEARING } from '../../data/west';
-import { STREAM, MEADOW } from '../../data/south';
+import { MEADOW, nearGroveWater } from '../../data/south';
 import { clampToRegions } from '../../data/regions';
 import { inWildRiver, inWildWorld, toLocal, w } from '../../data/wild';
 import { playerPosition, playerMotion } from '../systems/playerState';
@@ -42,7 +42,7 @@ export function inWater(x: number, z: number) {
     return inWildRiver(l.x - 0.35, l.z, false) || inWildRiver(l.x + 0.35, l.z, false);
   }
   if (Math.abs(z - RIVER.z) < RIVER.halfWidth + 0.35 && Math.abs(x) < 19.5) return true;
-  if (Math.abs(z - STREAM.z) < STREAM.halfWidth + 0.3 && Math.abs(x) < 19.5) return true;
+  if (z > 40 && nearGroveWater(x, z, 0.3)) return true;
   return inEllipse(x, z, { x: POND.x, z: POND.z, rx: POND.rx, rz: POND.rz }, 0.35) || inEllipse(x, z, ONSEN, 0.35);
 }
 

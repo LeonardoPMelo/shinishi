@@ -9,7 +9,7 @@ import { HORTA } from '../../data/chapter3';
 import { pathDistance } from './Ground';
 import { EAST, EAST_PLAZA, POND, TEA } from '../../data/east';
 import { WEST, CLEARING, ONSEN } from '../../data/west';
-import { SOUTH, STREAM } from '../../data/south';
+import { SOUTH, nearGroveWater } from '../../data/south';
 
 type Spot = { x: number; z: number; r: number; tall?: boolean; lush?: number };
 import { useEffectiveQuality } from '../../store/uiSettings';
@@ -76,7 +76,7 @@ function freeOfShapes(x: number, z: number) {
   const ox = (x - ONSEN.x) / (ONSEN.rx + 0.45);
   const oz = (z - ONSEN.z) / (ONSEN.rz + 0.45);
   if (ox * ox + oz * oz < 1) return false;
-  if (z > 40 && Math.abs(z - STREAM.z) < STREAM.halfWidth + 0.35) return false;
+  if (z > 40 && nearGroveWater(x, z, 0.35)) return false;
   // the step stones in front of each tea terrace
   if (x > TEA.x0 && x < TEA.x0 + 1.4 && TEA.levels.some((lv) => z > lv.z0 - 0.6 && z < lv.z0)) return false;
   for (const [cx, cz, r] of CLEAR_SPOTS) if (Math.hypot(x - cx, z - cz) < r) return false;

@@ -1399,3 +1399,79 @@ Somadas, ficaram menores que as antigas: 413 KB contra 526 KB.
 
 A arte de aniversário (`birthday.webp`, com o nome da criança) não mudou e continua fora do repositório.
 
+## 30. Travadas, conversas e o riacho do Bosque Antigo (2026-11-05)
+
+Pedido do usuário:
+- "o jogo não está totalmente fluido, possui alguns travamentos";
+- "o rio do Bosque Antigo não faz sentido, pois não tem começo nem fim";
+- "durante as conversas não consigo clicar para pular a conversa".
+
+### 1. Conversa: clicar ou tocar avança (`ui/DialogBox.tsx`, `styles.css`)
+
+**Causas:**
+- O texto aparece letra por letra, contado por um temporizador com contador próprio. O clique mostrava a frase inteira, mas no tique seguinte o temporizador devolvia o texto até onde ele estava e continuava digitando. Parecia que o clique não fazia nada, e com Enter acontecia o mesmo.
+- A área clicável era só a caixa no pé da tela. Tocar no cenário durante a conversa não fazia nada.
+
+**Correção:**
+- O temporizador agora conta a partir do que está na tela, então a frase completa não volta atrás.
+- A área de clique ocupa a tela toda. O primeiro toque completa a frase; o segundo avança quando há só um caminho, ou fecha a conversa quando não há opções. Com várias opções, é preciso escolher uma.
+- Os botões não repassam o clique para o fundo, para não agir duas vezes.
+
+**Conferido no jogo:**
+- clique no meio da digitação: 12 letras, depois as 105 da frase, e continuam 105 um segundo e meio depois;
+- o clique seguinte foi para a próxima fala;
+- na última fala, a conversa fechou.
+
+### 2. O riacho com nascente e foz (`data/south.ts`, `AncientGrove.tsx`)
+
+**Antes:** uma faixa reta de água de cerca a cerca, sem começo nem fim.
+
+**Agora:**
+- **Nascente** (`SPRING`, junto à cerca oeste): um rochedo com musgo, três pedras e samambaias. Uma pequena cachoeira sai da fenda (a mesma `Cascade` das outras quedas) e enche um poço redondo com borda de pedras.
+- **Foz** (`GROVE_POND`, a leste): o riacho deságua num lago com 9 vitórias-régias (algumas com flor), juncos, borda de pedras e uma pedra com musgo para subir.
+- **Uma regra só para a água** (`nearGroveWater`): vale para o poço, o riacho e o lago. Cedros, pedras e grama (`southFree`, `Foliage.tsx`) e coelhos e pássaros (`Fauna.tsx`) usam a mesma regra. O gato respinga no lago como no riacho (`inStream`).
+- **Mantido:** o tronco e as pedras para atravessar continuam onde estavam.
+- **Teste novo** (`districts.test.ts`):
+  - a água não toca as cercas;
+  - a fonte e o lago são água;
+  - nenhuma trilha entra neles e nenhum cedro nasce neles.
+- **Conferido:** `__audit.run()` sem problemas e fotos no jogo.
+
+### 3. Travadas: shaders compilados na primeira vez que algo aparece (`game/Effects.tsx`)
+
+**Medição:**
+- **Método:** contei os programas de shader novos (`gl.info.programs`) na primeira visita a cada lugar, a partir de uma página recém-carregada. A contagem é exata. O tempo de cada quadro, com o painel escondido, sai inflado, mas os picos ficam evidentes.
+- **Resultado:** com o painel escondido, um quadro normal leva 40 a 110 ms. A primeira chegada ao Templo de Mikage compilou 4 a 6 programas, num quadro de 1,7 s; a Clareira, 1 a 7 (1,1 s); as Terras Selvagens, 17 (quadros de 1 s).
+
+**Causas, uma atrás da outra:**
+1. O pré-aquecimento (`gl.compile`) pegava as luzes só do que estava visível. Ligar o que estava escondido para compilar também ligava as luzes apagadas (as dos cômodos), e os programas saíam para um número de luzes que nunca é desenhado.
+2. O que estava escondido no momento (cervos longe, as Terras Selvagens, os interiores) ficava de fora.
+3. Os telhados do Templo de Mikage que ficam transparentes quando a câmera passa por baixo trocam de programa na primeira vez que somem.
+4. Os programas da sombra (um por tipo de objeto: animado, repetido, recortado) só eram feitos quando o objeto entrava na caixa de sombra, que acompanha o gato.
+5. Ao trocar de região, os modelos e a grama chegam aos poucos.
+
+**Correção (`warm()` em `Effects.tsx`):**
+- tudo o que está escondido aparece só durante o pré-aquecimento e volta a sumir antes do próximo quadro;
+- as luzes apagadas ficam de fora;
+- os materiais que somem (`userData.fades`, os telhados do Templo de Mikage) também são compilados na versão transparente;
+- uma passada de sombra, com a caixa do sol cobrindo o mapa todo, roda sempre que muda o número de objetos que fazem sombra;
+- as texturas vão para a placa de vídeo antes de aparecer (`initTexture`).
+- **Quando roda:**
+  - aos 1,5 s, 8 s e 20 s do carregamento;
+  - a cada troca de região, aos 0,15 s (com a tela ainda escura), 1,2 s, 5 s e 12 s.
+
+**Resultado (mesma medição, página recém-carregada):**
+
+| Lugar (primeira visita) | Programas novos antes | Depois |
+|---|---|---|
+| Templo de Mikage | 4 a 6 | 0 a 1 (simples) |
+| Clareira dos Cervos | 1 a 7 | 0 |
+| Floresta, Espinhos, caverna e acampamento das Terras Selvagens | 17 no total | 0 |
+| Praça, mercado, riacho, bairro leste, chá e Bambuzal | 0 | 0 a 3 (simples) |
+
+**O que ainda compila** são programas simples de objetos que só aparecem durante o jogo (as patinhas douradas, por exemplo). Custam bem menos que os de antes.
+
+**Não medido:** o ganho em quadros por segundo num celular de verdade. O custo do pré-aquecimento mudou de lugar: agora acontece no carregamento (no menu) e na tela escura da troca de região, e não no meio do caminho.
+
+**Testes:** suíte inteira com 596 passando (1 novo) e build sem erros.
+

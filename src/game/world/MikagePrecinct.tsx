@@ -112,7 +112,8 @@ function RoofFade({ box, children }: { box: [number, number, number, number, num
       m.depthWrite = s.k >= 1;
     }
   });
-  return <group ref={group} userData={{ dynamic: true }}>{children}</group>;
+  // fades: the shader warm-up (Effects.tsx) also compiles these materials' see-through version
+  return <group ref={group} userData={{ dynamic: true, fades: true }}>{children}</group>;
 }
 
 // ── Walls ─────────────────────────────────────────────────────────────────────

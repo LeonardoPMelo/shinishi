@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { checkCondition } from '../systems/progression';
 import { playSfx } from '../audio/sfx';
@@ -41,13 +41,19 @@ export function DialogBox() {
   useEffect(() => {
     setShown(0);
     if (!node) return;
-    let i = 0;
+    // counts from what is on screen, not from its own counter: a click that shows the whole line must not be
+    // undone by the next tick (it was: the text jumped back and went on typing, so clicking seemed to do nothing)
     const id = window.setInterval(() => {
-      i++;
-      setShown(i);
-      const ch = fullText[i - 1];
-      if (i % 2 === 0 && ch && /[\p{L}\p{N}]/u.test(ch)) playSfx('blip', { pitch: speaker.pitch });
-      if (i >= fullText.length) window.clearInterval(id);
+      setShown((prev) => {
+        if (prev >= fullText.length) {
+          window.clearInterval(id);
+          return prev;
+        }
+        const i = prev + 1;
+        const ch = fullText[i - 1];
+        if (i % 2 === 0 && ch && /[\p{L}\p{N}]/u.test(ch)) playSfx('blip', { pitch: speaker.pitch });
+        return i;
+      });
     }, 1000 / TYPEWRITER_SPEED);
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,11 +87,18 @@ export function DialogBox() {
     return () => window.removeEventListener('keydown', onKey);
   }, [node, typing, options, fullText, chooseOption, closeDialogue]);
 
+  /** A click or tap anywhere: the whole line first, then the next line (or the end) when there is no choice to make. */
+  const advance = useCallback(() => {
+    if (typing) setShown(fullText.length);
+    else if (options.length === 1) chooseOption(options[0].nextNodeId, options[0].action);
+    else if (options.length === 0) closeDialogue();
+  }, [typing, fullText, options, chooseOption, closeDialogue]);
+
   if (!dialogue || !node) return null;
   const text = fullText.slice(0, shown);
 
   return (
-    <div className="dialogue-overlay" onClick={typing ? () => setShown(fullText.length) : undefined}>
+    <div className="dialogue-overlay" onClick={advance}>
       <div className={`dialogue-box panel mood-${node.mood ?? 'neutral'}`} key={node.id}>
         <div className="dialogue-speaker" style={{ background: speaker.color }}>
           {node.speaker === 'Shinichi'
@@ -107,16 +120,16 @@ export function DialogBox() {
         {!typing && options.length > 0 && (
           <div className="dialogue-options">
             {options.map((opt, i) => (
-              <button key={i} className="dialogue-option" onClick={() => chooseOption(opt.nextNodeId, opt.action)}>
+              <button key={i} className="dialogue-option" onClick={(e) => { e.stopPropagation(); chooseOption(opt.nextNodeId, opt.action); }}>
                 <kbd>{i + 1}</kbd> {opt.label}
               </button>
             ))}
           </div>
         )}
         {!typing && options.length === 0 && (
-          <button className="dialogue-continue" onClick={closeDialogue}>Continuar ▶</button>
+          <button className="dialogue-continue" onClick={(e) => { e.stopPropagation(); closeDialogue(); }}>Continuar ▶</button>
         )}
-        {typing && <div className="dialogue-skip-hint">Clique ou Enter para avançar</div>}
+        {typing && <div className="dialogue-skip-hint">Toque, clique ou Enter para avançar</div>}
       </div>
     </div>
   );

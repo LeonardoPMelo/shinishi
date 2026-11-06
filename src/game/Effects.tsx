@@ -6,6 +6,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { useUiSettings, AUTO_LADDER } from '../store/uiSettings';
+import { useZone } from './systems/zone';
 
 /**
  * Final look: tone mapping made for the toon shading, warm/cool split toning, saturation and a soft vignette.
@@ -157,20 +158,121 @@ export function PostFX({ bloom, msaa, scale = 1, tint = [1, 1, 1], exposure = 1,
   // Compile every material once, for the render target the scene really draws into, so walking into a
   // new area (or the first villager appearing) doesn't stall on shader compilation.
   useEffect(() => {
+    let shadowCasters = -1;
     const warm = () => {
+      // three's compile() only walks what is visible: everything a DistanceCull, a zone or a cutaway had hidden
+      // (the clearing's deer, the temple's koi and waterfall, the wild lands, the interiors) compiled the first
+      // time it came into view, a frame of a second or more. Shown for this call only, hidden again before any
+      // frame is drawn.
+      // Lights that are not lit now (a room's lamps while outdoors) stay out: a program is built for the number
+      // of lights the frame has, and one built with them would never be the one drawn.
+      const dark: THREE.Light[] = [];
+      scene.traverse((o) => {
+        if (!(o as THREE.Light).isLight) return;
+        let shown = true;
+        for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) shown = false;
+        if (!shown) dark.push(o as THREE.Light);
+      });
+      const hidden: THREE.Object3D[] = [];
+      scene.traverse((o) => {
+        if (!o.visible) {
+          hidden.push(o);
+          o.visible = true;
+        }
+      });
+      const darkWas = dark.map((l) => l.visible);
+      for (const l of dark) l.visible = false;
       const prev = gl.getRenderTarget();
-      gl.setRenderTarget(composer.readBuffer);
-      // compile() starts the same work compileAsync() does (programs link in the background where the driver
-      // allows it); compileAsync's own polling threw "reading 'isReady'" from a timer, out of reach of any catch,
-      // when a material swapped its program while it waited (a roof fading, a zone change)
-      gl.compile(scene, camera);
-      gl.setRenderTarget(prev);
+      try {
+        gl.setRenderTarget(composer.readBuffer);
+        // compile() starts the same work compileAsync() does (programs link in the background where the driver
+        // allows it); compileAsync's own polling threw "reading 'isReady'" from a timer, out of reach of any
+        // catch, when a material swapped its program while it waited (a roof fading, a zone change)
+        gl.compile(scene, camera);
+        // the see-through version of what fades out of the camera's way (a roof between the camera and the cat:
+        // three builds another program for a transparent material, and it did so on the first fade)
+        const fading: THREE.Material[] = [];
+        scene.traverse((o) => {
+          if (!o.userData.fades) return;
+          o.traverse((c) => {
+            const m = (c as THREE.Mesh).material;
+            if (m) for (const mm of Array.isArray(m) ? m : [m]) if (!mm.transparent) fading.push(mm);
+          });
+        });
+        if (fading.length) {
+          for (const m of fading) {
+            m.transparent = true;
+            m.needsUpdate = true;
+          }
+          gl.compile(scene, camera);
+          for (const m of fading) {
+            m.transparent = false;
+            m.needsUpdate = true;
+          }
+        }
+        // the shadow map's depth programs: three makes one per kind of caster (skinned, instanced, cut-out...)
+        // the first time such a caster enters the sun's shadow box, which follows the cat. One shadow pass with
+        // the box stretched over the whole map makes them all now.
+        let sun: THREE.DirectionalLight | null = null;
+        let casters = 0;
+        scene.traverse((o) => {
+          if ((o as THREE.DirectionalLight).isDirectionalLight && o.castShadow) sun = o as THREE.DirectionalLight;
+          else if (o.castShadow && (o as THREE.Mesh).isMesh) casters++;
+        });
+        // (only when the casters changed: models that load late, a zone's own; the pass draws every one of them)
+        if (sun && gl.shadowMap.enabled && casters !== shadowCasters) {
+          shadowCasters = casters;
+          const cam = (sun as THREE.DirectionalLight).shadow.camera;
+          const saved = [cam.left, cam.right, cam.top, cam.bottom, cam.near, cam.far] as const;
+          Object.assign(cam, { left: -700, right: 700, top: 700, bottom: -700, near: -1500, far: 1500 });
+          cam.updateProjectionMatrix();
+          const tiny = new THREE.WebGLRenderTarget(4, 4);
+          gl.setRenderTarget(tiny);
+          gl.shadowMap.needsUpdate = true;
+          gl.render(scene, camera);
+          [cam.left, cam.right, cam.top, cam.bottom, cam.near, cam.far] = saved;
+          cam.updateProjectionMatrix();
+          gl.shadowMap.needsUpdate = true;
+          tiny.dispose();
+        }
+        // and the textures go up to the GPU now, not on the frame that first shows them
+        const seen = new Set<THREE.Texture>();
+        scene.traverse((o) => {
+          const m = (o as THREE.Mesh).material;
+          if (!m) return;
+          for (const mat of Array.isArray(m) ? m : [m]) {
+            for (const v of Object.values(mat)) {
+              if (v instanceof THREE.Texture && !seen.has(v) && v.image) {
+                seen.add(v);
+                gl.initTexture(v);
+              }
+            }
+          }
+        });
+      } finally {
+        gl.setRenderTarget(prev);
+        for (const o of hidden) o.visible = false;
+        dark.forEach((l, i) => (l.visible = darkWas[i]));
+        if (import.meta.env.DEV) {
+          const w = window as unknown as { __warm?: { runs: number; hidden: number; programs: number } };
+          w.__warm = { runs: (w.__warm?.runs ?? 0) + 1, hidden: hidden.length, programs: gl.info.programs?.length ?? 0 };
+        }
+      }
     };
-    const t1 = setTimeout(warm, 1500);
-    const t2 = setTimeout(warm, 8000); // again once the cast GLBs have loaded
+    const timers = [1500, 8000, 20000].map((ms) => setTimeout(warm, ms)); // again as the cast's GLBs load
+    // a zone change mounts what it shows (the wild lands' creatures, a room's models): warm those too, again
+    // as the zone's models and grass arrive (one pass at 1.2 s still left 17 programs for the first walk)
+    let zoneTimers: number[] = [];
+    const unsub = useZone.subscribe((s, p) => {
+      if (s.zone === p.zone) return;
+      zoneTimers.forEach(clearTimeout);
+      // the first one while the screen is still dark (the fade lasts 260 ms either side of the switch)
+      zoneTimers = [150, 1200, 5000, 12000].map((ms) => window.setTimeout(warm, ms));
+    });
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      timers.forEach(clearTimeout);
+      zoneTimers.forEach(clearTimeout);
+      unsub();
     };
   }, [gl, scene, camera, composer]);
 

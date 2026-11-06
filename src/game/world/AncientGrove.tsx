@@ -17,7 +17,9 @@ import { DeerModel, DEER_SIZE, deerKind, deerModelsReady, playDeerClip, type Dee
 import { playerPosition } from '../systems/playerState';
 import {
   SOUTH_FENCE, SOUTH_GATE, STREAM, LOG_BRIDGE, STREAM_STONES, ANCIENT, MEADOW, LEDGES, GROVE_TORII, cedarSpots, southFree,
+  SPRING, GROVE_POND, STREAM_X0, STREAM_X1,
 } from '../../data/south';
+import { Cascade } from './Cascade';
 import { Rock } from './Rock';
 
 /**
@@ -187,12 +189,12 @@ function ForestFloor() {
 
 function Stream() {
   const water = usePondMaterial('#C8EDE2', '#5FA8B8');
-  const len = SOUTH_FENCE.maxX - SOUTH_FENCE.minX;
+  const len = STREAM_X1 - STREAM_X0;
   const banks = useMemo(() => {
     const r = seeded(4545);
     const out: { p: [number, number, number]; s: number; rot: number }[] = [];
     for (const side of [-1, 1]) {
-      for (let x = SOUTH_FENCE.minX + 0.4; x < SOUTH_FENCE.maxX; x += 0.9 + r() * 0.7) {
+      for (let x = STREAM_X0 + SPRING.r + 0.2; x < STREAM_X1 - GROVE_POND.rx; x += 0.9 + r() * 0.7) {
         if (Math.abs(x - LOG_BRIDGE.x) < 0.7) continue;
         out.push({ p: [x, 0.06, STREAM.z + side * (STREAM.halfWidth + 0.12)], s: 0.18 + r() * 0.14, rot: r() * 6 });
       }
@@ -202,10 +204,12 @@ function Stream() {
   return (
     <group>
       {/* a long, thin plane; the shader's radial depth is replaced by its uv, so it reads as a shallow brook */}
-      <mesh position={[0, 0.03, STREAM.z]} rotation={[-Math.PI / 2, 0, 0]} userData={{ dynamic: true }}>
+      <mesh position={[(STREAM_X0 + STREAM_X1) / 2, 0.03, STREAM.z]} rotation={[-Math.PI / 2, 0, 0]} userData={{ dynamic: true }}>
         <planeGeometry args={[len, STREAM.halfWidth * 2]} />
         <primitive object={water} attach="material" />
       </mesh>
+      <Spring water={water} />
+      <LilyPond water={water} />
       {banks.map((b, i) => (
         <Rock key={i} variant={i % 5} kind="flat" position={b.p} rotation={[0, b.rot, 0]} scale={[b.s * 1.4, b.s * 0.9, b.s]} color={i % 3 ? '#9A9184' : '#7F776B'} receiveShadow />
       ))}
@@ -241,6 +245,112 @@ function Stream() {
     </group>
   );
 }
+
+/** Where the stream rises: a mossy rock outcrop by the west fence, a little fall from a cleft, a round pool. */
+function Spring({ water }: { water: THREE.Material }) {
+  const rim = useMemo(() => {
+    const out: { p: [number, number, number]; s: number; rot: number }[] = [];
+    for (let i = 0; i < 11; i++) {
+      // round the pool, leaving the east side open where the stream runs out
+      const a = Math.PI * 0.32 + (i / 10) * Math.PI * 1.36;
+      out.push({ p: [SPRING.x + Math.cos(a) * (SPRING.r + 0.12), 0.07, SPRING.z + Math.sin(a) * (SPRING.r + 0.12)], s: 0.2 + ((i * 0.37) % 1) * 0.12, rot: a * 2 });
+    }
+    return out;
+  }, []);
+  const H = 1.25;
+  return (
+    <group>
+      <mesh position={[SPRING.x, 0.032, SPRING.z]} rotation={[-Math.PI / 2, 0, 0]} userData={{ dynamic: true }}>
+        <circleGeometry args={[SPRING.r, 28]} />
+        <primitive object={water} attach="material" />
+      </mesh>
+      {rim.map((b, i) => (
+        <Rock key={i} variant={i % 5} kind="flat" position={b.p} rotation={[0, b.rot, 0]} scale={[b.s * 1.4, b.s * 0.9, b.s]} color={i % 3 ? '#9A9184' : '#7F776B'} receiveShadow />
+      ))}
+      {/* the outcrop: a big mossy rock with two shoulders; the water comes out of the cleft between them */}
+      <RigidBody type="fixed" colliders={false} position={[SPRING.rockX, 0, SPRING.z]} userData={{ surface: 'stone' }}>
+        <CuboidCollider args={[0.9, 0.9, 1.6]} position={[0, 0.9, 0]} />
+        <Rock variant={3} moss position={[-0.15, 0.85, 0]} rotation={[0, 0.4, 0]} scale={[1.15, 1.25, 1.0]} color="#86867C" ink={0.02} castShadow receiveShadow />
+        <Rock variant={1} moss position={[0.15, 0.55, -1.05]} rotation={[0, 1.2, 0.1]} scale={[0.85, 0.8, 0.8]} color="#7A7B72" castShadow receiveShadow />
+        <Rock variant={4} moss position={[0.1, 0.5, 1.05]} rotation={[0, 2.3, -0.08]} scale={[0.8, 0.75, 0.85]} color="#8A8A80" castShadow receiveShadow />
+      </RigidBody>
+      <group userData={{ dynamic: true }}>
+        <Cascade position={[SPRING.rockX + 0.82, H, SPRING.z]} yaw={Math.PI / 2} height={H - 0.02} width={0.42} bulge={0.18} mist={0.25} opacity={0.85} />
+      </group>
+      {/* ferns crowding the outcrop */}
+      {[[-1.0, -1.7], [0.6, -1.5], [0.7, 1.6], [-0.8, 1.8]].map(([dx, dz], i) => (
+        <mesh key={i} position={[SPRING.rockX + dx, 0.18, SPRING.z + dz]} scale={[0.5, 0.32, 0.5]} geometry={getPuffGeometry(i + 3, 'tiny')} dispose={null}>
+          <Toon color={i % 2 ? '#4A8442' : '#5A9A4A'} vertexColors />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Where the stream ends: a pond with lily pads (some in flower), reeds and a rim of stones. */
+function LilyPond({ water }: { water: THREE.Material }) {
+  const P = GROVE_POND;
+  const parts = useMemo(() => {
+    const r = seeded(7171);
+    const rim: { p: [number, number, number]; s: number; rot: number }[] = [];
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      // the west side is where the stream comes in
+      if (Math.cos(a) < -0.85) continue;
+      rim.push({ p: [P.x + Math.cos(a) * (P.rx + 0.14), 0.07, P.z + Math.sin(a) * (P.rz + 0.14)], s: 0.22 + r() * 0.14, rot: r() * 6 });
+    }
+    const pads: { x: number; z: number; s: number; flower: boolean; rot: number }[] = [];
+    for (let i = 0; i < 9; i++) {
+      const a = r() * Math.PI * 2;
+      const d = 0.25 + r() * 0.6;
+      pads.push({ x: P.x + Math.cos(a) * P.rx * d, z: P.z + Math.sin(a) * P.rz * d, s: 0.16 + r() * 0.1, flower: i % 3 === 0, rot: r() * 6 });
+    }
+    const reeds: [number, number, number][] = [];
+    for (let i = 0; i < 14; i++) {
+      const a = 0.4 + r() * 2.2 * (i % 2 ? 1 : -1);
+      reeds.push([P.x + Math.cos(a) * (P.rx - 0.15), P.z + Math.sin(a) * (P.rz - 0.1), 0.5 + r() * 0.35]);
+    }
+    return { rim, pads, reeds };
+  }, [P]);
+  return (
+    <group>
+      <mesh position={[P.x, 0.032, P.z]} rotation={[-Math.PI / 2, 0, 0]} scale={[P.rx, P.rz, 1]} userData={{ dynamic: true }}>
+        <circleGeometry args={[1, 36]} />
+        <primitive object={water} attach="material" />
+      </mesh>
+      {parts.rim.map((b, i) => (
+        <Rock key={i} variant={i % 5} kind="flat" position={b.p} rotation={[0, b.rot, 0]} scale={[b.s * 1.4, b.s * 0.9, b.s]} color={i % 3 ? '#9A9184' : '#7F776B'} receiveShadow />
+      ))}
+      {parts.pads.map((l, i) => (
+        <group key={i} position={[l.x, 0.045, l.z]} rotation={[0, l.rot, 0]}>
+          {/* a pad with its notch */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[l.s, 14, 0.35, Math.PI * 2 - 0.7]} />
+            <Toon color={i % 2 ? '#5E9A48' : '#6DAA52'} />
+          </mesh>
+          {l.flower && (
+            <mesh position={[0.02, 0.05, 0.02]} scale={[1, 0.6, 1]}>
+              <sphereGeometry args={[0.07, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
+              <Toon color="#F4B6C8" emissive="#F48FB1" emissiveIntensity={0.15} />
+            </mesh>
+          )}
+        </group>
+      ))}
+      {parts.reeds.map(([x, z, h], i) => (
+        <mesh key={i} position={[x, h / 2, z]} rotation={[0.05 * ((i % 3) - 1), 0, 0.06 * ((i % 2) * 2 - 1)]}>
+          <cylinderGeometry args={[0.012, 0.02, h, 4]} />
+          <Toon color={i % 4 === 0 ? '#7A5A3A' : '#6E9A4A'} />
+        </mesh>
+      ))}
+      {/* a mossy stone at the far edge (something to hop onto and look at the pond from) */}
+      <RigidBody type="fixed" colliders={false} position={[P.x + P.rx + 0.7, 0, P.z - 0.3]} userData={{ surface: 'stone' }}>
+        <CylinderCollider args={[0.22, 0.5]} position={[0, 0.22, 0]} />
+        <Rock variant={2} moss position={[0, 0.24, 0]} scale={[0.6, 0.42, 0.55]} color="#86867C" castShadow receiveShadow />
+      </RigidBody>
+    </group>
+  );
+}
+
 
 // ── The Ancient Tree ────────────────────────────────────────────────────────
 
