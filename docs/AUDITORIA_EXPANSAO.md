@@ -1475,3 +1475,42 @@ Pedido do usuário:
 
 **Testes:** suíte inteira com 596 passando (1 novo) e build sem erros.
 
+## 31. Personagens pelas fichas do Gemini, celular e Aspire 3 mais leves, interiores (2026-11-07)
+
+**Pedido:** usar o Gemini para gerar imagens dos modelos aprimorados, passar pelo Tripo e pelo Blender e otimizar o jogo (foco nos personagens, mas também construções, objetos e interiores), fluido no celular e num Acer Aspire 3.
+
+**Ferramentas efetivamente usadas:** Gemini (navegador do app, conta do usuário), Tripo (navegador do app, conta do usuário: só consulta, nada gerado), Blender 5.2 (local), gltf-transform em cache (local), Vitest, servidor de desenvolvimento.
+
+### Tripo: bloqueado no plano grátis
+A conta tem 200 créditos (55 por modelo), mas **o plano grátis não exporta modelos** (o botão Exportar abre a tela de assinatura: Starter R$ 25/mês ou R$ 120/ano). Nenhum crédito foi gasto e nada foi assinado. O usuário escolheu refazer no Blender a partir das fichas.
+
+### Fichas do Gemini (tools/art-staging/tripo/raw, fora do git)
+Shinichi (4 vistas), Mestre Lótus, Hana e o texugo (3–4 vistas cada), fundo branco, no estilo dos modelos atuais. A ficha grande do Shinichi veio com cabeças duplicadas no topo; a vista 3/4 foi recortada e limpa (`shinichi_34.jpg`).
+
+### Modelos refeitos no Blender pelas fichas
+| Modelo | O que mudou | Script |
+|---|---|---|
+| Shinichi | capuz escuro descendo até os olhos e contornando atrás deles, listra branca em V na testa, sela e quadris escuros, uma pinta em cada pata, bordas das manchas suavizadas (`paint(..., soften=1)`), corpo mais cheio, pernas mais grossas, rabo mais encorpado | `build_shinichi.py`, `anatomy.py` (TAIL_R) |
+| Mestre Lótus | jingasa larga e cônica com trama de palha, barba longa e lisa até a barriga (remesh voxel), bengala com nós, orelhas menores sob o chapéu (furavam a aba quando a cabeça inclina) | `build_villager.py` |
+| Hana | touca de chef alta e pregueada (era um "cogumelo" de bolas) | `build_villager.py` |
+| Texugo | cabeça maior (chibi), máscara de texugo de verdade (faixas pretas pelos olhos, listra e bochechas brancas), olhos escuros emburrados, orelhas com borda branca, lenço vermelho no pescoço no lugar do capacete (que escondia o rosto); o escudo fica (é a mecânica dele) | `build_enemies.py` |
+
+Compressão: vilões e vilãs com meshopt (cópia cheia) + simplify 25% (cópia `lod/`); texugo com `compress_enemies.sh`; Shinichi sem meshopt (ver §19).
+
+### Desempenho (celular e Aspire 3)
+1. **Matrizes de quem está escondido** (`src/game/matrixSleep.ts`): o three recalculava a matriz de ~9.500 objetos por quadro, ~3.400 deles em zonas, salas e moradores escondidos. Agora, abaixo de um objeto invisível, os filhos só são recalculados uma vez a cada 30 quadros (cada subárvore no seu quadro) e por inteiro no quadro em que aparecem. Medido na praça (dev, mesmo quadro, A/B na mesma página): **10–12 ms → 6 ms** por quadro na atualização de matrizes. Física e cortes por distância usam `getWorldPosition`/`updateWorldMatrix`, que não são afetados. `__matrixSleep(false)` desliga para A/B (dev).
+2. **Pelo do Shinichi pela qualidade**: as 10 camadas de pelo (~170 mil triângulos com recorte, muito overdraw perto da câmera) agora seguem o degrau automático (10, 10, 5, 5, 3, 2, 2, 0).
+3. **Celular**: detectado por toque sem mouse, pouca memória ou poucos núcleos (`isLowEndDevice`). Começa no degrau 5 em vez do 0 (sem um minuto de engasgos até descer), resolução de tela limitada a 1,25× e um degrau novo no fim (escala 0,6, sem pelo). Os pisos decididos antes continuam: MSAA ligado, detalhe ≥ 60%, escala ≥ 0,6.
+4. **Qualidade automática desce mais rápido** quando o FPS cai abaixo de 30.
+5. **Interiores juntos**: o que não se mexe em cada sala (chão, vigas, porta, móveis) passa por `StaticMerge`. Cantina **202 → 87** chamadas de desenho e **19 → 10 ms** de CPU (dev); Casa do Relojoeiro 84 chamadas. O relógio grande ficou de fora (os ponteiros giram na missão).
+
+### Interiores e objetos
+- Os "móveis cobertos" da Casa do Relojoeiro eram um caixote com uma bola achatada; agora são um lençol caído com ombros arredondados e dobras que abrem no chão (mesma colisão).
+
+### Testes
+`tests/matrixSleep.test.ts` (sono das matrizes, acordar no mesmo quadro, getWorldPosition, camadas de pelo por degrau). Suíte completa verde.
+
+### Limites honestos
+- **Nada foi medido num celular nem no Aspire 3 em produção**: os números acima são do modo dev, nesta máquina, com o painel do navegador escondido (tempos inflados). A melhora relativa vale; o FPS final no aparelho precisa ser visto.
+- Só 4 modelos foram refeitos (Shinichi, Lótus, Hana, texugo); os outros ~30 moradores e 7 criaturas seguem o modelo anterior. As fichas mostram o caminho para os próximos.
+- Prédios externos não foram remodelados nesta etapa (só os interiores e um objeto).

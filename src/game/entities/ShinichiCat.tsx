@@ -7,7 +7,7 @@ import { getGradient, windTime } from '../materials';
 import { buildCharacterMaterials as buildMaterials, inkMaterial, OUTLINED, foldCharacter } from './characterMaterials';
 import { measureGait, gaitFor, stretchStride } from './gait';
 import { useGameStore } from '../../store/gameStore';
-import { useEffectiveQuality } from '../../store/uiSettings';
+import { useRenderProfile } from '../../store/uiSettings';
 import { ITEMS } from '../../data/items';
 import { onGameEvent, type GameEvent } from '../../systems/events';
 import { asset } from '../../assetPath';
@@ -44,8 +44,8 @@ const URL = asset('assets/characters/shinichi.glb');
 const RIG_VERSION = 7;
 const SCALE = 1.25;
 const FEET_Y = -0.66;
-/** Fur shells: count per quality and strand length (model units). */
-const FUR_SHELLS = { alta: 10, media: 5, baixa: 0 } as const;
+/** Fur shells: how many are built (the render profile's `fur` says how many are drawn) and strand length. */
+const FUR_SHELLS_MAX = 10;
 const FUR_LENGTH = 0.014;
 
 type LidKey = 'blink' | 'angry' | 'sad' | 'happy' | 'sleepy';
@@ -152,7 +152,7 @@ type Morphs = { mesh: THREE.Mesh; index: Record<string, number> };
 
 export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
   const gltf = useGLTF(URL);
-  const quality = useEffectiveQuality();
+  const profile = useRenderProfile();
   // the band worn in the 'faixa' slot (systems/inventory.ts)
   const worn = useGameStore((s) => s.progress.equipped.faixa);
   const bandColor = (worn && ITEMS[worn]?.band) || null;
@@ -214,7 +214,7 @@ export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
 
     // Fur shells on the body (count follows the quality setting).
     const shells: THREE.SkinnedMesh[] = [];
-    const maxShells = FUR_SHELLS.alta;
+    const maxShells = FUR_SHELLS_MAX;
     if (body) {
       const b = body as THREE.SkinnedMesh;
       for (let i = 1; i <= maxShells; i++) {
@@ -275,15 +275,15 @@ export function ShinichiCat({ anim }: { anim: MutableRefObject<AnimState> }) {
     return { root, mats, shells, mixer, actions, face, rest, natural, swing };
   }
 
-  // Fur shells visible according to quality.
+  // Fur shells visible according to the render profile (quality setting or the automatic ladder).
   useEffect(() => {
-    const n = FUR_SHELLS[quality];
+    const n = Math.min(rig.shells.length, profile.fur);
     rig.shells.forEach((s, i) => {
       // with fewer shells, keep an even spread across the strand length
       const step = n > 0 ? Math.round(rig.shells.length / n) : Infinity;
       s.visible = n > 0 && (i + 1) % step === 0;
     });
-  }, [quality, rig]);
+  }, [profile.fur, rig]);
 
   // Band color from the worn sash item.
   useEffect(() => {

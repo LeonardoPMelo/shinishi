@@ -302,7 +302,7 @@ export function AutoQuality() {
     const fps = s.frames / s.elapsed;
     s.frames = 0;
     s.elapsed = 0;
-    s.slow = fps < 45 ? s.slow + 1 : 0;
+    s.slow = fps < 45 ? s.slow + (fps < 30 ? 2 : 1) : 0; // far too slow (a phone at the top rung): step at once
     s.fast = fps > 56 ? s.fast + 1 : 0;
     const level = ui.autoLevel;
     if (s.slow >= 2 && level < AUTO_LADDER.length - 1) {

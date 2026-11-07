@@ -98,8 +98,9 @@ def material(name, color=(1, 1, 1), rough=0.8, metal=0.0, vertex=True):
     return mat
 
 
-def paint(obj, fn):
-    """Vertex colors per point: fn(world_co, normal) -> rgb."""
+def paint(obj, fn, soften=0):
+    """Vertex colors per point: fn(world_co, normal) -> rgb. `soften` blurs the colors over the mesh that many
+    times (neighbour average), so pattern edges read as soft fur instead of a jagged vertex staircase."""
     me = obj.data
     attr = me.color_attributes.get('Col') or me.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
     mw = obj.matrix_world
@@ -107,6 +108,28 @@ def paint(obj, fn):
     cols = {}
     for v in me.vertices:
         cols[v.index] = fn(mw @ v.co, (nm @ v.normal).normalized())
+    if soften:
+        nbr = {v.index: [] for v in me.vertices}
+        for e in me.edges:
+            a, b = e.vertices
+            nbr[a].append(b)
+            nbr[b].append(a)
+        for _ in range(soften):
+            nxt = {}
+            for i, c in cols.items():
+                ns = nbr[i]
+                if not ns:
+                    nxt[i] = c
+                    continue
+                acc = [c[0] * 2, c[1] * 2, c[2] * 2]
+                for j in ns:
+                    cj = cols[j]
+                    acc[0] += cj[0]
+                    acc[1] += cj[1]
+                    acc[2] += cj[2]
+                k = len(ns) + 2
+                nxt[i] = (acc[0] / k, acc[1] / k, acc[2] / k)
+            cols = nxt
     for loop in me.loops:
         c = cols[loop.vertex_index]
         attr.data[loop.index].color = (c[0], c[1], c[2], 1.0)
@@ -199,9 +222,9 @@ def body_elements():
                 ell(a.lerp(b, t), (r, r, r))
 
     # compact, fluffy torso
-    ell(CHEST, (0.165, 0.160, 0.160))
-    ell(HIPS, (0.165, 0.170, 0.155))
-    ell((0, 0.03, 0.335), (0.160, 0.12, 0.150))
+    ell(CHEST, (0.178, 0.168, 0.165))
+    ell(HIPS, (0.180, 0.178, 0.160))
+    ell((0, 0.03, 0.335), (0.175, 0.13, 0.155))
     ell(CHEST + Vector((0, -0.10, -0.01)), (0.120, 0.075, 0.125))  # chest fluff
     ell((0, 0.0, 0.235), (0.12, 0.16, 0.07))  # soft belly
     ell(NECK, (0.120, 0.100, 0.110))
@@ -216,11 +239,11 @@ def body_elements():
     # short, sturdy legs and big paws
     for s in (1, -1):
         ell(side((0.105, -0.10, 0.30), s), (0.085, 0.090, 0.100))  # shoulder
-        chain([side(FRONT['shoulder'], s), side(FRONT['elbow'], s), side(FRONT['wrist'], s)], [0.062, 0.056, 0.054])
+        chain([side(FRONT['shoulder'], s), side(FRONT['elbow'], s), side(FRONT['wrist'], s)], [0.072, 0.066, 0.063])
         ell(side((FX, -0.172, 0.040), s), (0.064, 0.078, 0.042))  # front paw
-        ell(side((HX, 0.17, 0.25), s), (0.100, 0.120, 0.130))  # thigh
-        chain([side(HIND['knee'], s), side(HIND['hock'], s)], [0.066, 0.054])
-        chain([side(HIND['hock'], s), side((HX, 0.19, 0.045), s)], [0.052, 0.052])
+        ell(side((HX, 0.17, 0.25), s), (0.108, 0.126, 0.136))  # thigh
+        chain([side(HIND['knee'], s), side(HIND['hock'], s)], [0.074, 0.064])
+        chain([side(HIND['hock'], s), side((HX, 0.19, 0.045), s)], [0.062, 0.060])
         ell(side((HX, 0.178, 0.040), s), (0.064, 0.080, 0.042))  # hind paw
     chain(TAIL, TAIL_R, step=0.016)
     return E
@@ -309,12 +332,17 @@ def ring_on_surface(body, center, axis, up_offsets, outward=0.006, steps=48, max
 
 
 # ── Fur pattern (tuxedo, reference 13) ─────────────────────────────────────────
-PATCHES = [  # black saddle and hip patches: (center, radius)
-    ((0.0, 0.06, 0.47), 0.15),
-    ((0.13, 0.16, 0.40), 0.11),
-    ((-0.11, 0.20, 0.41), 0.10),
-    ((0.0, 0.25, 0.43), 0.11),
-    ((-0.16, -0.03, 0.36), 0.055),
+PATCHES = [  # dark saddle, hip and leg patches: (center, radius)
+    ((0.0, 0.06, 0.47), 0.16),
+    ((0.14, 0.16, 0.40), 0.12),
+    ((-0.12, 0.20, 0.41), 0.11),
+    ((0.0, 0.25, 0.43), 0.12),
+    ((-0.17, -0.03, 0.36), 0.06),
+    # a round spot on the front of each lower leg (Gemini sheet)
+    ((FX + 0.03, -0.20, 0.10), 0.042),
+    ((-FX - 0.03, -0.19, 0.12), 0.036),
+    ((HX + 0.04, 0.24, 0.11), 0.042),
+    ((-HX - 0.04, 0.23, 0.09), 0.038),
 ]
 
 
@@ -326,9 +354,10 @@ def fur_color(co, nor=None):
     if y < -0.08 and z > NECK.z + 0.05:
         if hy > 0.05 and hz > -0.03:  # back of the head
             return BLACK
-        blaze = abs(x) < 0.028 + max(0.0, 0.17 - hz) * 0.42
-        cap = hz > 0.115 - abs(x) * 0.38
-        if cap and not (blaze and hy < -0.06):
+        blaze = abs(x) < 0.022 + max(0.0, 0.15 - hz) * 0.40
+        cap = hz > 0.075 - abs(x) * 0.45
+        behind_eyes = abs(x) > 0.17 and hz > -0.035 and hy > -0.16  # the cap wraps round the sides of the head
+        if (cap or behind_eyes) and not (blaze and hy < -0.06):
             return BLACK
         return WHITE
     for c, r in PATCHES:
@@ -955,7 +984,7 @@ def preview_expressions(cam, parts):
 # ── Build ──────────────────────────────────────────────────────────────────────
 def build_model():
     body = build_body()
-    paint(body, fur_color)
+    paint(body, fur_color, soften=1)
     assign(body, material('fur', rough=0.9))
     eyes = [build_eye(body, s) for s in (1, -1)]
     mouth, nose = build_mouth(body)

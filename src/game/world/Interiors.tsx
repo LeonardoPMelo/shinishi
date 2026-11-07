@@ -16,6 +16,7 @@ import { AcademyActivities } from './AcademyActivities';
 import { wallHides, type WallLine } from './cutaway';
 import { playerPosition } from '../systems/playerState';
 import { SedeActivities } from './SedeActivities';
+import { StaticMerge } from '../StaticMerge';
 
 /**
  * The rooms of the houses you can walk into (Etapa 4 da expansão), built from data/interiors.ts: floor,
@@ -34,8 +35,9 @@ function ClockFace() {
   const minute = open ? 0 : 40;
   const ha = -(hour / 12) * Math.PI * 2;
   const ma = -(minute / 60) * Math.PI * 2;
+  // dynamic: its hands turn when the mission opens the clock, so the room's StaticMerge must leave it alone
   return (
-    <group position={[0, 1.75, 0.26]}>
+    <group position={[0, 1.75, 0.26]} userData={{ dynamic: true }}>
       <mesh>
         <circleGeometry args={[0.3, 32]} />
         <Toon color="#F4EAD2" />
@@ -73,6 +75,37 @@ function ClockFace() {
       </mesh>
     </group>
   );
+}
+
+let dustSheet: THREE.BufferGeometry | null = null;
+/** A sheet thrown over a cabinet (1.3 × 0.85 m, ~1 m tall): a rounded box top, then a skirt with soft folds. */
+function dustSheetGeometry() {
+  if (dustSheet) return dustSheet;
+  const radial = 48;
+  const rows = 14;
+  const g = new THREE.CylinderGeometry(1, 1, 1, radial, rows, false);
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const r = Math.hypot(v.x, v.z); // 1 on the sides; 0..1 across the two end caps
+    const a = Math.atan2(v.z, v.x);
+    const t = v.y + 0.5; // 0 floor .. 1 top
+    // superellipse: boxy in plan, rounded corners
+    const c = Math.cos(a);
+    const sn = Math.sin(a);
+    const k = 1 / Math.pow(Math.pow(Math.abs(c), 4) + Math.pow(Math.abs(sn), 4), 0.25);
+    const fold = 1 + (1 - t) * (0.07 * Math.sin(a * 9) + 0.035 * Math.sin(a * 23 + 1.3)) + (1 - t) * (1 - t) * 0.12;
+    const top = t > 0.82 ? Math.sqrt(Math.max(0, 1 - Math.pow((t - 0.82) / 0.18, 2))) * 0.25 + 0.75 : 1; // rounded shoulder
+    const shoulder = t > 0.82 ? top : 1;
+    // the top cap bulges a little (the sheet over a lid), the bottom one stays flat on the floor
+    const y = t * 0.98 + (t === 1 ? (1 - r * r) * 0.05 : 0);
+    v.set(c * k * 0.66 * fold * shoulder * r, y, sn * k * 0.44 * fold * shoulder * r);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  dustSheet = g;
+  return g;
 }
 
 function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
@@ -255,12 +288,16 @@ function PropView({ p, def }: { p: Prop; def: InteriorDef }) {
       );
     }
     case 'movel_coberto':
+      // furniture under a dust sheet: the cloth rounds over the top and falls in folds that flare at the floor
+      // (was a plain box with a squashed ball on top, which read as an unfinished block)
       return (
         <group position={pos} rotation={[0, rot, 0]}>
-          <Solid size={[1.3, 0.95, 0.85]} color={p.color ?? '#E6E1D6'} ink={0.015} />
-          <mesh position={[0, 0.98, 0]} scale={[1, 0.25, 1]} castShadow>
-            <sphereGeometry args={[0.62, 14, 8]} />
+          <RigidBody type="fixed" colliders={false} userData={ROOM_BODY}>
+            <CuboidCollider args={[0.65, 0.5, 0.43]} position={[0, 0.5, 0]} />
+          </RigidBody>
+          <mesh geometry={dustSheetGeometry()} castShadow receiveShadow>
             <Toon color={p.color ?? '#E6E1D6'} />
+            <Ink thickness={0.012} />
           </mesh>
         </group>
       );
@@ -460,12 +497,32 @@ function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
           <CuboidCollider key={i} args={[wl.size[0] / 2, wl.size[1] / 2, wl.size[2] / 2]} position={wl.at} />
         ))}
       </RigidBody>
-      <Box size={[w + 2 * t, 0.2, d + 2 * t]} at={[0, -0.1, 0]} color={def.floor} tex="planks" />
-      {/* dark ground around the room: the outdoor world is hidden while inside */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.22, 0]}>
-        <planeGeometry args={[60, 60]} />
-        <meshBasicMaterial color="#1B1622" fog={false} />
-      </mesh>
+      {/* Everything in the room that never moves is baked into a few meshes (2026-11): the cantina was ~200
+          draw calls, each box and its ink outline drawn on its own. The walls (cut away when they hide the cat)
+          and the partitions stay out of it. */}
+      <StaticMerge chunk={0}>
+        <Box size={[w + 2 * t, 0.2, d + 2 * t]} at={[0, -0.1, 0]} color={def.floor} tex="planks" />
+        {/* dark ground around the room: the outdoor world is hidden while inside */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.22, 0]}>
+          <planeGeometry args={[60, 60]} />
+          <meshBasicMaterial color="#1B1622" fog={false} />
+        </mesh>
+        {/* the roof's tie beams, resting on the side walls: the lanterns hang from them */}
+        {beams.map((z) => (
+          <Box key={z} size={[w + 0.1, 0.14, 0.16]} at={[0, h - 0.07, z]} color={DARK} tex="wood" />
+        ))}
+        {/* the way out: a lit doormat and two low door posts in the south wall */}
+        <group position={[0, 0, d / 2]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -0.45]}>
+            <planeGeometry args={[1.3, 0.7]} />
+            <Toon color={PAPER} emissive="#FFE7B0" emissiveIntensity={0.55} />
+          </mesh>
+          <Box size={[0.12, CUTAWAY + 0.3, 0.3]} at={[-0.71, (CUTAWAY + 0.3) / 2, 0.1]} color={DARK} tex="wood" />
+          <Box size={[0.12, CUTAWAY + 0.3, 0.3]} at={[0.71, (CUTAWAY + 0.3) / 2, 0.1]} color={DARK} tex="wood" />
+        </group>
+        {(def.floors ?? []).map((f, i) => <FloorPatchView key={i} rect={f.rect} kind={f.kind} />)}
+        {def.props.map((p, i) => <PropView key={i} p={p} def={def} />)}
+      </StaticMerge>
       {walls.map((wl, i) =>
         i === 1 ? (
           // south wall, between the camera and the cat: drawn as a low cutaway so it never hides Shinichi
@@ -482,22 +539,7 @@ function Room({ def, visible }: { def: InteriorDef; visible: boolean }) {
           </group>
         ),
       )}
-      {/* the roof's tie beams, resting on the side walls: the lanterns hang from them */}
-      {beams.map((z) => (
-        <Box key={z} size={[w + 0.1, 0.14, 0.16]} at={[0, h - 0.07, z]} color={DARK} tex="wood" />
-      ))}
-      {/* the way out: a lit doormat and two low door posts in the south wall */}
-      <group position={[0, 0, d / 2]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -0.45]}>
-          <planeGeometry args={[1.3, 0.7]} />
-          <Toon color={PAPER} emissive="#FFE7B0" emissiveIntensity={0.55} />
-        </mesh>
-        <Box size={[0.12, CUTAWAY + 0.3, 0.3]} at={[-0.71, (CUTAWAY + 0.3) / 2, 0.1]} color={DARK} tex="wood" />
-        <Box size={[0.12, CUTAWAY + 0.3, 0.3]} at={[0.71, (CUTAWAY + 0.3) / 2, 0.1]} color={DARK} tex="wood" />
-      </group>
-      {(def.floors ?? []).map((f, i) => <FloorPatchView key={i} rect={f.rect} kind={f.kind} />)}
       <Partitions def={def} active={visible} />
-      {def.props.map((p, i) => <PropView key={i} p={p} def={def} />)}
     </group>
   );
 }

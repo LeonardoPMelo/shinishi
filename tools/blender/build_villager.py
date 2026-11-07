@@ -556,22 +556,53 @@ def build_extras(body, cfg):
     top = HEAD + Vector((0, 0.0, 0.2))
     for ex in cfg['extras']:
         if ex == 'straw_hat':
-            hat = lathe('hat', [(0.0, 0.17), (0.08, 0.15), (0.2, 0.08), (0.36, 0.0), (0.37, -0.012), (0.0, -0.01)], 40)
-            hat.location = HEAD + Vector((0, 0.01, 0.17))
-            hat.rotation_euler = (math.radians(-6), 0, 0)
+            # a wide conical jingasa that sits low over the head, the ears hidden inside (Gemini sheet 2026-11)
+            cone = [(0.0, 0.34), (0.05, 0.315), (0.17, 0.205), (0.33, 0.06), (0.45, 0.0)]
+            fine = []
+            for (r0, z0), (r1, z1) in zip(cone, cone[1:]):
+                fine += [(r0 + (r1 - r0) * t / 6, z0 + (z1 - z0) * t / 6) for t in range(6)]
+            hat = lathe('hat', fine + [(0.45, 0.0), (0.46, -0.016), (0.43, -0.02), (0.0, 0.05)], 64)
+            hat.location = HEAD + Vector((0, 0.01, 0.12))
+            hat.rotation_euler = (math.radians(-5), 0, 0)
             bpy.context.view_layer.update()
-            base.paint(hat, lambda co, n: C('#D9B567') if (co.z * 40) % 1 > 0.25 else C('#B8924A'))
+            hz0 = hat.location.z
+
+            def weave(co, n):
+                h = co.z - hz0
+                if h < 0.012:
+                    return C('#9C7638')  # bound rim
+                ring = (h * 36) % 1 > 0.22
+                spoke = (math.atan2(co.y - hat.location.y, co.x) * 24 / math.pi) % 1 > 0.12
+                return C('#D9B567') if ring and spoke else C('#B8924A')
+            base.paint(hat, weave)
             base.assign(hat, base.material('wood', rough=0.9))
             base.shade_smooth(hat)
             out['head'].append(hat)
         if ex == 'beard':
-            # a soft tapered beard under the chin
+            # a long flowing beard from the chin to the belly, flattened front-to-back, with two moustache tufts
             bm = bmesh.new()
-            base.cone_between(bm, HEAD + Vector((0, -0.15, -0.11)), HEAD + Vector((0, -0.19, -0.3)), 0.07, 0.012, 14)
-            bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=10, radius=0.07, matrix=Matrix.Translation(HEAD + Vector((0, -0.15, -0.11))))
+            # hangs down over the chest (the side view showed it sticking forward like a tusk)
+            spine = [HEAD + Vector((0, -0.16, -0.10)), HEAD + Vector((0, -0.19, -0.22)), HEAD + Vector((0, -0.185, -0.34)), HEAD + Vector((0, -0.165, -0.45))]
+            radii = [0.088, 0.078, 0.052, 0.018]
+            for i in range(len(spine) - 1):
+                base.cone_between(bm, spine[i], spine[i + 1], radii[i], radii[i + 1], 14)
+            bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=10, radius=radii[0], matrix=Matrix.Translation(spine[0]))
+            for sd in (1, -1):
+                bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=8, radius=0.04,
+                                          matrix=Matrix.Translation(HEAD + Vector((sd * 0.06, -0.205, -0.075))) @ Matrix.Diagonal((1.6, 0.7, 0.6, 1)))
+            # flatten front-to-back around the chin line, so it reads as a beard and not a cone
+            for v in bm.verts:
+                v.co.y = HEAD.y - 0.18 + (v.co.y - (HEAD.y - 0.18)) * 0.62
             beard_obj = base.mesh_from_bmesh('beard', bm)
-            sub = beard_obj.modifiers.new('sub', 'SUBSURF')
-            sub.levels = 1
+            # one smooth surface: voxel remesh fuses the pieces, then a light smoothing
+            rem = beard_obj.modifiers.new('remesh', 'REMESH')
+            rem.mode = 'VOXEL'
+            rem.voxel_size = 0.009
+            sm = beard_obj.modifiers.new('smooth', 'CORRECTIVE_SMOOTH')
+            sm.iterations = 8
+            sm.use_only_smooth = True
+            dec = beard_obj.modifiers.new('decimate', 'DECIMATE')
+            dec.ratio = 0.35
             base.apply_modifiers(beard_obj)
             beard = colored(beard_obj, C('#F2F0F5'), 'fur')
             out['head'].append(beard)
@@ -597,10 +628,15 @@ def build_extras(body, cfg):
                 b.rotation_euler.y += math.radians(-18 * s)
                 out['head'].append(colored(b, C('#F2F0F5'), 'fur'))
         if ex == 'cane':
+            # a gnarled walking stick: a few kinks along the shaft and a knotted, curled top
             bm = bmesh.new()
             wr = side(A['wrist'], -1)
-            base.cone_between(bm, wr + Vector((0, -0.04, -0.27)), wr + Vector((0, -0.04, 0.25)), 0.018, 0.016, 8)
-            bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=8, radius=0.035, matrix=Matrix.Translation(wr + Vector((0, -0.04, 0.27))))
+            knots = [(0, -0.27), (0.012, -0.12), (-0.01, 0.02), (0.014, 0.15), (0.0, 0.25), (-0.03, 0.3)]
+            pts = [wr + Vector((dx, -0.04, z)) for dx, z in knots]
+            for i in range(len(pts) - 1):
+                base.cone_between(bm, pts[i], pts[i + 1], 0.019 - i * 0.0006, 0.018 - i * 0.0006, 8)
+                bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=6, radius=0.021, matrix=Matrix.Translation(pts[i + 1]))
+            bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=8, radius=0.034, matrix=Matrix.Translation(wr + Vector((-0.012, -0.04, 0.275))))
             out['hand.R'].append(colored(base.mesh_from_bmesh('cane', bm), C('#7A5236'), 'wood'))
         if ex == 'staff':
             bm = bmesh.new()
@@ -676,11 +712,28 @@ def build_extras(body, cfg):
             pan.rotation_euler = (0, math.radians(80), 0)
             out['chest'] += [colored(pack, C('#9A6A42'), 'leather'), colored(roll, C('#C9A16A')), colored(pan, C('#5E5A5E'), 'metal')]
         if ex == 'chef_hat':
+            # a tall pleated toque: a snug band, then the pleated crown flaring a little and puffing at the top
             bm = bmesh.new()
-            bmesh.ops.create_cone(bm, cap_ends=True, segments=24, radius1=0.15, radius2=0.15, depth=0.12, matrix=Matrix.Translation(top + Vector((0, 0.01, 0.02))))
-            for dx, dy, dz in ((0, 0, 0.13), (0.09, 0.03, 0.1), (-0.09, 0.02, 0.1), (0, -0.08, 0.1), (0.02, 0.08, 0.11)):
-                bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.1, matrix=Matrix.Translation(top + Vector((dx, dy, dz))))
-            out['head'].append(colored(base.mesh_from_bmesh('chefhat', bm), C('#FFFFFF')))
+            prof = [(0.150, -0.04), (0.152, 0.07), (0.146, 0.085), (0.168, 0.14), (0.184, 0.24), (0.186, 0.30), (0.17, 0.345), (0.12, 0.375), (0.05, 0.39), (0.0, 0.392)]
+            segs = 40
+            rings = []
+            for r, z in prof:
+                ring = []
+                for i in range(segs):
+                    a = 2 * math.pi * i / segs
+                    pleat = 1 + (0.045 * math.cos(a * 12) if z > 0.09 and z < 0.36 else 0)
+                    ring.append(bm.verts.new(top + Vector((math.cos(a) * r * pleat, 0.01 + math.sin(a) * r * pleat, z))))
+                rings.append(ring)
+            for j in range(len(rings) - 1):
+                for i in range(segs):
+                    k = (i + 1) % segs
+                    bm.faces.new((rings[j][i], rings[j][k], rings[j + 1][k], rings[j + 1][i]))
+            hat = base.mesh_from_bmesh('chefhat', bm)
+            base.shade_smooth(hat)
+            band_top = top.z + 0.085
+            base.paint(hat, lambda co, n: C('#ECE9E4') if co.z < band_top else C('#FFFFFF'))
+            base.assign(hat, base.material('cloth', rough=0.85))
+            out['head'].append(hat)
         # ── extras for the rest of the village and the new faces ────────────────────
         wrR, wrL = side(A['wrist'], -1), side(A['wrist'], 1)
         if ex == 'mala':  # prayer beads, hanging lower in front
@@ -1343,6 +1396,11 @@ def build_character(name, cfg):
         clothes=build_robe(body, cfg),
         extras=build_extras(body, cfg),
     )
+    if 'straw_hat' in cfg['extras']:
+        # the wide hat covers the ears (Gemini sheet); full-size ears poked through it when the head tilts
+        for ear in parts['ears']:
+            ear.scale = ear.scale * 0.5
+        bpy.context.view_layer.update()
     return parts
 
 

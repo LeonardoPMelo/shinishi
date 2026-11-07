@@ -55,7 +55,7 @@ export const ASSETS = {
   enemy_raposa: { folder: 'characters', collider: 'none', description: 'Raposa ninja: faixa escura, olhos de fenda cor de âmbar, cauda de ponta creme' },
   enemy_espirito: { folder: 'characters', collider: 'none', description: 'Espírito da névoa: gota pálida com cauda de fumaça e uma folha na cabeça' },
   enemy_javali: { folder: 'characters', collider: 'none', description: 'Javali rochoso: enorme, presas, crina e placas de pedra nas costas' },
-  enemy_texugo: { folder: 'characters', collider: 'none', description: 'Texugo guardião: capacete com crista, escudo redondo de tábuas' },
+  enemy_texugo: { folder: 'characters', collider: 'none', description: 'Texugo guardião: máscara listrada, lenço vermelho no pescoço, escudo redondo de tábuas' },
   enemy_doninha: { folder: 'characters', collider: 'none', description: 'Doninha ninja: corpo comprido, faixa preta e cachecol vermelho esvoaçante' },
   enemy_arqueira: { folder: 'characters', collider: 'none', description: 'Raposa arqueira: raposa cinza com arco nas costas e aljava de pinhas' },
   enemy_chefe: { folder: 'characters', collider: 'none', description: 'Chefe Espinho: ouriço grande de espinhos dourados, coroa de espinhos e manto vermelho' },

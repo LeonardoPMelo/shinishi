@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+// hidden subtrees stop recomputing their matrices every frame (see game/matrixSleep.ts)
+import './game/matrixSleep';
 
 // dev: checks that every id in the game data points somewhere real (see systems/validateData.ts)
 if (import.meta.env.DEV) import('./systems/validateData');

@@ -814,40 +814,46 @@ def build_boar(cfg):
 
 
 def build_badger(cfg):
-    """The badger guard: stocky, a white face with two black stripes, a little helmet and a round shield."""
+    """The badger guard (Gemini model sheet, 2026-11): stocky, a big chibi head with the classic mask (white
+    stripe over the head, black bands through the eyes, white cheeks), white-rimmed ears, a red neck kerchief
+    and the round shield its fight is about."""
     fur, white, black = C(cfg['fur']), C('#F2EFE8'), C('#2A2A30')
     body = blob('body', [((0, 0.02, 0.48), (0.4, 0.46, 0.34)), ((0, -0.3, 0.5), (0.33, 0.22, 0.3))], voxel=0.014)
     part(body, 'fur', lambda co, n: mix(fur, black, smooth(-0.1, -0.6, n.z)), 'body')
-    hc = Vector((0, -0.5, 0.6))
-    head = blob('head', [(tuple(hc), (0.24, 0.22, 0.2)), (tuple(hc + Vector((0, -0.17, -0.05))), (0.11, 0.12, 0.09))], voxel=0.009)
+    hc = Vector((0, -0.52, 0.64))
+    head = blob('head', [(tuple(hc), (0.29, 0.26, 0.24)), (tuple(hc + Vector((0, -0.2, -0.07))), (0.12, 0.13, 0.1))], voxel=0.009)
 
     def face(co, n):
         L = co - hc
-        # two black stripes from the nose back over the eyes to the ears (the face between them stays white)
-        stripe = smooth(0.035, 0.06, abs(L.x)) * smooth(0.16, 0.12, abs(L.x))
-        front = smooth(-0.12, -0.02, L.z + 0.4 * (L.y + 0.2))
-        return mix(white, black, max(stripe * front, smooth(0.1, 0.2, L.y)))
+        # black bands from the nose back through the eyes to the ears; the stripe between them and the cheeks
+        # below them stay white; the back of the head is grey fur
+        band = smooth(0.04, 0.07, abs(L.x)) * smooth(0.2, 0.15, abs(L.x))
+        above_cheek = smooth(-0.13, -0.06, L.z + 0.25 * (L.y + 0.2))
+        back = smooth(0.06, 0.18, L.y)
+        c = mix(white, black, band * above_cheek)
+        return mix(c, fur, back)
     part(head, 'fur', face, 'head')
-    eye(head, hc + Vector((0.09, -0.02, 0.03)), (0.5, -1, 0.15), 0.04, 0.038, C('#F2E27A'), lid=black)
-    eye(head, hc + Vector((-0.09, -0.02, 0.03)), (-0.5, -1, 0.15), 0.04, 0.038, C('#F2E27A'), lid=black)
-    nose(head, hc + Vector((0, -0.25, -0.05)), (0, -1, 0.1), 0.035, (0.1, 0.08, 0.09))
+    # small dark eyes under a frowning lid (sulky, not scary)
+    eye(head, hc + Vector((0.1, -0.06, 0.04)), (0.5, -1, 0.15), 0.036, 0.034, C('#2A201C'), lid=black)
+    eye(head, hc + Vector((-0.1, -0.06, 0.04)), (-0.5, -1, 0.15), 0.036, 0.034, C('#2A201C'), lid=black)
+    nose(head, hc + Vector((0, -0.29, -0.07)), (0, -1, 0.1), 0.04, (0.1, 0.08, 0.09))
     for sx in (1, -1):
-        ec = hc + Vector((sx * 0.17, 0.06, 0.1))
-        part(ell('ear', ec, (0.05, 0.03, 0.045), segs=10, rings=8), 'fur', black, ear_bone(ec - Vector((0, 0, 0.03)), ec + Vector((sx * 0.02, 0, 0.06))))
-    # helmet: a dome with a rim and a little crest
-    bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=10, radius=1.0)
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < -0.05], context='VERTS')
-    hm = base.mesh_from_bmesh('helmet', bm)
-    hm.scale = (0.25, 0.25, 0.17)
-    hm.location = hc + Vector((0, 0.02, 0.08))
-    base.solidify(hm, 0.02)
-    part(hm, 'metal', C('#7A6A4E'), 'head')
-    part(tube('rim', [hc + Vector((math.cos(a) * 0.255, 0.02 + math.sin(a) * 0.255, 0.08)) for a in [k / 24 * 2 * math.pi for k in range(25)]], 0.014, segs=6, cap=False), 'metal', C('#5E5038'), 'head')
-    part(cone('crest', hc + Vector((0, 0.0, 0.22)), hc + Vector((0, 0.05, 0.33)), 0.03, 0.0, segs=6), 'cloth', C('#C8302C'), 'head')
+        ec = hc + Vector((sx * 0.2, 0.05, 0.13))
+        part(ell('ear', ec, (0.06, 0.035, 0.055), segs=12, rings=8), 'fur',
+             lambda co, n, ec=ec: white if (co - ec).length > 0.047 else black,
+             ear_bone(ec - Vector((0, 0, 0.03)), ec + Vector((sx * 0.02, 0, 0.06))))
+    # red kerchief round the neck, its point hanging on the chest (Gemini sheet; the old helmet hid the face)
+    red = C('#B8322C')
+    nc = Vector((0, -0.4, 0.5))
+    bm = base.ring_on_surface(body, nc, (0, -0.55, 0.85), [-0.035, 0.035], outward=0.014, steps=32, max_r=0.5)
+    kf = base.mesh_from_bmesh('kerchief', bm)
+    base.solidify(kf, 0.015)
+    part(kf, 'cloth', red, 'body')
+    tip = strip('kerchief_tip', [nc + Vector((0, -0.2, 0.0)), nc + Vector((0, -0.25, -0.1)), nc + Vector((0, -0.24, -0.19))], [0.2, 0.12, 0.02], normal=(0, -1, 0.2))
+    part(tip, 'cloth', red, 'body')
     # shield, held in front of the right shoulder: planks, an iron rim and a boss (on the body: on the leg it
     # swung over the head in the lunge)
-    sc = Vector((0.27, -0.62, 0.46))
+    sc = Vector((0.37, -0.6, 0.43))  # out past the bigger head
     Rz = Matrix.Rotation(-0.28, 3, 'Z')
     fwd = Rz @ Vector((0, -1, 0))
     part(tube('shield', [sc - fwd * 0.03, sc], [0.29, 0.29], segs=24), 'wood',

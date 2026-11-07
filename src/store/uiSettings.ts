@@ -42,7 +42,7 @@ export const useUiSettings = create<UiSettings>()(
       cameraSensitivity: 1,
       quality: 'auto',
       autoQuality: 'alta',
-      autoLevel: 0,
+      autoLevel: isLowEndDevice() ? 5 : 0, // LOW_END_START (declared below the store)
       timeOfDay: 'entardecer',
       reduceMotion: 'auto',
       textScale: 1,
@@ -103,6 +103,11 @@ export interface RenderProfile {
   detail: number;
   /** The pebbles in the dirt paths (the costliest part of the ground shader, Etapa 2). Off from rung 4. */
   pebbles: boolean;
+  /**
+   * Shinichi's fur shells drawn (0–10). Each one redraws his whole body with a cut-out shader: 10 were ~170 k
+   * triangles and a lot of overdraw right in front of the camera, the costliest thing on a phone's GPU.
+   */
+  fur: number;
 }
 
 /**
@@ -112,23 +117,42 @@ export interface RenderProfile {
  * less often (the sun follows the player, so a 20–30 Hz shadow update is hard to notice), and shortens the
  * detail distance; resolution goes down gently, last.
  */
-export const AUTO_LADDER: Pick<RenderProfile, 'scale' | 'bloom' | 'msaa' | 'shadowMap' | 'shadowEvery' | 'detail' | 'pebbles'>[] = [
-  { scale: 1, bloom: true, msaa: 4, shadowMap: 2048, shadowEvery: 1, detail: 1, pebbles: true },
-  { scale: 1, bloom: false, msaa: 4, shadowMap: 2048, shadowEvery: 1, detail: 1, pebbles: true },
-  { scale: 1, bloom: false, msaa: 2, shadowMap: 2048, shadowEvery: 2, detail: 0.9, pebbles: true },
-  { scale: 0.9, bloom: false, msaa: 2, shadowMap: 2048, shadowEvery: 2, detail: 0.8, pebbles: true },
-  { scale: 0.8, bloom: false, msaa: 2, shadowMap: 1024, shadowEvery: 3, detail: 0.72, pebbles: false },
-  // MSAA stays on to the end: at low resolution it is cheap, and jagged toon outlines were the ugliest step
-  { scale: 0.72, bloom: false, msaa: 2, shadowMap: 1024, shadowEvery: 3, detail: 0.65, pebbles: false },
-  { scale: 0.66, bloom: false, msaa: 2, shadowMap: 1024, shadowEvery: 4, detail: 0.6, pebbles: false },
+export const AUTO_LADDER: Pick<RenderProfile, 'scale' | 'bloom' | 'msaa' | 'shadowMap' | 'shadowEvery' | 'detail' | 'pebbles' | 'fur'>[] = [
+  { scale: 1, bloom: true, msaa: 4, shadowMap: 2048, shadowEvery: 1, detail: 1, pebbles: true, fur: 10 },
+  { scale: 1, bloom: false, msaa: 4, shadowMap: 2048, shadowEvery: 1, detail: 1, pebbles: true, fur: 10 },
+  { scale: 1, bloom: false, msaa: 2, shadowMap: 2048, shadowEvery: 2, detail: 0.9, pebbles: true, fur: 5 },
+  { scale: 0.9, bloom: false, msaa: 2, shadowMap: 2048, shadowEvery: 2, detail: 0.8, pebbles: true, fur: 5 },
+  { scale: 0.8, bloom: false, msaa: 2, shadowMap: 1024, shadowEvery: 3, detail: 0.72, pebbles: false, fur: 3 },
+  { scale: 0.72, bloom: false, msaa: 2, shadowMap: 1024, shadowEvery: 3, detail: 0.65, pebbles: false, fur: 2 },
+  { scale: 0.66, bloom: false, msaa: 2, shadowMap: 1024, shadowEvery: 4, detail: 0.6, pebbles: false, fur: 2 },
+  // phones (2026-11): no fur shells, a little less resolution. MSAA, the 60% detail distance and the 0.6 scale
+  // stay the floor (jagged toon outlines and things popping in close were the ugliest steps; tests/quality)
+  { scale: 0.6, bloom: false, msaa: 2, shadowMap: 1024, shadowEvery: 4, detail: 0.6, pebbles: false, fur: 0 },
 ];
 
+/**
+ * A phone or tablet (touch screen, no fine pointer) or a machine with little memory or few cores. Those start
+ * the automatic quality further down the ladder, so the first minute isn't spent stuttering while it steps down.
+ */
+export function isLowEndDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const touchOnly = !!window.matchMedia?.('(pointer: coarse)').matches && !window.matchMedia?.('(any-pointer: fine)').matches;
+  const weak = (nav.deviceMemory !== undefined && nav.deviceMemory <= 4) || (nav.hardwareConcurrency || 8) <= 4;
+  return touchOnly || weak;
+}
+/** Rung the automatic quality starts from on a first run. */
+export const LOW_END_START = 5;
+
+const LOW_END = isLowEndDevice();
+
 export function renderProfile(quality: UiSettings['quality'], autoLevel: number): RenderProfile {
-  if (quality === 'alta') return { dprMax: 1.75, scale: 1, bloom: true, msaa: 4, shadowMap: 2048, shadowEvery: 1, shadows: true, postfx: true, detail: 1, pebbles: true };
-  if (quality === 'media') return { dprMax: 1.25, scale: 1, bloom: false, msaa: 4, shadowMap: 1024, shadowEvery: 2, shadows: true, postfx: true, detail: 0.85, pebbles: true };
-  if (quality === 'baixa') return { dprMax: 1, scale: 1, bloom: false, msaa: 0, shadowMap: 1024, shadowEvery: 1, shadows: false, postfx: false, detail: 0.65, pebbles: false };
+  if (quality === 'alta') return { dprMax: 1.75, scale: 1, bloom: true, msaa: 4, shadowMap: 2048, shadowEvery: 1, shadows: true, postfx: true, detail: 1, pebbles: true, fur: 10 };
+  if (quality === 'media') return { dprMax: 1.25, scale: 1, bloom: false, msaa: 4, shadowMap: 1024, shadowEvery: 2, shadows: true, postfx: true, detail: 0.85, pebbles: true, fur: 5 };
+  if (quality === 'baixa') return { dprMax: 1, scale: 1, bloom: false, msaa: 0, shadowMap: 1024, shadowEvery: 1, shadows: false, postfx: false, detail: 0.65, pebbles: false, fur: 0 };
   const rung = AUTO_LADDER[Math.max(0, Math.min(AUTO_LADDER.length - 1, autoLevel))];
-  return { dprMax: 1.5, shadows: true, postfx: true, ...rung };
+  // phones have 2–3× pixel density: past ~1.25 the extra pixels cost a lot of GPU for little visible gain
+  return { dprMax: LOW_END ? 1.25 : 1.5, shadows: true, postfx: true, ...rung };
 }
 
 /** Current detail distance factor, read every few frames by the distance culls (no React re-render). */

@@ -8,7 +8,7 @@
  *    4-byte partial answer once got stored as a whole model and broke the game on GitHub Pages (v1).
  * Bump VERSION to drop every old cache.
  */
-const VERSION = 'shinichi-v20'; // v20: menos travadas, conversa por toque, riacho com nascente e lago
+const VERSION = 'shinichi-v21'; // v21: personagens refeitos (fichas do Gemini), celular mais leve, interiores juntos
 const SHELL = ['./', './index.html', './manifest.webmanifest', './paw.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
