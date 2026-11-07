@@ -416,7 +416,8 @@ const LOOK: Record<EnemyKind, { color: string }> = {
   chefe: { color: '#5E4434' },
 };
 /** Height of the health bar over each kind, and where the mark sits over its head. */
-const TOP: Record<EnemyKind, number> = { ourico: 1.0, raposa: 1.3, espirito: 1.7, javali: 1.7, texugo: 1.25, doninha: 0.95, arqueira: 1.3, chefe: 1.75 };
+// raised a little in 2026-11: the models got bigger chibi heads (build_enemies.py head_scale)
+const TOP: Record<EnemyKind, number> = { ourico: 1.08, raposa: 1.4, espirito: 1.7, javali: 1.78, texugo: 1.35, doninha: 1.03, arqueira: 1.4, chefe: 1.85 };
 
 /** The marks over the head. */
 type Mark = 'alert' | 'search' | 'dizzy' | 'sleep' | 'calm' | null;

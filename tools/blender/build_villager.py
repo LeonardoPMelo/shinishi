@@ -117,6 +117,7 @@ CAST = {
         fur='#D98E4A', light='#FFE6C7', ear='#B06A2E', iris='#3E8C5A', width=1.25,
         outfit='gi', robe='#2F5E8C', trim='#FFFFFF', obi='#1F3550', pants='#1F3550',
         apron='#E8E2D0', apron_top=0.44, stripes='#B06A2E', belly=True,
+        moustache_col='#F4EEE2',  # a big white moustache (Gemini lineup): the brown one vanished on the orange fur
         extras=['moustache', 'hachimaki', 'fish'], style='hips',
     ),
     'pipo': dict(  # playful kitten: short kimono, pinwheel; the game draws the head bigger (kid proportions)
@@ -133,7 +134,7 @@ CAST = {
         # (Hana wears pink), white apron, kitchen kerchief, bouncy like a kid on her first job
         fur='#F2B56B', light='#FFF1DC', ear='#C9772F', iris='#56B36B', width=0.9,
         outfit='robe', robe='#5FA8D3', trim='#FFFFFF', obi='#F2C94C', hem=0.12, flare=0.05,
-        apron='#FFFFFF', apron_top=0.36, stripes='#C9772F', extras=['bandana'], style='bouncy',
+        apron='#FFFFFF', apron_top=0.36, stripes='#C9772F', bandana_col='#5FB0D9', extras=['bandana'], style='bouncy',
     ),
     'kaito': dict(  # parkour specialist: slim, colour-point fur, tight sleeves, arm wraps, long flying scarf
         fur='#EFE3CF', light='#FFF6E8', ear='#4A3A32', iris='#3FA0E0', width=0.88,
@@ -354,12 +355,14 @@ def build_body(cfg):
 def fur_fn(cfg):
     fur, light = C(cfg['fur']), C(cfg['light'])
     blobs = []
+    # head patches reach forward over an ear and round the top of one eye, so they read from the front
+    # (they sat on top of the head and barely showed; Gemini lineups, 2026-11)
     if cfg.get('calico'):
-        blobs = [((0.12, -0.02, 0.86), 0.11, C('#E39B4A')), ((-0.13, 0.0, 0.88), 0.1, C('#2E2A30')), ((0.0, 0.2, 0.3), 0.1, C('#E39B4A')), ((0, 0.28, 0.45), 0.2, C('#2E2A30'))]
+        blobs = [((0.13, -0.1, 0.87), 0.13, C('#E39B4A')), ((-0.15, -0.05, 0.9), 0.12, C('#2E2A30')), ((0.0, 0.2, 0.3), 0.1, C('#E39B4A')), ((0, 0.28, 0.45), 0.2, C('#2E2A30'))]
     if cfg.get('calico_light'):
-        blobs = [((0.13, 0.0, 0.88), 0.1, C('#E9A15A')), ((0, 0.28, 0.45), 0.2, C('#E9A15A'))]
+        blobs = [((0.14, -0.08, 0.88), 0.12, C('#E9A15A')), ((0, 0.28, 0.45), 0.2, C('#E9A15A'))]
     if cfg.get('patches'):
-        blobs = [((-0.12, 0.0, 0.88), 0.11, C(cfg['patches'])), ((0, 0.28, 0.45), 0.2, C(cfg['patches']))]
+        blobs = [((-0.13, -0.08, 0.88), 0.13, C(cfg['patches'])), ((0.15, -0.02, 0.92), 0.08, C(cfg['patches'])), ((0, 0.28, 0.45), 0.2, C(cfg['patches']))]
     if cfg.get('blobs'):
         blobs = [(c, r, C(col)) for c, r, col in cfg['blobs']]
     A = anatomy(cfg['width'])
@@ -368,21 +371,34 @@ def fur_fn(cfg):
     def f(co, nor=None):
         x, y, z = co.x, co.y, co.z
         hz = z - HEAD.z
-        if cfg.get('mask') and y < HEAD.y - 0.06 and -0.075 < hz < 0.035 and 0.055 < abs(x) < 0.2:
-            return C(cfg['mask'])  # tanuki eye mask
+        # tanuki eye mask: a rounded patch round each eye (was a rectangle across the face)
+        if cfg.get('mask') and y < HEAD.y - 0.05 and ((abs(x) - 0.135) / 0.1) ** 2 + ((hz + 0.005) / 0.075) ** 2 < 1:
+            return C(cfg['mask'])
         if cfg.get('tail_rings') and y > 0.2 and z < 0.5 and (z * 15) % 1 < 0.35:
             return C(cfg['tail_rings'])
         if cfg.get('points'):  # colour-point: dark face mask, paws, feet and tail
             pt = C(cfg['points'])
-            if y < HEAD.y - 0.1 and hz < 0.02 and abs(x) < 0.1:
+            # Siamese mask: an oval over the muzzle and up between the eyes (was a small patch on the muzzle)
+            if y < HEAD.y - 0.06 and (x / 0.15) ** 2 + ((hz + 0.025) / 0.11) ** 2 < 1:
                 return pt
             if z < 0.07 or (y > 0.15 and z < 0.6) or any((co - wv).length < 0.075 for wv in wrists):
                 return pt
         for c, r, col in blobs:
             if (Vector(c) - co).length < r:
                 return col
-        if cfg.get('stripes') and z > HEAD.z + 0.08 and y < 0.05 and abs((x * 9) % 1 - 0.5) < 0.12:
-            return C(cfg['stripes'])
+        if cfg.get('stripes'):
+            # tabby: the "M" on the forehead, bands over the crown, two stripes on each cheek
+            # (was vertical bars over the whole head, which read as dirty smears)
+            st = C(cfg['stripes'])
+            front = y < HEAD.y - 0.05
+            if front and 0.085 < hz < 0.2 and abs(x) < 0.1:
+                lean = (hz - 0.085) * 0.25
+                if any(abs(abs(x) - (k + lean * (1 if k else 0))) < 0.011 for k in (0.0, 0.048)):
+                    return st
+            if hz > 0.13 and y > HEAD.y - 0.05 and abs(((y - HEAD.y) * 11) % 1 - 0.5) < 0.15:
+                return st
+            if front and 0.15 < abs(x) < 0.23 and (abs(hz + 0.035) < 0.01 or abs(hz + 0.068) < 0.01):
+                return st
         if cfg.get('marks') and y < -0.05 and 0.14 < abs(x) < 0.21 and (abs(hz + 0.02) < 0.009 or abs(hz + 0.055) < 0.009):
             return C(cfg['marks'])  # Taro's red cheek stripes
         # light muzzle, chin and paws
@@ -560,8 +576,8 @@ def build_extras(body, cfg):
             cone = [(0.0, 0.34), (0.05, 0.315), (0.17, 0.205), (0.33, 0.06), (0.45, 0.0)]
             fine = []
             for (r0, z0), (r1, z1) in zip(cone, cone[1:]):
-                fine += [(r0 + (r1 - r0) * t / 6, z0 + (z1 - z0) * t / 6) for t in range(6)]
-            hat = lathe('hat', fine + [(0.45, 0.0), (0.46, -0.016), (0.43, -0.02), (0.0, 0.05)], 64)
+                fine += [(r0 + (r1 - r0) * t / 4, z0 + (z1 - z0) * t / 4) for t in range(4)]
+            hat = lathe('hat', fine + [(0.45, 0.0), (0.46, -0.016), (0.43, -0.02), (0.0, 0.05)], 44)  # light: tests/cast keeps models < 400 KB
             hat.location = HEAD + Vector((0, 0.01, 0.12))
             hat.rotation_euler = (math.radians(-5), 0, 0)
             bpy.context.view_layer.update()
@@ -597,12 +613,12 @@ def build_extras(body, cfg):
             # one smooth surface: voxel remesh fuses the pieces, then a light smoothing
             rem = beard_obj.modifiers.new('remesh', 'REMESH')
             rem.mode = 'VOXEL'
-            rem.voxel_size = 0.009
+            rem.voxel_size = 0.012
             sm = beard_obj.modifiers.new('smooth', 'CORRECTIVE_SMOOTH')
             sm.iterations = 8
             sm.use_only_smooth = True
             dec = beard_obj.modifiers.new('decimate', 'DECIMATE')
-            dec.ratio = 0.35
+            dec.ratio = 0.22
             base.apply_modifiers(beard_obj)
             beard = colored(beard_obj, C('#F2F0F5'), 'fur')
             out['head'].append(beard)
@@ -886,7 +902,7 @@ def build_extras(body, cfg):
                 m = base.ellipsoid(f'stache{s}', p + n * 0.012 + Vector((s * 0.04, 0, 0)), (0.075, 0.022, 0.03), forward=(s * 0.45, -1, 0))
                 m.rotation_euler.rotate_axis('Y', math.radians(14 * s))
                 bpy.context.view_layer.update()
-                out['head'].append(colored(m, C('#7A4520'), 'fur'))
+                out['head'].append(colored(m, C(cfg.get('moustache_col', '#7A4520')), 'fur'))
         if ex == 'hachimaki':  # twisted headband with a side knot
             c = HEAD + Vector((0, 0, 0.1))
             band = base.mesh_from_bmesh('hachimaki', base.ring_on_surface(body, c, Vector((0, 0.15, 1)).normalized(), (-0.016, 0.0, 0.016), outward=0.004, steps=56))
@@ -931,14 +947,15 @@ def build_extras(body, cfg):
             c = HEAD + Vector((0, 0.01, 0.12))
             band = base.mesh_from_bmesh('bandana', base.ring_on_surface(body, c, Vector((0, 0.3, 1)).normalized(), (-0.022, 0.0, 0.022, 0.044), outward=0.005, steps=56))
             base.solidify(band, 0.007)
-            base.paint(band, lambda co, n: C('#FFFFFF') if math.sin(co.x * 90) * math.sin(co.z * 90) > 0.85 else C('#E8B33A'))
+            bc = C(cfg.get('bandana_col', '#E8B33A'))
+            base.paint(band, lambda co, n, bc=bc: C('#FFFFFF') if math.sin(co.x * 90) * math.sin(co.z * 90) > 0.85 else bc)
             base.assign(band, base.material('cloth', rough=0.85))
             out['head'].append(band)
             for s in (1, -1):
                 tail = base.rounded_box(f'bandanatail{s}', (0.035, 0.006, 0.1), bevel=0.004)
                 tail.location = HEAD + Vector((s * 0.035, 0.23, 0.04))
                 tail.rotation_euler = (math.radians(30), math.radians(25 * s), 0)
-                out['head'].append(colored(tail, C('#E8B33A')))
+                out['head'].append(colored(tail, C(cfg.get('bandana_col', '#E8B33A'))))
         if ex == 'long_scarf':  # Kaito's scarf, two long tails flying back
             ring = base.mesh_from_bmesh('lscarf', base.ring_on_surface(body, Vector((0, -0.01, 0.5)), Vector((0, -0.2, 1)).normalized(), (-0.022, 0.0, 0.022), outward=0.012, steps=40, max_r=0.15))
             base.solidify(ring, 0.01)
@@ -1362,7 +1379,8 @@ def build_character(name, cfg):
     base.WHITE = C(cfg['light']) if cfg.get('calico') or cfg.get('calico_light') else C(cfg['fur'])
     base.BLACK = C(cfg['ear'])
     body = build_body(cfg)
-    base.paint(body, fur_fn(cfg))
+    # soften: stripes, patches and masks read as soft fur, not a jagged vertex staircase (2026-11)
+    base.paint(body, fur_fn(cfg), soften=1)
     base.assign(body, base.material('fur', rough=0.9))
 
     eyes = []

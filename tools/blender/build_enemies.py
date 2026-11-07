@@ -702,7 +702,7 @@ def archer_extras(body, head, hc):
 def hedgehog_body(cfg, s=1.0):
     """The round bandit hedgehog (the Chief is a bigger one): body, face, spines, mask, little legs."""
     S = lambda v: Vector(v) * s  # noqa: E731
-    fur, face, spine = C(cfg['fur']), C('#E8D2B0'), C(cfg['spine'])
+    fur, face, spine = C(cfg['fur']), C('#F2E2C8'), C(cfg['spine'])  # a light cream face against the dark spines (Gemini)
     tipc = C(cfg.get('tip', '#E8D8B8'))
     bc = S((0, 0.02, 0.3))
     body = blob('body', [(tuple(bc), tuple(S((0.32, 0.36, 0.27)))), (tuple(S((0, -0.12, 0.26))), tuple(S((0.27, 0.2, 0.22))))], voxel=0.012 * s)
@@ -764,7 +764,9 @@ def build_chief(cfg):
     part(collar, 'cloth', red, 'head')
     for sx in (1, -1):
         a0 = hc + S_((sx * 0.14, -0.06, -0.14), s)
-        part(strip('cloakfall', [a0, a0 + S_((sx * 0.05, 0.02, -0.08), s), a0 + S_((sx * 0.08, 0.06, -0.15), s)], [0.12 * s, 0.14 * s, 0.15 * s], normal=(sx * 0.6, -1, 0), thick=0.015 * s), 'cloth',
+        # the cloak falls from the shoulders back along the flanks, under the spines (Gemini sheet: it covers the back)
+        part(strip('cloakfall', [a0, a0 + S_((sx * 0.07, 0.1, -0.06), s), a0 + S_((sx * 0.12, 0.28, -0.12), s), a0 + S_((sx * 0.13, 0.46, -0.17), s)],
+                   [0.14 * s, 0.2 * s, 0.24 * s, 0.24 * s], normal=(sx * 1, -0.15, 0.25), thick=0.015 * s), 'cloth',
              lambda co, n: mix(red, (0.45, 0.1, 0.12), smooth(0.35 * s, 0.15 * s, co.z)), 'body')
     part(ell('clasp', hc + S_((0, -0.16, -0.15), s), (0.04 * s, 0.02 * s, 0.04 * s)), 'metal', gold, 'head')
     top = hc + S_((0, -0.02, 0.16), s)
@@ -804,7 +806,10 @@ def build_boar(cfg):
         part(cone('bristle', (0, y, z - 0.05), (0, y + 0.08, z + 0.12), 0.05, 0.0, segs=5), 'fur', dark, 'body')
     stone = C('#8E877A')
     for i, (x, y, z, r) in enumerate([(-0.28, -0.35, 1.06, 0.27), (0.3, -0.25, 1.04, 0.24), (0.12, 0.1, 1.1, 0.3), (-0.22, 0.32, 1.0, 0.26), (0.3, 0.42, 0.9, 0.2), (-0.05, -0.62, 1.08, 0.22)]):
-        part(rock('plate', (x, y, z), r, i), 'metal', lambda co, n, i=i: mix(stone, (0.5, 0.48, 0.44), 0.5 + 0.5 * math.sin(co.x * 23 + co.y * 17 + i)), 'body')
+        # moss grows on the tops of the plates (Gemini sheet): the boar reads as part of the forest
+        part(rock('plate', (x, y, z), r, i), 'metal',
+             lambda co, n, i=i: mix(mix(stone, (0.5, 0.48, 0.44), 0.5 + 0.5 * math.sin(co.x * 23 + co.y * 17 + i)), (0.36, 0.5, 0.22),
+                                    smooth(0.35, 0.8, n.z) * (0.75 + 0.25 * math.sin(co.x * 31 + co.y * 13))), 'body')
     spots = [(0.3, -0.45), (-0.3, -0.45), (0.3, 0.45), (-0.3, 0.45)]
     leg_parts(spots, 0.5, 0.13, 0.07, dark, (0.2, 0.17, 0.16), upper=fur)
     tail = [(0, 0.72, 0.68), (0, 0.8, 0.6), (0, 0.84, 0.5)]
@@ -927,14 +932,14 @@ def build_spirit(cfg):
 
 
 KINDS = {
-    'ourico': dict(build=build_hedgehog, fur='#8C6A4E', spine='#4A3628', band='#8C2E2E', swing=0.55, lunge=0.3, sink=0.1),
-    'raposa': dict(build=build_fox, fur='#D9733A', band='#2E2A36', swing=0.5, lunge=0.3, sink=0.2),
-    'arqueira': dict(build=build_fox, fur='#9AA0A8', band='#3E6A3A', dark='#3A3A40', iris='#9CD3E8', extras=archer_extras, swing=0.5, sink=0.2, throws=True),
-    'javali': dict(build=build_boar, fur='#7A6656', swing=0.35, lunge=0.4, sink=0.3),
+    'ourico': dict(build=build_hedgehog, head_scale=1.22, fur='#8C6A4E', spine='#4A3628', band='#8C2E2E', swing=0.55, lunge=0.3, sink=0.1),
+    'raposa': dict(build=build_fox, head_scale=1.25, fur='#D9733A', band='#2E2A36', swing=0.5, lunge=0.3, sink=0.2),
+    'arqueira': dict(build=build_fox, head_scale=1.25, fur='#9AA0A8', band='#3E6A3A', dark='#3A3A40', iris='#9CD3E8', extras=archer_extras, swing=0.5, sink=0.2, throws=True),
+    'javali': dict(build=build_boar, head_scale=1.18, fur='#7A6656', swing=0.35, lunge=0.4, sink=0.3),
     'texugo': dict(build=build_badger, fur='#6E6A70', swing=0.4, lunge=0.25, sink=0.2),
-    'doninha': dict(build=build_weasel, fur='#9A6238', swing=0.6, lunge=0.32, sink=0.14),
+    'doninha': dict(build=build_weasel, head_scale=1.25, fur='#9A6238', swing=0.6, lunge=0.32, sink=0.14),
     'espirito': dict(build=build_spirit, fur='#CFE6F5', legs=False, lunge=0.35, sink=0.15, look=False),
-    'chefe': dict(build=build_chief, fur='#5E4434', spine='#4A3424', tip='#D9A520', band='#8C2E2E', spines=1.3, swing=0.45, lunge=0.4, sink=0.16),
+    'chefe': dict(build=build_chief, head_scale=1.15, fur='#5E4434', spine='#4A3424', tip='#D9A520', band='#8C2E2E', spines=1.3, swing=0.45, lunge=0.4, sink=0.16),
 }
 
 
@@ -952,6 +957,21 @@ def render(name, arm=None, actions=None):
     rig.clear_pose(arm)
 
 
+def grow_head(bones, k):
+    """Chibi heads (Gemini lineups, 2026-11): everything riding the head or an ear grows by k about the neck
+    joint, and the head and ear bones move with it. The creatures had realistic small heads next to the
+    villagers' and Shinichi's big ones."""
+    neck = next(Vector(b[1]) for b in bones if b[0] == 'head')
+    S = Matrix.Translation(neck) @ Matrix.Diagonal((k, k, k, 1)) @ Matrix.Translation(-neck)
+    for obj, w in PARTS:
+        if isinstance(w, str) and (w == 'head' or w.startswith('ear.')):
+            bpy.context.view_layer.update()
+            obj.matrix_world = S @ obj.matrix_world
+    grow = lambda v: tuple(neck + (Vector(v) - neck) * k)
+    EARS[:] = [(bn, grow(b), grow(t)) for bn, b, t in EARS]
+    return [(b[0], b[1], grow(b[2]), *b[3:]) if b[0] == 'head' else b for b in bones]
+
+
 def main():
     names = list(KINDS) if KIND == 'all' else KIND.split(',')
     for name in names:
@@ -959,7 +979,10 @@ def main():
         base.reset_scene()
         PARTS.clear()
         EARS.clear()
-        bones = cfg['build'](cfg) + [(bn, b, t, 'head') for bn, b, t in EARS]
+        bones = cfg['build'](cfg)
+        if cfg.get('head_scale'):
+            bones = grow_head(bones, cfg['head_scale'])
+        bones = bones + [(bn, b, t, 'head') for bn, b, t in EARS]
         if STAGE == 'model':
             render(name)
             continue

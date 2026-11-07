@@ -1514,3 +1514,29 @@ Compressão: vilões e vilãs com meshopt (cópia cheia) + simplify 25% (cópia 
 - **Nada foi medido num celular nem no Aspire 3 em produção**: os números acima são do modo dev, nesta máquina, com o painel do navegador escondido (tempos inflados). A melhora relativa vale; o FPS final no aparelho precisa ser visto.
 - Só 4 modelos foram refeitos (Shinichi, Lótus, Hana, texugo); os outros ~30 moradores e 7 criaturas seguem o modelo anterior. As fichas mostram o caminho para os próximos.
 - Prédios externos não foram remodelados nesta etapa (só os interiores e um objeto).
+
+## 32. O resto do elenco e das criaturas pelas fichas do Gemini (2026-11-07)
+
+**Pedido:** "Pode continuar": fazer o mesmo com os outros moradores e criaturas.
+
+**Fichas:** 11 imagens no Gemini (3 personagens por imagem: pedidos de 6 por imagem davam erro no Gemini), cobrindo os 33 moradores restantes e as 7 criaturas. Lista dos pedidos em `tools/art-staging/gemini/LINEUPS.md` (fora do git). Nenhuma imagem foi baixada: foram usadas só como referência na tela.
+
+**O que as fichas mostraram:** os desenhos de roupa e acessórios já batiam com os modelos. As diferenças estavam no pelo (manchas borradas), em alguns detalhes de cor e nas cabeças pequenas das criaturas.
+
+### Moradores (`build_villager.py`, os 37 reconstruídos)
+- Pelo com bordas suaves em todos (`paint(..., soften=1)`): listras e manchas deixam de parecer sujeira.
+- Rajado (tabby): o "M" na testa, faixas no alto da cabeça e duas listras em cada bochecha (antes, barras verticais na cabeça inteira).
+- Tanuki: máscara arredondada em volta de cada olho (era um retângulo).
+- Ponta escura (Kaito): máscara siamesa oval do focinho até entre os olhos.
+- Manchas de calicó/patches (Pipo, Sora, Luna, Hana, Momo) avançam sobre uma orelha e em volta de um olho, visíveis de frente.
+- Seu Bigodes: bigode branco (`moustache_col`; o marrom sumia no pelo laranja). Mimi: lenço azul de bolinhas (`bandana_col`).
+- Chapéu de palha cônico (§31) vale também para Fuji e Bento.
+
+### Criaturas (`build_enemies.py`)
+- Cabeça chibi (`head_scale`, aumenta cabeça, olhos, focinho e orelhas em volta do pescoço, com os ossos): ouriço 1,22, raposa e arqueira 1,25, doninha 1,25, javali 1,18, chefe 1,15. O "!" de alerta subiu junto (`TOP` em Enemies.tsx).
+- Ouriço e Chefe: rosto creme claro contra os espinhos escuros. Chefe: capa que desce pelos flancos.
+- Javali: musgo verde no alto das placas de pedra.
+
+### Limites
+- As fichas são referência visual, não modelos: os personagens continuam sendo construídos por script no Blender, no estilo atual.
+- Nada medido em celular. Tamanho dos arquivos praticamente igual (meshopt + cópia LOD dos moradores; simplify + meshopt das criaturas).
